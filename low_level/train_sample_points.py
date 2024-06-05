@@ -49,14 +49,13 @@ def train_epoch(model, loss_fn, optimizer, data_loader, device, is_training=True
     model.train(is_training)
     with torch.set_grad_enabled(is_training):
         for i, data in enumerate(data_loader):
-            pairs = []
+            pairs = torch.zeros(data.shape)
             for j in range(Config.train.batch_size):
                 r = np.random.randint(low=0, high=data.shape[0])
                 while not validate_pairs(data[j, :7], data[r, -2:]):
                     r = np.random.randint(low=0, high=data.shape[0])
                 combined = torch.cat((data[j, :21], data[r, 21:]), dim=0)
-                pairs.append(combined)
-            pairs = torch.tensor(pairs)
+                pairs[j, :] = combined
             q_cps, t_cps = model(pairs[:, :42])
             loss_tuple = loss_fn(q_cps, t_cps, pairs[:, -2:])
             model_loss = torch.mean(loss_tuple[0])
