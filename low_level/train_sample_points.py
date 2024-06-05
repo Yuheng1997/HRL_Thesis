@@ -50,7 +50,7 @@ def train_epoch(model, loss_fn, optimizer, data_loader, device, is_training=True
     with torch.set_grad_enabled(is_training):
         for i, data in enumerate(data_loader):
             pairs = torch.zeros(data.shape)
-            for j in range(Config.train.batch_size):
+            for j in range(data.shape[0]):
                 r = np.random.randint(low=0, high=data.shape[0])
                 while not validate_pairs(data[j, :7], data[r, -2:]):
                     r = np.random.randint(low=0, high=data.shape[0])
