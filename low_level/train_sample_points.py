@@ -51,9 +51,9 @@ def train_epoch(model, loss_fn, optimizer, data_loader, device, is_training=True
         for i, data in enumerate(data_loader):
             pairs = []
             for j in range(Config.train.batch_size):
-                r = np.random.randint(low=0, high=data.shape[0]+1)
+                r = np.random.randint(low=0, high=data.shape[0])
                 while not validate_pairs(data[j, :7], data[r, -2:]):
-                    r = np.random.randint(low=0, high=data.shape[0]+1)
+                    r = np.random.randint(low=0, high=data.shape[0])
                 combined = torch.cat((data[j, :21], data[r, 21:]), dim=0)
                 pairs.append(combined)
             pairs = torch.tensor(pairs)
