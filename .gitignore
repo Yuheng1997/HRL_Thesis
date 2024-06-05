@@ -4,3 +4,5 @@ trained_low_agent/
 __pycache__
 wandb/
 .idea/
+logs
+high_level/logs
