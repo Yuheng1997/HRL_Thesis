@@ -1,6 +1,6 @@
 trained_high_agent/
 trained_low_agent/
-.msh
+*.msh
 __pycache__
 wandb/
 .idea/
