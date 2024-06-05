@@ -25,8 +25,9 @@ def setup_device(device_name):
 
 def validate_pairs(q_1, pos_2):
     q_1 = q_1.cpu().numpy()
-    pos_1 = forward_kinematics(mj_model=robot_model, mj_data=robot_data, q=q_1)
-    dist = np.linalg.norm(pos_1, pos_2)
+    pos_1 = forward_kinematics(mj_model=robot_model, mj_data=robot_data, q=q_1)[0][:2]
+    pos_2 = pos_2.cpu().numpy()
+    dist = np.linalg.norm(pos_1-pos_2)
     return dist > 1.2 * (puck_radius + mallet_radius)
 
 
