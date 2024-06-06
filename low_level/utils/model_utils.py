@@ -1,7 +1,7 @@
 import os
 import torch
 
-from low_level.config import Config
+from config import Config
 
 
 def save_model(model, loss_fn, optimizer, epoch):
