@@ -53,8 +53,8 @@ class Save:
 
 
 class Load:
-    enable = False
-    epoch = 0
+    enable = True
+    epoch = 2020
 
 
 class Data:
