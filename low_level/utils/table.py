@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from low_level.utils.constants import TableConstraint
+from utils.constants import TableConstraint
 
 
 class Table:
