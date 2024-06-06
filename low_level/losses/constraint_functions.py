@@ -1,6 +1,6 @@
 import torch
 
-from utils.table import Table
+from low_level.utils.table import Table
 
 
 table = Table()
