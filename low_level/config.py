@@ -48,8 +48,7 @@ class Save:
     interval = 1005
     current_folder = os.getcwd()
     parent_folder = os.path.dirname(current_folder)
-    grandparent_folder = os.path.dirname(parent_folder)
-    path = os.path.join(grandparent_folder, 'trained_low_agent', "model")
+    path = os.path.join(parent_folder, 'trained_low_agent', "model")
 
 
 class Load:
