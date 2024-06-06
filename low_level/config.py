@@ -45,8 +45,11 @@ class Plots:
 
 class Save:
     enable = True
-    interval = 1010
-    path = os.path.join(os.path.abspath(os.getcwd()), "model")
+    interval = 1005
+    current_folder = os.getcwd()
+    parent_folder = os.path.dirname(current_folder)
+    grandparent_folder = os.path.dirname(parent_folder)
+    path = os.path.join(grandparent_folder, 'trained_low_agent', "model")
 
 
 class Load:

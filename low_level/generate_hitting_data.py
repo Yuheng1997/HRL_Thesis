@@ -1441,43 +1441,43 @@ def generate_uniform_data(n):
         # data.append(np.concatenate([qf, qdf, qddf, q0, qd0, qdd0, PUCK_DEFAULT_POS], axis=None))
     # start in hit range, uniform velocity, epcilon_0_1
     for _ in range(int(n * 0.6)):
-        q0, qd0, qdd0, start_pos_2d, qf, qdf, qddf, hit_pos_2d = generate_configuration_to_data(
+        q0, qd0, qdd0, qf, qdf, qddf, hit_pos_2d = generate_configuration_to_data(
                                                    start_point_function=get_init_puck_pos_uniform,
                                                    start_vel_low=-np.pi, start_vel_high=np.pi, start_epcilon_high=1,
                                                    start_use_init_q=True, hit_vel_low=0, hit_vel_high=np.pi,
                                                    hit_epcilon_high=1, hit_use_init_q=False)
-        data.append(np.concatenate([q0, qd0, qdd0, start_pos_2d, qf, qdf, qddf, hit_pos_2d], axis=None))
+        data.append(np.concatenate([q0, qd0, qdd0, qf, qdf, qddf, hit_pos_2d], axis=None))
     # start in hit range, towards backside
 
     # start in backside
     for _ in range(int(n * 0.05)):
-        q0, qd0, qdd0, start_pos_2d, qf, qdf, qddf, hit_pos_2d = generate_configuration_to_data(
+        q0, qd0, qdd0, qf, qdf, qddf, hit_pos_2d = generate_configuration_to_data(
                                                    start_point_function=get_middle_point_backside,
                                                    start_vel_low=0, start_vel_high=np.pi, start_epcilon_high=0.8,
                                                    start_use_init_q=True, hit_vel_low=0, hit_vel_high=np.pi,
                                                    hit_epcilon_high=1, hit_use_init_q=False)
-        data.append(np.concatenate([q0, qd0, qdd0, start_pos_2d, qf, qdf, qddf, hit_pos_2d], axis=None))
-        q0, qd0, qdd0, start_pos_2d, qf, qdf, qddf, hit_pos_2d = generate_configuration_to_data(
+        data.append(np.concatenate([q0, qd0, qdd0, qf, qdf, qddf, hit_pos_2d], axis=None))
+        q0, qd0, qdd0, qf, qdf, qddf, hit_pos_2d = generate_configuration_to_data(
                                                    start_point_function=get_middle_point_backside,
                                                    start_vel_low=-np.pi, start_vel_high=0, start_epcilon_high=0.5,
                                                    start_use_init_q=True, hit_vel_low=0, hit_vel_high=np.pi,
                                                    hit_epcilon_high=1, hit_use_init_q=False)
-        data.append(np.concatenate([q0, qd0, qdd0, start_pos_2d, qf, qdf, qddf, hit_pos_2d], axis=None))
+        data.append(np.concatenate([q0, qd0, qdd0, qf, qdf, qddf, hit_pos_2d], axis=None))
     # start in left and right side
     for _ in range(int(n * 0.05)):
-        q0, qd0, qdd0, start_pos_2d, qf, qdf, qddf, hit_pos_2d = generate_configuration_to_data(
+        q0, qd0, qdd0, qf, qdf, qddf, hit_pos_2d = generate_configuration_to_data(
                                                    start_point_function=get_middle_point_leftside,
                                                    start_vel_low=np.pi/2, start_vel_high=np.pi, start_epcilon_high=0.8,
                                                    start_use_init_q=True, hit_vel_low=0, hit_vel_high=np.pi,
                                                    hit_epcilon_high=1, hit_use_init_q=False)
-        data.append(np.concatenate([q0, qd0, qdd0, start_pos_2d, qf, qdf, qddf, hit_pos_2d], axis=None))
+        data.append(np.concatenate([q0, qd0, qdd0, qf, qdf, qddf, hit_pos_2d], axis=None))
 
-        q0, qd0, qdd0, start_pos_2d, qf, qdf, qddf, hit_pos_2d = generate_configuration_to_data(
+        q0, qd0, qdd0, qf, qdf, qddf, hit_pos_2d = generate_configuration_to_data(
                                                    start_point_function=get_middle_point_rightside,
                                                    start_vel_low=0, start_vel_high=np.pi/2, start_epcilon_high=0.8,
                                                    start_use_init_q=True, hit_vel_low=0, hit_vel_high=np.pi,
                                                    hit_epcilon_high=1, hit_use_init_q=False)
-        data.append(np.concatenate([q0, qd0, qdd0, start_pos_2d, qf, qdf, qddf, hit_pos_2d], axis=None))
+        data.append(np.concatenate([q0, qd0, qdd0, qf, qdf, qddf, hit_pos_2d], axis=None))
     np.savetxt(f"uniform_data_{n}.tsv", data, delimiter='\t', fmt="%.10f")
 
 
@@ -1510,7 +1510,7 @@ def generate_configuration_to_data(start_point_function, start_vel_low, start_ve
     qf, qdf = compute_vel_and_pos(np.array([*hit_pos_2d, DESIRED_HEIGHT]), np.array([*hit_dir_2d, 0.]),
                                   epcilon=epcilon, initial_q=init_state)
     qddf = np.zeros_like(qf)
-    return q0, qd0, qdd0, start_pos_2d, qf, qdf, qddf, hit_pos_2d
+    return q0, qd0, qdd0, qf, qdf, qddf, hit_pos_2d
 
 
 def get_middle_config_plus_noise():

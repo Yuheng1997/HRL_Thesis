@@ -83,7 +83,7 @@ def train():
     # Use cuda if available
     device = Config.train.device
     print('Device: {}'.format(Config.train.device))
-    torch.device(Config.train.device)
+    torch.set_default_device(Config.train.device)
     torch.set_default_tensor_type(torch.cuda.FloatTensor if device.type == "cuda" else torch.FloatTensor)
 
     # Create manipulator model

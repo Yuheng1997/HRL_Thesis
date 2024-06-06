@@ -1,6 +1,6 @@
 import os
-# from train_sample_points import train
-from train import train
+from train_sample_points import train
+# from train import train
 import wandb
 
 from experiment_launcher import run_experiment, single_experiment
