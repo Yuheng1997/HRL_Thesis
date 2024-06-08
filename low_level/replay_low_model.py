@@ -99,7 +99,7 @@ def main():
     features = load_data(filename='datasets/uniform_train/data.tsv')
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.abspath(os.path.join(current_dir, os.pardir, 'trained_low_agent/Model_2020.pt'))
+    model_path = os.path.abspath(os.path.join(current_dir, os.pardir, 'trained_low_agent/in1_3table.pt'))
     # model_path = os.path.join('Model_20000_new.pt')
     model = torch.load(model_path, map_location=torch.device(device))
 

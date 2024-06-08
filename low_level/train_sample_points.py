@@ -118,7 +118,6 @@ def train():
     # train_path = Config.data.hit_path
     # train_path = Config.data.replan_path
     train_path = Config.data.uniform_path
-    # train_path = Config.data.first_replan_path
     # train_path = train_path.replace("data.tsv", "prepare_data_5000.tsv")
     print("Data path: ", train_path)
     training_loader, validation_loader = get_hitting_data(batch_size=Config.train.batch_size, device=device, path=train_path, shuffle=True)

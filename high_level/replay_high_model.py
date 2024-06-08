@@ -14,7 +14,8 @@ high_agent_dir = os.path.abspath(os.path.join(current_dir, os.pardir,
                  'trained_high_agent/high_level_2024-05-22_19-59-26/parallel_seed___0/0/BaseEnv_2024-05-22-19-59-51'))
 
 record = False
-agent_1 = os.path.abspath(os.path.join(current_dir, os.pardir, 'trained_low_agent/Model_2020.pt'))
+# agent_1 = os.path.abspath(os.path.join(current_dir, os.pardir, 'trained_low_agent/Model_2020.pt'))
+agent_1 = os.path.abspath(os.path.join(current_dir, os.pardir, 'trained_low_agent/in1_3table.pt'))
 
 def get_file_by_postfix(parent_dir, postfix):
     file_list = list()

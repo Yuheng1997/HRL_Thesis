@@ -1,7 +1,7 @@
 env_name: 'HitBackEnv'
 mode: 'online'
 agent_1: 'Model_2020.pt'
-group: '05_28_termination'
+group: '07_06_termination'
 render: False
 record: False
 #n_steps: 10000

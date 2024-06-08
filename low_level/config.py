@@ -45,20 +45,19 @@ class Plots:
 
 class Save:
     enable = True
-    interval = 1005
+    interval = 900
     current_folder = os.getcwd()
     parent_folder = os.path.dirname(current_folder)
     path = os.path.join(parent_folder, 'trained_low_agent', "model")
 
 
 class Load:
-    enable = False
-    epoch = 2020
+    enable = True
+    epoch = 1005
 
 
 class Data:
     hit_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/train/data.tsv")
-    first_replan_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/first_replan/data.tsv")
     replan_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/replan_train/data.tsv")
     uniform_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/uniform_train/data.tsv")
 
