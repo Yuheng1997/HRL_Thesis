@@ -1670,4 +1670,4 @@ if __name__ == '__main__':
     # generate_test_data()
     # generate_hit_pos_and_vel(n=1000)
 
-    generate_uniform_data(n=100)
+    generate_uniform_data(n=200000)
