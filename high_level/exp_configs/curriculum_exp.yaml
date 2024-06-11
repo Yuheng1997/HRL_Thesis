@@ -1,7 +1,7 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-agent_1: 'Model_2020.pt'
-group: '07_06_termination'
+agent_1: 'Model_18700.pt'
+group: '11_06_new_structure_test'
 render: False
 record: False
 #n_steps: 10000
@@ -18,8 +18,7 @@ dropout_ratio: 0.01
 layer_norm: True
 n_eval_episodes: 20
 full_save: False
-termination: True
-pos_condition: False
+termination: False
 
 #lr_alpha: 0.00001
 #actor_lr: 0.0003
@@ -28,10 +27,10 @@ actor_lr: 0.00003
 critic_lr: 0.0003
 target_entropy: -2
 
-task_curriculum: False
+task_curriculum: True
 curriculum_steps: 10
 
-check_point__: "./logs/high_level_2024-05-22_19-59-26/parallel_seed___0/0/BaseEnv_2024-05-22-19-59-51"
+#check_point__: "./logs/high_level_2024-05-22_19-59-26/parallel_seed___0/0/BaseEnv_2024-05-22-19-59-51"
 
 sweep_params:
   parallel_seed__: [0, 1, 2]

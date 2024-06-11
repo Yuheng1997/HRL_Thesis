@@ -31,9 +31,8 @@ def experiment(env_name: str = 'HitBackEnv',
                agent_1: str = 'Model_2600.pt',
                gamma: float = 0.99,
                termination: bool = True,
-               pos_condition: bool = True,
                full_save: bool = False,
-               group: str = '05_23_validate_reward',
+               group: str = None,
 
                actor_lr: float = 3e-4,
                critic_lr: float = 3e-4,
@@ -55,8 +54,8 @@ def experiment(env_name: str = 'HitBackEnv',
                # check_point: str = 'logs/hit_back_2024-05-08_20-09-58/parallel_seed___1/0/HitBackEnv_2024-05-08-20-18-50',
                # check_point: str = 'logs/hit_back_2024-05-09_10-15-30/check_point___.-logs-high_level_2024-05-07_01-01-02-parallel_seed___0-0-BaseEnv_2024-05-07-01-01-21/parallel_seed___1/0/HitBackEnv_2024-05-09-10-16-56',
                # check_point: str = 'logs/high_level_2024-05-15_23-16-22/parallel_seed___1/0/BaseEnv_2024-05-15-23-17-20',
-               check_point: str = 'logs/high_level_2024-05-22_19-59-26/parallel_seed___0/0/BaseEnv_2024-05-22-19-59-51',
-               # check_point: str = None,
+               # check_point: str = 'logs/high_level_2024-05-22_19-59-26/parallel_seed___0/0/BaseEnv_2024-05-22-19-59-51',
+               check_point: str = None,
 
                # curriculum config
                task_curriculum: bool = True,
@@ -117,7 +116,6 @@ def experiment(env_name: str = 'HitBackEnv',
         # rl_agent = SAC.load(check_point)
 
     wrapped_agent = build_warped_agent(env, rl_agent, agent_1=agent_1, agent_2=None)
-    wrapped_agent.low_agent.training_agent.pos_condition = pos_condition
     wrapped_agent.termination = termination
 
     core = Core(wrapped_agent, env)

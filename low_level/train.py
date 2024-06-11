@@ -99,8 +99,8 @@ def train():
     # Generate data for training
     # training_loader, validation_loader = load_data(Config.train.batch_size, device)
     # train_path = Config.data.hit_path
-    # train_path = Config.data.replan_path
-    train_path = Config.data.uniform_path
+    train_path = Config.data.bigger_path
+    # train_path = Config.data.uniform_path
     # train_path = Config.data.first_replan_path
     # train_path = train_path.replace("data.tsv", "prepare_data_5000.tsv")
     print("Data path: ", train_path)
