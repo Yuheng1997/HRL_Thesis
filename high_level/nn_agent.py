@@ -118,20 +118,20 @@ class NNAgent(AgentBase):
             pos_traj, vel_traj = self.interpolate_control_points(q_c_ps, t_c_ps)
             hit_traj = np.concatenate((pos_traj, vel_traj), axis=2).squeeze().tolist()
 
-            # h_q_0 = q_f
-            # h_dq_0 = dq_f
-            # h_ddq_0 = ddq_0
-            # h_q_f = self.joint_anchor_pos
-            # h_dq_f = np.zeros_like(h_q_0)
-            # h_ddq_f = np.zeros_like(h_q_0)
-            # features_home = torch.tensor(np.concatenate([h_q_0, h_dq_0, h_ddq_0, h_q_f, h_dq_f, h_ddq_f]), dtype=torch.float32).unsqueeze(0)
-            #
-            # q_c_ps, t_c_ps = self.compute_control_points(self.model, features_home)
-            # pos_traj, vel_traj = self.interpolate_control_points(q_c_ps, t_c_ps)
-            # home_traj = np.concatenate((pos_traj, vel_traj), axis=2).squeeze().tolist()
-            # self.traj_buffer = hit_traj + home_traj
-            self.traj_buffer = hit_traj
-            self.len_hit_traj = len(hit_traj)
+            h_q_0 = q_f
+            h_dq_0 = dq_f
+            h_ddq_0 = ddq_0
+            h_q_f = self.joint_anchor_pos
+            h_dq_f = np.zeros_like(h_q_0)
+            h_ddq_f = np.zeros_like(h_q_0)
+            features_home = torch.tensor(np.concatenate([h_q_0, h_dq_0, h_ddq_0, h_q_f, h_dq_f, h_ddq_f]), dtype=torch.float32).unsqueeze(0)
+
+            q_c_ps, t_c_ps = self.compute_control_points(self.model, features_home)
+            pos_traj, vel_traj = self.interpolate_control_points(q_c_ps, t_c_ps)
+            home_traj = np.concatenate((pos_traj, vel_traj), axis=2).squeeze().tolist()
+            self.traj_buffer = hit_traj + home_traj
+            # self.traj_buffer = hit_traj
+
             self.generate_traj = False
             self.if_update_goal = False
             if len(self.traj_buffer) > self.max_traj_length:
