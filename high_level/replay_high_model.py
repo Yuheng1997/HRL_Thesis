@@ -11,7 +11,7 @@ from hit_back_env import HitBackEnv
 # high_agent_dir = "./logs/high_level_2024-05-07_22-20-51/parallel_seed___2/0/BaseEnv_2024-05-07-22-21-07"
 current_dir = os.path.dirname(os.path.abspath(__file__))
 high_agent_dir = os.path.abspath(os.path.join(current_dir, os.pardir,
-                 'trained_high_agent/high_level_2024-05-22_19-59-26/parallel_seed___0/0/BaseEnv_2024-05-22-19-59-51'))
+                 'trained_high_agent/hit_back_2024-06-11_15-59-15/parallel_seed___2/0/HitBackEnv_2024-06-11-16-00-59'))
 
 record = False
 # agent_1 = os.path.abspath(os.path.join(current_dir, os.pardir, 'trained_low_agent/Model_2020.pt'))
@@ -44,7 +44,7 @@ def main():
 
     # env = BaseEnv(horizon=300)
     env = HitBackEnv(horizon=1000)
-    rl_agent = SAC.load(get_file_by_postfix(high_agent_dir, 'agent-0.msh')[0])
+    rl_agent = SAC.load(get_file_by_postfix(high_agent_dir, 'agent-2.msh')[0])
     rl_agent.policy._log_std_min._initial_value = -20
     rl_agent.policy._log_std_max._initial_value = -20
 

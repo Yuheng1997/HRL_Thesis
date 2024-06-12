@@ -45,7 +45,7 @@ class Plots:
 
 class Save:
     enable = True
-    interval = 850
+    interval = 800
     current_folder = os.getcwd()
     parent_folder = os.path.dirname(current_folder)
     path = os.path.join(parent_folder, 'trained_low_agent', "model")
@@ -53,7 +53,7 @@ class Save:
 
 class Load:
     enable = True
-    epoch = 2700
+    epoch = 4250
 
 
 class Data:

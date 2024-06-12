@@ -1,5 +1,8 @@
 import numpy as np
 from new_high_agent import HighAgent
+import torch
+import csv
+from generate_hitting_data import forward_kinematics
 from new_double_low_agent import DoubleLowAgent
 from air_hockey_challenge.framework.agent_base import AgentBase
 
@@ -20,7 +23,9 @@ class AgentWrapper(AgentBase):
         self.initial_states = None
         self.save_initial_state = True
         self.initial_high_action = None
+        self.violate_data_path = os.path.join(os.path.abspath(os.getcwd()), "violate_data/violate_data.csv")
 
+        self.huber = torch.nn.HuberLoss(reduction='none')
         self.high_agent = HighAgent(env, rl_high_agent=rl_high_agent)
         self.low_agent = DoubleLowAgent(env.env_info, agent_1=agent_1, agent_2=agent_2)
         super().__init__(env.env_info, None)
@@ -33,6 +38,14 @@ class AgentWrapper(AgentBase):
             high_action = self.high_agent.draw_action(obs)
             self.initial_high_action = high_action
             self.low_agent.training_agent.update_goal(high_action)
+            traj = self.low_agent.training_agent.generate_whole_traj(obs)
+            good_traj = self.check_traj_violation(traj, obs)
+            while not good_traj:
+                high_action = np.random.uniform(low=[0.8, -0.39105, 0, 0.], high=[1.3, 0.39105, np.pi, 1], size=4)
+                self.initial_high_action = high_action
+                self.low_agent.training_agent.update_goal(high_action)
+                traj = self.low_agent.training_agent.generate_whole_traj(obs)
+                good_traj = self.check_traj_violation(traj, obs)
         low_action, save_and_fit = self.low_agent.draw_action(obs)
         # termination
         if self.termination:
@@ -72,6 +85,27 @@ class AgentWrapper(AgentBase):
                 self.save_initial_state = False
                 self.power_gamma *= self.mdp_info.gamma
 
+    def check_traj_violation(self, traj, obs):
+        puck_pos = obs[:2]
+        # check constraint, obstacle
+        positions = []
+        for i in range(len(traj)):
+            position = self.low_agent.training_agent.forward_kinematics(traj[i][:7])[0][:3]
+            positions.append(position)
+        constraint_loss, x_loss, y_loss, z_loss = self.constraint_loss(positions, 0.02)
+        print('constraint_loss', constraint_loss)
+        obstacle_loss = self.obstacle_loss(positions, 0.02, puck_pos)
+        # save the violate datapoint
+        if constraint_loss > 0.1 or obstacle_loss > 0.1:
+            with open(self.violate_data_path, 'a', newline='') as file:
+                writer = csv.writer(file)
+                data = np.array([*self.initial_high_action, *obs[6:20], *position])
+                writer.writerow(data.tolist())
+            return False
+        else:
+            return True
+
+
     def reset(self):
         self.high_agent.reset()
         self.low_agent.reset()
@@ -82,15 +116,36 @@ class AgentWrapper(AgentBase):
     def episode_start(self):
         self.reset()
 
+    def constraint_loss(self, position, dt):
+        ee_pos = torch.tensor(position)
+        huber_along_path = lambda x: dt * self.huber(x, torch.zeros_like(x))
+        relu_huber_along_path = lambda x: huber_along_path(torch.relu(x))
+        x_b = torch.tensor([0.58415, 1.51])
+        y_b = torch.tensor([-0.47085, 0.47085])
+        z = torch.tensor(0.1645)
+        x_loss = relu_huber_along_path(x_b[0] - ee_pos[:, 0]) + relu_huber_along_path(ee_pos[:, 0] - x_b[1])
+        y_loss = relu_huber_along_path(y_b[0] - ee_pos[:, 1]) + relu_huber_along_path(ee_pos[:, 1] - y_b[1])
+        z_loss = relu_huber_along_path(z - ee_pos[:, 2]) + relu_huber_along_path(ee_pos[:, 2] - z)
+        constraint_losses = torch.sum(x_loss + y_loss + z_loss)
+        return constraint_losses, x_loss, y_loss, z_loss
+
+    def obstacle_loss(self, position, dt, puck_pos):
+        ee_pos_2d =  torch.tensor(np.array(position))[:, :2]
+        dist_from_puck = torch.linalg.norm(torch.tensor(puck_pos) - ee_pos_2d[:, :2], axis=1)
+        puck_loss = torch.sum(torch.relu(torch.tensor(0.0798) - dist_from_puck) * dt)
+        return puck_loss
+
 
 if __name__ == "__main__":
-    from curriculum_exp import SAC
-    from experiments.agent.hit_back_env import HitBackEnv
+    from train_curriculum_exp import SAC
+    from hit_back_env import HitBackEnv
     import os
     env = HitBackEnv()
     obs = env.reset()
 
-    check_point = 'logs/high_level_2024-05-22_19-59-26/parallel_seed___0/0/BaseEnv_2024-05-22-19-59-51'
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    high_agent_dir = os.path.abspath(os.path.join(current_dir, os.pardir,
+                                                  'trained_high_agent/hit_back_2024-06-11_15-59-15/parallel_seed___2/0/HitBackEnv_2024-06-11-16-00-59'))
     def get_file_by_postfix(parent_dir, postfix):
         file_list = list()
         for root, dirs, files in os.walk(parent_dir):
@@ -99,8 +154,9 @@ if __name__ == "__main__":
                     a = os.path.join(root, f)
                     file_list.append(a)
         return file_list
-    rl_agent = SAC.load(get_file_by_postfix(check_point, 'agent-0.msh')[0])
-    agent = AgentWrapper(env, rl_high_agent=rl_agent, agent_1='Model_1010.pt', agent_2=None)
+    rl_agent = SAC.load(get_file_by_postfix(high_agent_dir, 'agent-2.msh')[0])
+    agent = AgentWrapper(env, rl_high_agent=rl_agent, agent_1='Model_2400.pt', agent_2=None)
+    agent.termination = False
 
     steps = 0
     while True:
