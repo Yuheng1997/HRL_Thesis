@@ -58,7 +58,6 @@ class NNAgent(AgentBase):
         # flag
         self.generate_traj = False
         self.if_update_goal = True
-        self.pos_condition = False
 
     def reset(self):
         self.if_update_goal = True
@@ -73,16 +72,10 @@ class NNAgent(AgentBase):
         if len(self.traj_buffer):
             self.generate_traj = False
         else:
-            if self.pos_condition:
-                if puck_pos_2d[0] < 1.51:
-                    self.generate_traj = True
-                if 1.51 < puck_pos_2d[0] < 1.91 and puck_vel_2d[0] < 0:
-                    self.generate_traj = True
-            else:
-                self.generate_traj = True
-        if not np.linalg.norm(
-            forward_kinematics(self.robot_model, self.robot_data, self.get_joint_pos(obs))[0][:2] - self.hit_pos) >= 0.15:
-            self.generate_traj = False
+            self.generate_traj = True
+        # if not np.linalg.norm(
+        #     forward_kinematics(self.robot_model, self.robot_data, self.get_joint_pos(obs))[0][:2] - self.hit_pos) >= 0.15:
+        #     self.generate_traj = False
 
 
     def update_goal(self, goal=np.zeros(4)):

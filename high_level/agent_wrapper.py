@@ -2,9 +2,10 @@ import numpy as np
 from new_high_agent import HighAgent
 import torch
 import csv
-from generate_hitting_data import forward_kinematics
+from air_hockey_challenge.utils.kinematics import forward_kinematics, jacobian
 from new_double_low_agent import DoubleLowAgent
 from air_hockey_challenge.framework.agent_base import AgentBase
+from return_generator import ReturnGenerator
 
 
 def build_warped_agent(env, rl_agent, agent_1, agent_2=None):
@@ -23,6 +24,9 @@ class AgentWrapper(AgentBase):
         self.initial_states = None
         self.save_initial_state = True
         self.initial_high_action = None
+        self.return_traj = []
+        self.in_return = False
+        self.generator = ReturnGenerator(env_info=env.env_info)
         self.violate_data_path = os.path.join(os.path.abspath(os.getcwd()), "violate_data/violate_data.csv")
 
         self.huber = torch.nn.HuberLoss(reduction='none')
@@ -33,32 +37,44 @@ class AgentWrapper(AgentBase):
 
     def draw_action(self, obs):
         ee_pos, _vel = self.env.get_ee()
-        ee_vel = _vel[-2:]
+        ee_vel = _vel[-3:]
         if self.low_agent.training_agent.if_update_goal:
             high_action = self.high_agent.draw_action(obs)
             self.initial_high_action = high_action
             self.low_agent.training_agent.update_goal(high_action)
             traj = self.low_agent.training_agent.generate_whole_traj(obs)
             good_traj = self.check_traj_violation(traj, obs)
-            while not good_traj:
+            # 检查violation, 如果违背则用baseline生成traj强制return。
+            for i in range(10):
                 high_action = np.random.uniform(low=[0.8, -0.39105, 0, 0.], high=[1.3, 0.39105, np.pi, 1], size=4)
-                self.initial_high_action = high_action
                 self.low_agent.training_agent.update_goal(high_action)
                 traj = self.low_agent.training_agent.generate_whole_traj(obs)
                 good_traj = self.check_traj_violation(traj, obs)
+                if good_traj:
+                    self.initial_high_action = high_action
+                    break
+            if not good_traj:
+                # print('return_baseline')
+                return_traj = self.generate_return_traj(ee_pos, ee_vel, obs)
+                # self.low_agent.training_agent.traj_buffer = list(return_traj.reshape((-1, 14)))
+                self.low_agent.training_agent.traj_buffer = return_traj
+                self.in_return = True
         low_action, save_and_fit = self.low_agent.draw_action(obs)
         # termination
         if self.termination:
-            if np.linalg.norm(ee_vel) > 0.9:
+            if np.linalg.norm(ee_vel[:2]) > 0.9:
                 terminate = False
             else:
                 terminate = (np.random.rand() < 0.02)
             if terminate:
                 # self.termination_count = 0
-                print('terminate')
+                # print('terminate')
                 self.low_agent.training_agent.if_update_goal = True
                 self.low_agent.training_agent.traj_buffer = []
                 save_and_fit = True
+        if self.in_return:
+            save_and_fit = False
+            self.in_return = False
         return [low_action, self.initial_high_action, save_and_fit]
 
     def fit(self, _dataset, **info):
@@ -93,10 +109,10 @@ class AgentWrapper(AgentBase):
             position = self.low_agent.training_agent.forward_kinematics(traj[i][:7])[0][:3]
             positions.append(position)
         constraint_loss, x_loss, y_loss, z_loss = self.constraint_loss(positions, 0.02)
-        print('constraint_loss', constraint_loss)
+        # print('constraint_loss', constraint_loss)
         obstacle_loss = self.obstacle_loss(positions, 0.02, puck_pos)
         # save the violate datapoint
-        if constraint_loss > 0.1 or obstacle_loss > 0.1:
+        if constraint_loss > 0.0001 or obstacle_loss > 0.1:
             with open(self.violate_data_path, 'a', newline='') as file:
                 writer = csv.writer(file)
                 data = np.array([*self.initial_high_action, *obs[6:20], *position])
@@ -105,8 +121,42 @@ class AgentWrapper(AgentBase):
         else:
             return True
 
+    def generate_return_traj(self, ee_pos, ee_vel, obs):
+        ee_pos = ee_pos + np.array([1.51, 0., 0.])
+        q, qd = self.get_joint_state(obs)
+        x_home = np.array([0.65, 0., self.env_info['robot']['ee_desired_height']])
+        qd_max = 0.8 * np.array([1.4835, 1.4835, 1.7453, 1.3090, 2.2689, 2.3562, 2.3562])
+        t_stop = 1.0
+        # for _ in range(10):
+        #     self.generator.bezier_planner.compute_control_point(ee_pos[:2], ee_vel[:2], x_home[:2], np.zeros(2), t_stop)
+        #     cart_traj = self.generator.generate_bezier_trajectory()
+        #     success, traj = self.generator.optimize_trajectory(cart_traj, q, qd)
+        #     if not success:
+        #         t_stop *= 1.5
+        #     else:
+        #         return traj
+        J = jacobian(mj_model=self.robot_model, mj_data=self.robot_data, q=q)[:3]
+        # if np.linalg.norm(ee_vel[:2]) < 0.3:
+        #     v_des = x_home - ee_pos
+        #     print('home')
+        # else:
+        #     v_des = ee_vel * 0.02
+        #     print('stop')
+        v_des = x_home - ee_pos
+        J_p = np.linalg.pinv(J)
+        JJ = J_p.dot(J)
+        I_n = np.eye(JJ.shape[0])
+        qd_0 = (np.array([0., -0.1961, 0., -1.8436, 0., 0.9704, 0.]) - q) * 0.5
+        qd_des = J_p.dot(v_des) + (I_n - JJ).dot(qd_0)
+        gain = np.min(qd_max / np.abs(qd_des))
+        qd_des = qd_des * gain
+        q_des = q + qd_des * 0.02
+        return [[*q_des, *qd_des]]
+
 
     def reset(self):
+        self.return_traj = []
+        self.in_force_return = False
         self.high_agent.reset()
         self.low_agent.reset()
 
@@ -140,6 +190,9 @@ if __name__ == "__main__":
     from train_curriculum_exp import SAC
     from hit_back_env import HitBackEnv
     import os
+
+    torch.manual_seed(3)
+    np.random.seed(3)
     env = HitBackEnv()
     obs = env.reset()
 
@@ -155,8 +208,8 @@ if __name__ == "__main__":
                     file_list.append(a)
         return file_list
     rl_agent = SAC.load(get_file_by_postfix(high_agent_dir, 'agent-2.msh')[0])
-    agent = AgentWrapper(env, rl_high_agent=rl_agent, agent_1='Model_2400.pt', agent_2=None)
-    agent.termination = False
+    agent = AgentWrapper(env, rl_high_agent=rl_agent, agent_1='Model_4250.pt', agent_2=None)
+    agent.termination = True
 
     steps = 0
     while True:
@@ -167,4 +220,5 @@ if __name__ == "__main__":
 
         if done or steps > env.info.horizon:
             steps = 0
-            env.reset()
+            agent.reset()
+            obs = env.reset()

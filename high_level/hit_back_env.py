@@ -48,14 +48,13 @@ class HitBackEnv(position.IiwaPositionTournament):
         if np.any(np.abs(puck_pos[:2]) > boundary) or np.linalg.norm(puck_vel) > 100:
             return True
 
-        # Puck stuck on one side for more than 8s
-        if np.sign(puck_pos[0]) == self.prev_side:
+        # Puck stuck for more than 8s
+        if np.linalg.norm(puck_vel[0]) < 0.025:
             self.side_timer += self.dt
         else:
-            # self.prev_side *= -1
             self.side_timer = 0
 
-        if self.side_timer > 8.0 and np.abs(puck_pos[0]) >= 0.15:
+        if self.side_timer > 8.0:
             return True
 
         # Puck in Goal
@@ -141,6 +140,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         self._absorbing = False
         self._task_success = False
         self.cross_line_count = 0
+        self.side_timer = 0
         super().setup(obs)
 
         task_idx = self.task_curriculum_dict['idx']

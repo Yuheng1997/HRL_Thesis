@@ -1,7 +1,7 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-agent_1: 'Model_18700.pt'
-group: '11_06_new_structure_test'
+agent_1: 'Model_4250.pt'
+group: '13_06_plus_inv_traj'
 render: False
 record: False
 #n_steps: 10000
@@ -18,7 +18,7 @@ dropout_ratio: 0.01
 layer_norm: True
 n_eval_episodes: 20
 full_save: False
-termination: False
+termination: True
 
 #lr_alpha: 0.00001
 #actor_lr: 0.0003

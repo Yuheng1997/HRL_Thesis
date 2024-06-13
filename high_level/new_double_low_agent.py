@@ -33,7 +33,6 @@ def load_agent(env_info, agent, id):
 
 class DoubleLowAgent(AgentBase):
     def __init__(self, env_info, agent_1, agent_2):
-        self.traj_buffer = []
         self.training_agent, self.agent_type_1 = load_agent(env_info, agent_1, id=1)
         self.opponent_agent, self.agent_type_2 = load_agent(env_info, agent_2, id=2)
         # flag
@@ -47,7 +46,6 @@ class DoubleLowAgent(AgentBase):
             return u, save_and_fit
 
     def reset(self, state=None):
-        self.traj_buffer = []
         self.training_agent.reset()
         self.opponent_agent.reset()
 
