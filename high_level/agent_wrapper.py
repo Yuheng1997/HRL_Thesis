@@ -2,6 +2,7 @@ import numpy as np
 from new_high_agent import HighAgent
 import torch
 import csv
+import os
 from air_hockey_challenge.utils.kinematics import forward_kinematics, jacobian
 from new_double_low_agent import DoubleLowAgent
 from air_hockey_challenge.framework.agent_base import AgentBase
