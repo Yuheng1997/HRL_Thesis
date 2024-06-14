@@ -33,12 +33,15 @@ class ReturnGenerator:
         self.cubic_linear_planner = CubicLinearPlanner(self.env_info['robot']['n_joints'], self.dt)
         self.optimizer = TrajectoryOptimizer(self.env_info)
 
-    def generate_stop_trajectory(self, ee_pos, ee_vel, t_stop):
-        x_stop = ee_pos[:2] + ee_vel[:2] * 0.2
-        x_stop = np.clip(x_stop, self.bound_points[0] + 0.05, self.bound_points[2] - 0.05)
-        self.bezier_planner.compute_control_point(ee_pos[:2], ee_vel[:2], x_stop, ee_vel * 0.0001, t_stop)
-        cart_traj = self.generate_bezier_trajectory()
-        return cart_traj
+    def generate_stop_trajectory(self, obs):
+        q = obs[6:13]
+        qd = obs[13:20]
+        q_plan = q + qd * 0.04
+        joint_pos_traj = self.plan_cubic_linear_motion(q, qd, q_plan, np.zeros_like(q_plan), 0.10)[:, :q_plan.shape[0]]
+        t = np.linspace(0, joint_pos_traj.shape[0], joint_pos_traj.shape[0] + 1) * 0.02
+        f = CubicSpline(t, np.vstack([q, joint_pos_traj]), axis=0, bc_type=((1, qd), (2, np.zeros_like(q_plan))))
+        df = f.derivative(1)
+        return np.stack([f(t[1:]), df(t[1:])]).swapaxes(0, 1)
 
     def _init_bezier_planner(self):
         self.bound_points = np.array([[-(self.env_info['table']['length'] / 2 - self.env_info['mallet']['radius']),

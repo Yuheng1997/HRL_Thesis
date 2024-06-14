@@ -1,7 +1,7 @@
 env_name: 'HitBackEnv'
 mode: 'online'
 agent_1: 'Model_4250.pt'
-group: '13_06_plus_inv_traj'
+group: '14_06_plus_inv_traj'
 render: False
 record: False
 #n_steps: 10000

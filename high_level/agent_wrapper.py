@@ -27,8 +27,9 @@ class AgentWrapper(AgentBase):
         self.initial_high_action = None
         self.return_traj = []
         self.in_return = False
+        self.slow_down = False
         self.generator = ReturnGenerator(env_info=env.env_info)
-        self.violate_data_path = os.path.join(os.path.abspath(os.getcwd()), "violate_data/violate_data.csv")
+        self.violate_data_path = os.path.join(os.path.abspath(os.getcwd()), "violate_data/violate_data_1.1.csv")
 
         self.huber = torch.nn.HuberLoss(reduction='none')
         self.high_agent = HighAgent(env, rl_high_agent=rl_high_agent)
@@ -39,27 +40,32 @@ class AgentWrapper(AgentBase):
     def draw_action(self, obs):
         ee_pos, _vel = self.env.get_ee()
         ee_vel = _vel[-3:]
+        print('len_traj_outside', len(self.low_agent.training_agent.traj_buffer))
         if self.low_agent.training_agent.if_update_goal:
+            print('update_goal', len(self.low_agent.training_agent.traj_buffer))
             high_action = self.high_agent.draw_action(obs)
             self.initial_high_action = high_action
             self.low_agent.training_agent.update_goal(high_action)
             traj = self.low_agent.training_agent.generate_whole_traj(obs)
-            good_traj = self.check_traj_violation(traj, obs)
+            good_traj = self.check_traj_violation(high_action, traj, obs)
             # 检查violation, 如果违背则用baseline生成traj强制return。
-            for i in range(10):
-                high_action = np.random.uniform(low=[0.8, -0.39105, 0, 0.], high=[1.3, 0.39105, np.pi, 1], size=4)
-                self.low_agent.training_agent.update_goal(high_action)
-                traj = self.low_agent.training_agent.generate_whole_traj(obs)
-                good_traj = self.check_traj_violation(traj, obs)
-                if good_traj:
-                    self.initial_high_action = high_action
-                    break
             if not good_traj:
-                # print('return_baseline')
+                # for i in range(10):
+                #     high_action = np.random.uniform(low=[0.8, -0.39105, 0, 0.], high=[1.3, 0.39105, np.pi, 1], size=4)
+                #     self.low_agent.training_agent.update_goal(high_action)
+                #     traj = self.low_agent.training_agent.generate_whole_traj(obs)
+                #     good_traj = self.check_traj_violation(high_action, traj, obs)
+                #     if good_traj:
+                #         self.initial_high_action = high_action
+                #         break
+                # if not good_traj:
                 return_traj = self.generate_return_traj(ee_pos, ee_vel, obs)
-                # self.low_agent.training_agent.traj_buffer = list(return_traj.reshape((-1, 14)))
                 self.low_agent.training_agent.traj_buffer = return_traj
+                self.low_agent.training_agent.if_update_goal = False
                 self.in_return = True
+            else:
+                print('good', high_action)
+                self.slow_down = False
         low_action, save_and_fit = self.low_agent.draw_action(obs)
         # termination
         if self.termination:
@@ -69,7 +75,7 @@ class AgentWrapper(AgentBase):
                 terminate = (np.random.rand() < 0.02)
             if terminate:
                 # self.termination_count = 0
-                # print('terminate')
+                print('terminate')
                 self.low_agent.training_agent.if_update_goal = True
                 self.low_agent.training_agent.traj_buffer = []
                 save_and_fit = True
@@ -102,7 +108,7 @@ class AgentWrapper(AgentBase):
                 self.save_initial_state = False
                 self.power_gamma *= self.mdp_info.gamma
 
-    def check_traj_violation(self, traj, obs):
+    def check_traj_violation(self, high_action, traj, obs):
         puck_pos = obs[:2]
         # check constraint, obstacle
         positions = []
@@ -116,7 +122,7 @@ class AgentWrapper(AgentBase):
         if constraint_loss > 0.0001 or obstacle_loss > 0.1:
             with open(self.violate_data_path, 'a', newline='') as file:
                 writer = csv.writer(file)
-                data = np.array([*self.initial_high_action, *obs[6:20], *position])
+                data = np.array([*high_action, *obs[6:20]])
                 writer.writerow(data.tolist())
             return False
         else:
@@ -126,23 +132,34 @@ class AgentWrapper(AgentBase):
         ee_pos = ee_pos + np.array([1.51, 0., 0.])
         q, qd = self.get_joint_state(obs)
         x_home = np.array([0.65, 0., self.env_info['robot']['ee_desired_height']])
+        t_return = 2.0
+        t_home = 1.0
+        for _ in range(10):
+            print('home')
+            self.generator.bezier_planner.compute_control_point(ee_pos[:2], ee_vel[:2], x_home[:2], np.zeros(2), t_home)
+            cart_traj = self.generator.generate_bezier_trajectory()
+            success, traj = self.generator.optimize_trajectory(cart_traj, q, qd)
+            if not success:
+                t_home *= 1.5
+            else:
+                return traj
+        if np.linalg.norm(obs[13:20]) > 0.01 and not self.slow_down:
+            self.slow_down = True
+            print('slow_down')
+            traj_stop = self.generator.generate_stop_trajectory(obs)
+            return list(traj_stop.reshape((-1, 14)))
+        for _ in range(10):
+            print('init_traj', ee_pos[:3], ee_vel[:3], x_home[:3])
+            cart_traj = self.generator.plan_cubic_linear_motion(ee_pos[:3], ee_vel[:3], x_home[:3], np.zeros(3), t_return)
+            success, traj = self.generator.optimize_trajectory(cart_traj, q, qd)
+            if not success:
+                t_return *= 1.5
+            else:
+                return traj
+        # inverse kinematics
         qd_max = 0.8 * np.array([1.4835, 1.4835, 1.7453, 1.3090, 2.2689, 2.3562, 2.3562])
-        t_stop = 1.0
-        # for _ in range(10):
-        #     self.generator.bezier_planner.compute_control_point(ee_pos[:2], ee_vel[:2], x_home[:2], np.zeros(2), t_stop)
-        #     cart_traj = self.generator.generate_bezier_trajectory()
-        #     success, traj = self.generator.optimize_trajectory(cart_traj, q, qd)
-        #     if not success:
-        #         t_stop *= 1.5
-        #     else:
-        #         return traj
         J = jacobian(mj_model=self.robot_model, mj_data=self.robot_data, q=q)[:3]
-        # if np.linalg.norm(ee_vel[:2]) < 0.3:
-        #     v_des = x_home - ee_pos
-        #     print('home')
-        # else:
-        #     v_des = ee_vel * 0.02
-        #     print('stop')
+        print('inv')
         v_des = x_home - ee_pos
         J_p = np.linalg.pinv(J)
         JJ = J_p.dot(J)
@@ -192,8 +209,8 @@ if __name__ == "__main__":
     from hit_back_env import HitBackEnv
     import os
 
-    torch.manual_seed(3)
-    np.random.seed(3)
+    torch.manual_seed(1)
+    np.random.seed(1)
     env = HitBackEnv()
     obs = env.reset()
 

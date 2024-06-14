@@ -129,27 +129,24 @@ class NNAgent(AgentBase):
             self.if_update_goal = False
             if len(self.traj_buffer) > self.max_traj_length:
                 self.max_traj_length = len(self.traj_buffer)
-        if len(self.traj_buffer):
-            # self.resample_count += 1
-            try:
-                action = np.array(self.traj_buffer[0]).reshape(2, 7)
-            except:
-                print('traj', len(self.traj_buffer), self.traj_buffer[0], 'hit_pos', self.hit_pos, 'ee_pos', self.ee_pos)
-            self.traj_buffer = self.traj_buffer[1:]
-            if len(self.traj_buffer) == 0:
-                self.if_update_goal = True
-                save_and_fit = True
-            # replan traj in next count
-            # if self.with_condition:
-            #     if self.resample_count == 40 and len(self.traj_buffer) > 10:
-                # if self.resample_count > (self.len_hit_traj + 30) and len(self.traj_buffer) > 10:
-                #     self.resample_count = 0
-                #     self.traj_buffer = []
-                #     self.if_update_goal = True
-            return action, save_and_fit
-        else:
+
+        # self.resample_count += 1
+        try:
+            action = np.array(self.traj_buffer[0]).reshape(2, 7)
+        except:
+            print('traj', len(self.traj_buffer), self.traj_buffer[0], 'hit_pos', self.hit_pos, 'ee_pos', self.ee_pos)
+        self.traj_buffer = self.traj_buffer[1:]
+        if len(self.traj_buffer) == 0:
             self.if_update_goal = True
-            return np.vstack([self.joint_anchor_pos, np.zeros_like(self.joint_anchor_pos)]), False
+            save_and_fit = True
+        # replan traj in next count
+        # if self.with_condition:
+        #     if self.resample_count == 40 and len(self.traj_buffer) > 10:
+            # if self.resample_count > (self.len_hit_traj + 30) and len(self.traj_buffer) > 10:
+            #     self.resample_count = 0
+            #     self.traj_buffer = []
+            #     self.if_update_goal = True
+        return action, save_and_fit
 
     def generate_whole_traj(self, obs):
         q_0 = self.get_joint_pos(obs)
