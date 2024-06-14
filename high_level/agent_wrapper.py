@@ -29,7 +29,7 @@ class AgentWrapper(AgentBase):
         self.in_return = False
         self.slow_down = False
         self.generator = ReturnGenerator(env_info=env.env_info)
-        self.violate_data_path = os.path.join(os.path.abspath(os.getcwd()), "violate_data/violate_data_1.1.csv")
+        self.violate_data_path = os.path.join(os.path.abspath(os.getcwd()), "violate_data/violate_data_1_1.csv")
 
         self.huber = torch.nn.HuberLoss(reduction='none')
         self.high_agent = HighAgent(env, rl_high_agent=rl_high_agent)
