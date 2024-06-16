@@ -20,7 +20,7 @@ def experiment(
     with open(filename, 'w') as file:
         file.write('Some logs in a log file.\n')
         file.write(out_str)
-    wandb.init(project="neural_planner")
+    wandb.init(project="neural_planner", id='s68svumr', resume='must')
     wandb.log({'seed': seed}, step=1)
 
     train()
