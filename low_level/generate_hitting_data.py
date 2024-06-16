@@ -1535,8 +1535,9 @@ def vel_and_pos(point_pos, point_vel, epcilon, initial_q=None):
         optimal_eta = result_eta.x[0]
         optimal_alpha = result_eta.x[1:]
         # clip axis_y velocity near table edge.
-        optimal_eta_y = clip_eta(optimal_eta, point_pos[1], point_vel[1])
-        optimal_v = np.array([optimal_eta, optimal_eta_y, optimal_eta]) * v
+        optimal_eta_y = clip_eta_y(optimal_eta, point_pos[1], point_vel[1])
+        optimal_eta_x = clip_eta_x(optimal_eta, point_pos[0], point_vel[0])
+        optimal_v = np.array([optimal_eta_x, optimal_eta_y, optimal_eta]) * v
         _dq = (J_dag @ optimal_v + N @ optimal_alpha) * epcilon
         if (np.abs(_dq) > dq_max).any():
             _dq[np.abs(_dq) < 1e-5] = 1e-5
@@ -1551,11 +1552,11 @@ def vel_and_pos(point_pos, point_vel, epcilon, initial_q=None):
     return initial_q, optimal_dq
 
 
-def clip_eta(eta_y, point_pos_y, point_vel_y):
-    dis = 0.47085 - 0.39105
+def clip_eta_y(eta_y, point_pos_y, point_vel_y):
+    dis = mallet_radius * 3
     point_dis = 0.47085 - np.abs(point_pos_y)
     ratio = point_dis / dis
-    if np.abs(point_pos_y) - 0.39105 > 0:
+    if ratio < 1:
         if point_pos_y > 0 and point_vel_y > 0:
             return np.clip(a=eta_y, a_min=0, a_max=ratio * 0.2)
         if point_pos_y < 0 and point_vel_y < 0:
@@ -1563,6 +1564,20 @@ def clip_eta(eta_y, point_pos_y, point_vel_y):
         return eta_y
     else:
         return eta_y
+
+
+def clip_eta_x(eta_x, point_pos_x, point_vel_x):
+    dis = mallet_radius * 3
+    point_dis = 1.51 + point_pos_x - 0.60
+    ratio = point_dis / dis
+    if ratio < 1:
+        if point_vel_x < 0:
+            return np.clip(a=eta_x, a_min=0, a_max=ratio * 0.2)
+        else:
+            return eta_x
+    else:
+        return eta_x
+
 
 def generate_configuration_to_data(start_point_function, start_vel_low, start_vel_high, start_epcilon_high,
                                    start_use_init_q, hit_vel_low, hit_vel_high, hit_epcilon_high, hit_use_init_q):
@@ -1655,7 +1670,7 @@ def compute_initial_state_add_noise():
 
 
 def get_uniform_pos():
-    range = np.array([[0.65, 1.3], [-0.47085, 0.47085]])
+    range = np.array([[0.60, 1.3], [-0.47085, 0.47085]])
     point = np.random.rand(2) * (range[:, 1] - range[:, 0]) + range[:, 0]
     return point
 
