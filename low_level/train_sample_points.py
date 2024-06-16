@@ -57,7 +57,7 @@ def train_epoch(model, loss_fn, optimizer, data_loader, device, is_training=True
                 r = np.random.randint(low=0, high=data.shape[0])
                 while not validate_pairs(data[j, :7], data[r, -2:]):
                     r = np.random.randint(low=0, high=data.shape[0])
-                combined = torch.cat((data[j, :21], data[r, 21:]), dim=0)
+                combined = torch.cat((data[j, :21], data[r, :]), dim=0)
                 pairs[j, :] = combined
             q_cps, t_cps = model(pairs[:, :42])
             loss_tuple = loss_fn(q_cps, t_cps, pairs[:, -2:])
