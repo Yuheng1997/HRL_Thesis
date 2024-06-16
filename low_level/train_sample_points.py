@@ -52,7 +52,7 @@ def train_epoch(model, loss_fn, optimizer, data_loader, device, is_training=True
             if is_training:
                 optimizer.zero_grad()
 
-            pairs = torch.zeros(data.shape)
+            pairs = torch.zeros((data.shape[0], data.shape[1] * 2 - 2))
             for j in range(data.shape[0]):
                 r = np.random.randint(low=0, high=data.shape[0])
                 while not validate_pairs(data[j, :7], data[r, -2:]):
