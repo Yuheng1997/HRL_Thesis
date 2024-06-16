@@ -1766,4 +1766,4 @@ if __name__ == '__main__':
     # generate_data_defend_new(n=int(500 * .1))
     # generate_data_prepare_new(n=int(500 * .1))
 
-    generate_uniform_points(n=200)
+    generate_uniform_points(n=100000)
