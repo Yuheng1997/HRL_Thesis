@@ -187,7 +187,6 @@ def train():
             if epoch % Config.save.interval == 0:
                 save_model(model, loss_fn, optimizer, epoch)
 
-    save_model(model, loss_fn, optimizer, "final")
     wandb.finish()
 
 
