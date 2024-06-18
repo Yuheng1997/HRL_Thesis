@@ -9,7 +9,7 @@ from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch import to_float_tensor
 from mushroom_rl.utils.parameters import to_parameter
-from utils.replay_memory import PlusReplayMemory
+from high_level.utils.replay_memory import PlusReplayMemory
 
 from copy import deepcopy
 from itertools import chain
@@ -402,6 +402,7 @@ class SACPlusTermination(DeepAC):
 
     def draw_action(self, state):
         high_action = self.policy.draw_action(state)
+        state_prime_termination = np.concatenate((state, high_action), axis=1)
         beta = self.termination_class.policy.draw_action(state)
         return np.concatenate((high_action, beta), axis=1)
 
