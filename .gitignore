@@ -6,3 +6,4 @@ wandb/
 .idea/
 logs
 high_level/logs
+/low_level_scripts/datasets/uniform_train/data.tsv

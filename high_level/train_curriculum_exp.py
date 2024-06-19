@@ -7,10 +7,8 @@ from tqdm import tqdm
 import torch.optim as optim
 import torch.nn.functional as F
 from mushroom_rl.utils.spaces import Box
-from hit_back_env import HitBackEnv
 from agent_wrapper import build_warped_agent
 from mushroom_rl.core import Core, Logger, Agent
-from sac_network import SACActorNetwork, SACCriticNetwork
 from experiment_launcher import single_experiment, run_experiment
 from datetime import datetime
 from sac import SAC
