@@ -242,4 +242,4 @@ def get_uniform_pos():
 
 if __name__ == '__main__':
     save_path = 'datasets/uniform_train/data.tsv'
-    generate_uniform_points(n=10, save_path=save_path)
+    generate_uniform_points(n=120000, save_path=save_path)
