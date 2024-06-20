@@ -1,8 +1,5 @@
-import numpy as np
-
 import torch
-import torch.optim as optim
-
+import numpy as np
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.policy import Policy
 from mushroom_rl.approximators import Regressor
@@ -10,7 +7,6 @@ from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch import to_float_tensor
 from mushroom_rl.utils.parameters import to_parameter
 from hrl_air_hockey.utils.smdp_replay_memory import SMDPReplayMemory
-from hrl_air_hockey.agents.termination_agent import TerminationAgent
 
 from copy import deepcopy
 from itertools import chain
