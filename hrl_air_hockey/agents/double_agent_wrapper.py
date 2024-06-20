@@ -35,6 +35,9 @@ class HRLTournamentAgentWrapper(SimpleTournamentAgentWrapper):
             if self.save_initial_state:
                 self.initial_states = np.array(dataset[i][0])
                 self.smdp_length = 1
+            a_list = list(dataset[i])
+            a_list[1] = a_list[1][1]
+            mdp_dataset.append(a_list)
             if dataset[i][1][-1] or dataset[i][-2]:
                 # smdp action terminate or game absorbing
                 a_list = list(dataset[i])
@@ -51,10 +54,6 @@ class HRLTournamentAgentWrapper(SimpleTournamentAgentWrapper):
                 self.smdp_length += 1
                 self.save_initial_state = False
                 self.power_gamma *= self.mdp_info.gamma
-        for i in range(len(dataset)):
-            a_list = list(dataset[i])
-            a_list[1] = a_list[1][1]
-            mdp_dataset.append(a_list)
         return [smdp_dataset, mdp_dataset], info
 
 
