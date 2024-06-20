@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -87,4 +88,5 @@ class TerminationNetwork(nn.Module):
         self.model.append(nn.Sigmoid())
 
     def forward(self, state, last_action, **kwargs):
-        return self.model(torch.squeeze(state, 1).float())
+        feature = torch.concatenate((state, last_action), dim=1)
+        return self.model(torch.squeeze(feature, 1).float())

@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.init as init
 from hrl_air_hockey.bspline_planner.utils.constants import Limits
 
 

@@ -9,7 +9,8 @@ from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch import to_float_tensor
 from mushroom_rl.utils.parameters import to_parameter
-from high_level.utils.replay_memory import PlusReplayMemory
+from hrl_air_hockey.utils.smdp_replay_memory import SMDPReplayMemory
+from hrl_air_hockey.agents.termination_agent import TerminationAgent
 
 from copy import deepcopy
 from itertools import chain
@@ -211,7 +212,7 @@ class SACPlusTermination(SAC):
     """
 
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params,
-                 nn_planner_params, termination_params, batch_size,
+                 nn_planner_params, termination_params, termination_optimizer,  batch_size,
                  initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, use_log_alpha_loss=False,
                  log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None):
 
@@ -223,8 +224,13 @@ class SACPlusTermination(SAC):
                          log_std_min=log_std_min, log_std_max=log_std_max, target_entropy=target_entropy,
                          critic_fit_params=critic_fit_params)
 
+        self._smdp_replay_memory = SMDPReplayMemory(initial_replay_size, max_replay_size)
         self.traj_planner = TrajectoryPlanner(**nn_planner_params)
-        # self.termination_policy = Regressor(TorchApproximator, **termination_params)
+
+        self.termination_approximator = Regressor(TorchApproximator, **termination_params)
+        self.termination_parameters = self.termination_approximator.model.network.parameters()
+        self.termination_optimizer = termination_optimizer['class'](self.termination_parameters, **termination_optimizer['params'])
+
         self.trajectory_buffer = None
         self.last_action = None
 
@@ -243,8 +249,8 @@ class SACPlusTermination(SAC):
             self.trajectory_buffer = self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale)[0]
             term_prob = 1
         else:
-            # term_prob = self.termination_policy.predict(state, self.last_action)
-            term_prob = 0.98
+            term_prob = self.termination_approximator.predict(np.concatenate((state, self.last_action), axis=1), output_tensor=False)
+            # term_prob = 0.98
             if np.random.uniform() > term_prob:
                 self.last_action = self.policy.draw_action(state)
 
@@ -271,29 +277,30 @@ class SACPlusTermination(SAC):
         return hit_pos, hit_vel, scale
 
     def fit(self, dataset, **info):
-        return
-        self._replay_memory.add(dataset)
+        self._smdp_replay_memory.add(dataset[0])
+        self._repaly_memory.add(dataset[1])
         for i in range(20):
-            if self._replay_memory.initialized:
+            if self._smdp_replay_memory.initialized:
                 # action_t = [pos_x, pos_y, vel_angle, scale, termination]
-                state, action_t, reward, next_state, absorbing, _, smdp_length = self._replay_memory.get(
-                    self._batch_size())
-                action = action_t[:, :4]
-                if self._replay_memory.size > self._warmup_transitions():
-                    action_new, log_prob = self.policy.compute_action_and_log_prob_t(state)
-                    action_new_prime, _ = self.policy.compute_action_and_log_prob_t(next_state)
+                smdp_state, smdp_action_t, smdp_reward, smdp_next_state, absorbing, _, smdp_length = self._smdp_replay_memory.get(self._batch_size())
+                state, action_t, reward, next_state, absorbing, _ = self._repaly_memory(self._batch_size())
+
+                smdp_action = smdp_action_t[:, :4]
+                if self._smdp_replay_memory.size > self._warmup_transitions():
+                    action_new, log_prob = self.policy.compute_action_and_log_prob_t(smdp_state)
+                    action_new_prime, _ = self.policy.compute_action_and_log_prob_t(smdp_next_state)
                     # update actor
-                    actor_loss = self._loss(state, action_new, log_prob)
+                    actor_loss = self._loss(smdp_state, action_new, log_prob)
                     self._optimize_actor_parameters(actor_loss)
                     self._update_alpha(log_prob.detach())
                     # update beta(termination)
-                    beta_loss = self.beta_loss(action, next_state, action_new_prime)
-                    self.termination_class._optimize_actor_parameters(beta_loss)
+                    beta_loss = self.beta_loss(smdp_action, smdp_next_state, action_new_prime)
+                    self.optimize_termination_parameters(beta_loss)
 
-                q_next = self._next_q(next_state, absorbing)
-                q = reward + (self.mdp_info.gamma ** smdp_length) * q_next
+                q_next = self._next_q(smdp_next_state, absorbing)
+                q = smdp_reward + (self.mdp_info.gamma ** smdp_length) * q_next
 
-                self._critic_approximator.fit(state, action[:4], q, **self._critic_fit_params)
+                self._critic_approximator.fit(smdp_state, smdp_action, q, **self._critic_fit_params)
 
                 self._update_target(self._critic_approximator, self._target_critic_approximator)
 
@@ -301,7 +308,7 @@ class SACPlusTermination(SAC):
         # - 1/n * sum_n( beta(s_n', w_n') * A(s_n', w_n') )
         adv_func = self.adv_func(action, next_state, action_new_prime)
         state_prime_termination = np.concatenate((next_state, action_new_prime), axis=1)
-        beta = self.termination_class.policy.compute_action_with_grad(state_prime_termination)
+        beta = self.termination_approximator.predict(state_prime_termination, output_tensor=True)
         return -(beta * adv_func.detach()).mean()
 
     def adv_func(self, action, next_state, action_new_prime):
@@ -314,7 +321,7 @@ class SACPlusTermination(SAC):
         for i in range(self.num_adv_sample):
             # sample rule: Prob of w_old: 1-beta(s',w). Prob of w_new = beta(s',w) * policy_dist
             state_prime_termination = np.concatenate((next_state, action), axis=1)
-            termination_prime, _ = self.termination_class.policy.compute_action_and_log_prob(state_prime_termination)
+            termination_prime, _ = self.termination_approximator.predict(state_prime_termination, output_tensor=False)
             if np.random.uniform() > termination_prime:
                 sampled_action = action
             else:
@@ -325,6 +332,11 @@ class SACPlusTermination(SAC):
             _q_sum += _q
         v = _q_sum / self.num_adv_sample
         return q - v
+
+    def optimize_termination_parameters(self, loss):
+        self.termination_optimizer.zero_grad()
+        loss.backward()
+        self.termination_optimizer.step()
 
     def _loss(self, state, action_new, log_prob):
         q_0 = self._critic_approximator(state, action_new, output_tensor=True, idx=0)
