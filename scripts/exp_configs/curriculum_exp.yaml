@@ -1,0 +1,57 @@
+env_name: 'HitBackEnv'
+mode: 'online'
+agent_1: 'Model_4250.pt'
+group: '14_06_plus_inv_traj'
+render: False
+record: False
+#n_steps: 10000
+n_episodes: 1000
+n_epochs: 100
+horizon: 1000
+n_steps_per_fit: 1
+initial_replay_size: 4000
+max_replay_size: 200000
+warmup_transitions: 4000
+batch_size: 256
+tau: 0.003
+dropout_ratio: 0.01
+layer_norm: True
+n_eval_episodes: 20
+full_save: False
+termination: True
+
+#lr_alpha: 0.00001
+#actor_lr: 0.0003
+lr_alpha: 0.00001
+actor_lr: 0.00003
+critic_lr: 0.0003
+target_entropy: -2
+
+task_curriculum: True
+curriculum_steps: 10
+
+#check_point__: "./logs/high_level_2024-05-22_19-59-26/parallel_seed___0/0/BaseEnv_2024-05-22-19-59-51"
+
+sweep_params:
+  parallel_seed__: [0, 1, 2]
+
+
+experiments:
+  exp_name: 'hit_back'
+  exp_file: 'train_curriculum_exp'
+  n_seeds: 1
+  n_cores: 4
+  n_exps_in_parallel: 1
+  memory_single_job: 1300
+  days: 0
+  hours: 23
+  minutes: 59
+  seconds: 0
+  partition: 'stud'
+  gres: None      # if use_cuda 'gpu:1'
+  conda_env: 'challenge'
+  use_timestamp: True
+  compact_dirs: False
+  use_cuda: False 
+
+

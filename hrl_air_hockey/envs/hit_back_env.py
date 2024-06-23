@@ -75,7 +75,7 @@ class HitBackEnv(position.IiwaPositionTournament):
                 self.score[1] += 1
                 return True
 
-        # Puck stuck in the middle
+        # Puck stuck in the middle for 5s
         if np.abs(puck_pos[0]) < 0.15 and np.linalg.norm(puck_vel[0]) < 0.025 and self.middle_timer > 5.0:
             self.middle_timer = 0
             return True

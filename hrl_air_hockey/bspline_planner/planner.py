@@ -1,15 +1,18 @@
 import numpy as np
 import torch
+import csv
 from copy import deepcopy
 from scipy.interpolate import interp1d
 from hrl_air_hockey.bspline_planner.utils.bspline import BSpline
 from .utils.constants import TableConstraint
 from .utils.compute_vel_and_pos import compute_vel_and_pos
+from air_hockey_challenge.utils.kinematics import jacobian, forward_kinematics
 
 
 class TrajectoryPlanner:
-    def __init__(self, planner_path, env_info, config, device):
+    def __init__(self, planner_path, env_info, config, device, violate_path):
         self.model = torch.load(planner_path)
+        self.env_info = env_info
         self.air_hockey_dt = env_info['dt']
         self.robot_model = deepcopy(env_info['robot']['robot_model'])
         self.robot_data = deepcopy(env_info['robot']['robot_data'])
@@ -18,8 +21,10 @@ class TrajectoryPlanner:
                                   num_T_pts=config.bspline_q.num_T_pts, device=device)
         self.b_spline_t = BSpline(num_pts=config.bspline_t.n_ctr_pts, degree=config.bspline_t.degree,
                                   num_T_pts=config.bspline_t.num_T_pts, device=device)
+        self.huber = torch.nn.HuberLoss(reduction='none')
+        self.violate_data_path = violate_path
 
-    def plan_trajectory(self, q_0, dq_0, hit_pos, hit_dir, hit_scale):
+    def plan_trajectory(self, q_0, dq_0, hit_pos, hit_dir, hit_scale, high_action):
         ddq_0 = np.zeros_like(q_0)
         q_f, dq_f = compute_vel_and_pos(self.robot_model, self.robot_data, np.array([*hit_pos, self.desired_height]), np.array([*hit_dir, 0.]),
                                         scale=hit_scale, initial_q=q_0)
@@ -29,7 +34,15 @@ class TrajectoryPlanner:
             features = torch.as_tensor(np.concatenate([q_0, dq_0, ddq_0, q_f, dq_f, ddq_f]))[None, :]
             q_cps, t_cps = self.model(features.to(torch.float32))
             q_cps, t_cps = q_cps.to(torch.float32), t_cps.to(torch.float32)
-        return self.interpolate_control_points(q_cps, t_cps)
+        traj = self.interpolate_control_points(q_cps, t_cps)
+        return traj
+        # check traj:
+        # good_traj = self.check_traj_violation(high_action, traj[0], q_0, dq_0)
+        # if good_traj:
+        #     return traj
+        # else:
+        #     traj = self.generate_return_traj(q_0, dq_0)
+
 
     def interpolate_control_points(self, q_cps, t_cps):
         with torch.no_grad():
@@ -75,3 +88,52 @@ class TrajectoryPlanner:
                 _acc = np.array([q_ddot_interpol[i](ts) for i in range(7)]).transpose()
                 traj.append(np.concatenate([_pos, _vel, _acc], axis=-1))
         return traj
+
+    def generate_return_traj(self, q_0, dq_0):
+        # inverse kinematics
+        q, qd = q_0, dq_0
+        ee_pos = forward_kinematics(mj_model=self.robot_model, mj_data=self.robot_data, q=q_0)[0][:3]
+        x_home = np.array([0.65, 0., self.env_info['robot']['ee_desired_height']])
+        qd_max = 0.8 * np.array([1.4835, 1.4835, 1.7453, 1.3090, 2.2689, 2.3562, 2.3562])
+        J = jacobian(mj_model=self.robot_model, mj_data=self.robot_data, q=q)[:3]
+        v_des = x_home - ee_pos
+        J_p = np.linalg.pinv(J)
+        JJ = J_p.dot(J)
+        I_n = np.eye(JJ.shape[0])
+        qd_0 = (np.array([0., -0.1961, 0., -1.8436, 0., 0.9704, 0.]) - q) * 0.5
+        qd_des = J_p.dot(v_des) + (I_n - JJ).dot(qd_0)
+        gain = np.min(qd_max / np.abs(qd_des))
+        qd_des = qd_des * gain
+        q_des = q + qd_des * 0.02
+        return [[*q_des, *qd_des]]
+
+    def check_traj_violation(self, high_action, traj, q_0, dq_0):
+        # check constraint, obstacle
+        positions = []
+        for i in range(len(traj)):
+            position = forward_kinematics(mj_model=self.robot_model, mj_data=self.robot_data, q=traj[i][:7])[0][:3]
+            positions.append(position)
+        constraint_loss, x_loss, y_loss, z_loss = self.constraint_loss(positions, 0.02)
+        # print('constraint_loss', constraint_loss)
+        # save the violate datapoint
+        if constraint_loss > 0.0001:
+            with open(self.violate_data_path, 'a', newline='') as file:
+                writer = csv.writer(file)
+                data = np.array([*high_action, *q_0, *dq_0])
+                writer.writerow(data.tolist())
+            return False
+        else:
+            return True
+
+    def constraint_loss(self, position, dt):
+        ee_pos = torch.tensor(position)
+        huber_along_path = lambda x: dt * self.huber(x, torch.zeros_like(x))
+        relu_huber_along_path = lambda x: huber_along_path(torch.relu(x))
+        x_b = torch.tensor([0.58415, 1.51])
+        y_b = torch.tensor([-0.47085, 0.47085])
+        z = torch.tensor(0.1645)
+        x_loss = relu_huber_along_path(x_b[0] - ee_pos[:, 0]) + relu_huber_along_path(ee_pos[:, 0] - x_b[1])
+        y_loss = relu_huber_along_path(y_b[0] - ee_pos[:, 1]) + relu_huber_along_path(ee_pos[:, 1] - y_b[1])
+        z_loss = relu_huber_along_path(z - ee_pos[:, 2]) + relu_huber_along_path(ee_pos[:, 2] - z)
+        constraint_losses = torch.sum(x_loss + y_loss + z_loss)
+        return constraint_losses, x_loss, y_loss, z_loss

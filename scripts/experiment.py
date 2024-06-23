@@ -2,7 +2,7 @@ import os
 import wandb
 from train_nn_planner import train
 # from train import train
-from experiment_launcher import run_experiment, single_experiment
+from hrl_air_hockey.experiment_launcher import run_experiment, single_experiment
 
 
 # This decorator creates results_dir as results_dir/seed, and saves the experiment arguments into a file.
@@ -19,9 +19,6 @@ def experiment(
     with open(filename, 'w') as file:
         file.write('Some logs in a log file.\n')
         file.write(out_str)
-    # wandb.init(project="neural_planner", id='2qrwuhon', resume='must')
-    wandb.init(project="neural_planner")
-    wandb.log({'seed': seed}, step=1)
 
     train()
 

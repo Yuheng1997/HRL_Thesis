@@ -20,41 +20,47 @@ class HRLTournamentAgentWrapper(SimpleTournamentAgentWrapper):
 
     def fit(self, dataset, **info):
         dataset_1, info_1 = self._preprocess_dataset_agent_1(dataset, **info)
-        self.agent_1.fit(dataset_1, info_1)
+        self.agent_1.fit(dataset_1, **info_1)
 
         # if self.agent_2 != "baseline":
         #     dataset_2, info_2 = self._preprocess_dataset_agent_1(dataset, **info)
         #     self.agent_2.fit(dataset_2, info_2)
 
     def _preprocess_dataset_agent_1(self, dataset, **info):
-        # smdp_dataset
-        smdp_dataset = []
-        mdp_dataset = []
-        for i in range(len(dataset)):
-            self.sum_r += dataset[i][2] * self.power_gamma
-            if self.save_initial_state:
-                self.initial_states = np.array(dataset[i][0])
-                self.smdp_length = 1
-            a_list = list(dataset[i])
-            a_list[1] = a_list[1][1]
-            mdp_dataset.append(a_list)
-            if dataset[i][1][-1] or dataset[i][-2]:
-                # smdp action terminate or game absorbing
-                a_list = list(dataset[i])
-                a_list[0] = self.initial_states
-                a_list[1] = a_list[1][1]
-                a_list[2] = self.sum_r
-                a_list.append(self.smdp_length)
-                smdp_dataset.append(a_list)
-                # reset
-                self.sum_r = 0.
-                self.power_gamma = 1.
-                self.save_initial_state = True
-            else:
-                self.smdp_length += 1
-                self.save_initial_state = False
-                self.power_gamma *= self.mdp_info.gamma
-        return [smdp_dataset, mdp_dataset], info
+        dataset_agent1 = list()
+        for i, d in enumerate(dataset):
+            state = d[0][:23]
+            action = d[1][0]
+            next_state = d[3][:23]
+            dataset_agent1.append((state, action, d[2], next_state, d[4], d[5]))
+        return dataset_agent1, info
+
+
+        # for i in range(len(dataset)):
+        #     self.sum_r += dataset[i][2] * self.power_gamma
+        #     if self.save_initial_state:
+        #         self.initial_states = np.array(dataset[i][0])
+        #         self.smdp_length = 1
+        #     a_list = list(dataset[i])
+        #     a_list[1] = a_list[1][1]
+        #     mdp_dataset.append(a_list)
+        #     if dataset[i][1][-1] or dataset[i][-2]:
+        #         # smdp action terminate or game absorbing
+        #         a_list = list(dataset[i])
+        #         a_list[0] = self.initial_states
+        #         a_list[1] = a_list[1][1]
+        #         a_list[2] = self.sum_r
+        #         a_list.append(self.smdp_length)
+        #         smdp_dataset.append(a_list)
+        #         # reset
+        #         self.sum_r = 0.
+        #         self.power_gamma = 1.
+        #         self.save_initial_state = True
+        #     else:
+        #         self.smdp_length += 1
+        #         self.save_initial_state = False
+        #         self.power_gamma *= self.mdp_info.gamma
+        # return [smdp_dataset, mdp_dataset], info
 
 
 if __name__ == "__main__":

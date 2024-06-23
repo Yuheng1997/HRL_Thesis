@@ -84,7 +84,8 @@ class TerminationNetwork(nn.Module):
 
         self.model.append(nn.Linear(n_features[-2], n_features[-1]))
         nn.init.xavier_uniform_(self.model[-1].weight,
-                                gain=nn.init.calculate_gain('linear'))
+                                gain=nn.init.calculate_gain('sigmoid'))
+        nn.init.constant_(self.model[-1].bias, -3)
         self.model.append(nn.Sigmoid())
 
     def forward(self, state, last_action, **kwargs):

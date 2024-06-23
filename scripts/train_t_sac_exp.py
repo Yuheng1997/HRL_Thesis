@@ -5,23 +5,14 @@ import inspect
 import numpy as np
 from tqdm import tqdm
 import torch.optim as optim
-import torch.nn.functional as F
-from mushroom_rl.utils.spaces import Box
-from agent_wrapper import build_warped_agent
-from mushroom_rl.core import Core, Logger, Agent
-from experiment_launcher import single_experiment, run_experiment
 from datetime import datetime
-from sac import SAC
-
-import numpy as np
-import os
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.utils.spaces import Box
-from mushroom_rl.core import Core
-
+from experiment_launcher import single_experiment, run_experiment
 from baseline.baseline_agent.baseline_agent import BaselineAgent
+
 from hrl_air_hockey.envs.hit_back_env import HitBackEnv
 from hrl_air_hockey.agents.double_agent_wrapper import HRLTournamentAgentWrapper
-
 from hrl_air_hockey.utils.agent_builder import build_agent_T_SAC
 from nn_planner_config import Config
 
@@ -35,17 +26,18 @@ def experiment(env_name: str = 'HitBackEnv',
                n_steps_per_fit: int = 1,
                render: bool = True,
                record: bool = False,
-               n_eval_episodes: int = 10,
+               n_eval_episodes: int = 1,
                mode: str = 'disabled',
                horizon: int = 1000,
                agent_1: str = 'Model_2600.pt',
-               gamma: float = 0.99,
-               termination: bool = False,
                full_save: bool = False,
+
                group: str = None,
 
                actor_lr: float = 3e-4,
                critic_lr: float = 3e-4,
+               termination_lr: float = 3e-4,
+               num_adv_sample: int = 100,
                n_features_actor: str = '256 256 256',
                n_features_critic: str = '256 256 256',
                n_features_termination: str = '256 256 256',
@@ -58,7 +50,7 @@ def experiment(env_name: str = 'HitBackEnv',
                target_entropy: float = -4,
                use_cuda: bool = False,
                dropout_ratio: float = 0.01,
-               layer_norm: bool = True,
+               layer_norm: bool = False,
 
                # Continue training
                # check_point: str = 'logs/hit_back_2024-05-08_20-47-46/check_point___.-logs-high_level_2024-05-07_01-01-02-parallel_seed___0-0-BaseEnv_2024-05-07-01-01-21/parallel_seed___1/0/HitBackEnv_2024-05-08-21-18-54',
@@ -107,15 +99,19 @@ def experiment(env_name: str = 'HitBackEnv',
     if check_point is None:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         planner_path = os.path.abspath(os.path.join(current_dir, os.pardir, 'trained_low_agent/Model_4250.pt'))
-        agent = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info,
-                                planner_path=planner_path, planner_config=planner_config,
-                                actor_lr=actor_lr, critic_lr=critic_lr, n_features_actor=n_features,
-                                n_features_critic=n_features, batch_size=batch_size,
-                                initial_replay_size=initial_replay_size, max_replay_size=max_replay_size, tau=tau,
-                                warmup_transitions=warmup_transitions, lr_alpha=lr_alpha, target_entropy=target_entropy,
-                                dropout_ratio=0, layer_norm=False, use_cuda=use_cuda)
-        agent._log_alpha = torch.tensor(np.log(0.4)).to(rl_agent._log_alpha).requires_grad_(True)
-        agent._alpha_optim = optim.Adam([rl_agent._log_alpha], lr=lr_alpha)
+        planner_path = "Transferred_model_4250.pt"
+        planner_config = Config
+        agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info,
+                                    planner_path=planner_path, planner_config=planner_config,
+                                    actor_lr=actor_lr, critic_lr=critic_lr, termination_lr=termination_lr,
+                                    n_features_actor=n_features_actor, n_features_critic=n_features_critic,
+                                    n_features_termination=n_features_termination, batch_size=batch_size,
+                                    initial_replay_size=initial_replay_size, max_replay_size=max_replay_size, tau=tau,
+                                    num_adv_sample=num_adv_sample, warmup_transitions=warmup_transitions,
+                                    lr_alpha=lr_alpha, target_entropy=target_entropy, dropout_ratio=dropout_ratio,
+                                    layer_norm=layer_norm, use_cuda=use_cuda)
+        agent_1._log_alpha = torch.tensor(np.log(0.4)).to(agent_1._log_alpha).requires_grad_(True)
+        agent_1._alpha_optim = optim.Adam([agent_1._log_alpha], lr=lr_alpha)
     else:
         raise NotImplemented
         # def get_file_by_postfix(parent_dir, postfix):
@@ -131,33 +127,33 @@ def experiment(env_name: str = 'HitBackEnv',
         # rl_agent._alpha_optim = optim.Adam([rl_agent._log_alpha], lr=lr_alpha)
         # rl_agent = SAC.load(check_point)
 
-
-
-    core = Core(agent, env)
+    baseline_agent = BaselineAgent(env.env_info, agent_id=2)
+    wrapped_agent = HRLTournamentAgentWrapper(env.env_info, agent_1, baseline_agent)
+    core = Core(wrapped_agent, env)
 
     best_R = -np.inf
 
     # initial evaluate
-    J, R, E, V, alpha, task_info = compute_metrics(core, record, eval_params)
+    # J, R, E, V, alpha, task_info = compute_metrics(core, record, eval_params)
 
-    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
-    size_replay_memory = core.agent.high_agent.rl_agent._replay_memory.size
-    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
-                      max_traj_length=core.agent.low_agent.training_agent.max_traj_length, **task_info)
+    # logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
+    # size_replay_memory = core.agent.agent_1._replay_memory.size
+    # size_mdp_replay_memory = core.agent.agent_1._smdp_replay_memory.size
+    # logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
+    #                   size_mdp_replay_memory=size_mdp_replay_memory, **task_info)
+    #
+    # log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
+    #             "Training/size_replaymemory": size_replay_memory, "Training/size_mdp_replay_memory": size_mdp_replay_memory}
 
-    log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                "Training/size_replaymemory": size_replay_memory,
-                "Training/max_traj_length": core.agent.low_agent.training_agent.max_traj_length}
-
-    task_dict = {}
-    for key, value in task_info.items():
-        if hasattr(value, '__iter__'):
-            for i, v in enumerate(value):
-                task_dict[key + f"_{i}"] = v
-        else:
-            task_dict[key] = value
-    log_dict.update(task_dict)
-    wandb.log(log_dict, step=0)
+    # task_dict = {}
+    # for key, value in task_info.items():
+    #     if hasattr(value, '__iter__'):
+    #         for i, v in enumerate(value):
+    #             task_dict[key + f"_{i}"] = v
+    #     else:
+    #         task_dict[key] = value
+    # log_dict.update(task_dict)
+    # wandb.log(log_dict, step=0)
 
     for epoch in tqdm(range(n_epochs), disable=False):
         # core.agent.learning_agent.num_fits_left = n_steps
@@ -165,7 +161,7 @@ def experiment(env_name: str = 'HitBackEnv',
         core.learn(n_episodes=n_episodes, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
 
         J, R, E, V, alpha, task_info = compute_metrics(core, record, eval_params)
-        size_replay_memory = core.agent.high_agent.rl_agent._replay_memory.size
+        size_replay_memory = core.agent.agent_1._replay_memory.size
 
         if task_curriculum:
             if task_info['success_rate'] >= 0.7:
@@ -176,8 +172,7 @@ def experiment(env_name: str = 'HitBackEnv',
         logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
         logger.epoch_info(epoch + 1, J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
         log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                    "Training/size_replaymemory": size_replay_memory,
-                    "Training/max_traj_length": core.agent.low_agent.training_agent.max_traj_length}
+                    "Training/size_replaymemory": size_replay_memory, "Training/size_mdp_replay_memory": size_mdp_replay_memory}
 
         task_dict = {}
         for key, value in task_info.items():
@@ -189,7 +184,7 @@ def experiment(env_name: str = 'HitBackEnv',
         log_dict.update(task_dict)
         wandb.log(log_dict, step=epoch + 1)
 
-        logger.log_agent(rl_agent, full_save=full_save)
+        logger.log_agent(agent_1, full_save=full_save)
 
 
 def compute_metrics(core, record, eval_params, return_dataset=False):
@@ -230,7 +225,7 @@ def compute_metrics(core, record, eval_params, return_dataset=False):
         for i in range(len(_dataset)):
             sum_r += _dataset[i][2] * sum_gamma
             if save_initial_state:
-                initial_state = np.array(_dataset[i][0])
+                initial_state = np.array(_dataset[i][0][:23])
             if _dataset[i][1][-1] or _dataset[i][-2]:
                 a_list = list(_dataset[i])
                 a_list[0] = initial_state
@@ -294,7 +289,7 @@ def compute_metrics(core, record, eval_params, return_dataset=False):
     dataset, dataset_info = core.evaluate(**eval_params, get_env_info=True, record=record)
     parsed_dataset = parse_dataset(dataset)
 
-    rl_agent = core.agent.high_agent.rl_agent
+    rl_agent = core.agent.agent_1
     J = np.mean(compute_J(dataset, core.mdp.info.gamma))
     R = np.mean(compute_J(dataset))
 

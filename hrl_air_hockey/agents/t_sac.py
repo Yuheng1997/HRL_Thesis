@@ -224,15 +224,15 @@ class SACPlusTermination(SAC):
         self.traj_planner = TrajectoryPlanner(**nn_planner_params)
 
         self.termination_approximator = Regressor(TorchApproximator, **termination_params)
-        self.termination_parameters = self.termination_approximator.model.network.parameters()
-        self.termination_optimizer = termination_optimizer['class'](self.termination_parameters,
+        termination_parameters = self.termination_approximator.model.network.parameters()
+        self.termination_optimizer = termination_optimizer['class'](termination_parameters,
                                                                     **termination_optimizer['params'])
 
         self.trajectory_buffer = None
         self.last_action = None
         self.num_adv_sample = num_adv_sample
 
-        self._add_save_attr(planner="torch", termination_policy="mushroom")
+        self._add_save_attr(planner="torch", termination_approximator="mushroom")
 
     def episode_start(self):
         self.trajectory_buffer = None
@@ -243,25 +243,25 @@ class SACPlusTermination(SAC):
         if self.trajectory_buffer is None or len(self.trajectory_buffer) == 0:
             self.last_action = self.policy.draw_action(state)
             q, dq = self._get_joint_pos(state)
-            hit_pos, hit_dir, hit_scale = self._get_target_point(self.last_action)
-            self.trajectory_buffer = self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale)[0]
-            term_prob = 1
+            hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_action)
+            self.trajectory_buffer = self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale, self.last_action)[0]
+            termination = np.array([1])
         else:
-            term_prob = self.termination_approximator.predict(np.concatenate((state, self.last_action), axis=1),
-                                                              output_tensor=False)
-            # term_prob = 0.98
-            if np.random.uniform() > term_prob:
+            term_prob = self.termination_approximator.predict(state, self.last_action, output_tensor=False)
+            # term_prob = 0.02
+            termination = np.array([0])
+            if np.random.uniform() < term_prob:
                 self.last_action = self.policy.draw_action(state)
 
                 q, dq = self._get_joint_pos(state)
-                hit_pos, hit_dir, hit_scale = self._get_target_point(self.last_action)
-                self.trajectory_buffer = self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale)[0]
-
+                hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_action)
+                self.trajectory_buffer = self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale, self.last_action)[0]
+                termination = np.array([1])
         assert len(self.trajectory_buffer) > 0
         joint_command = self.trajectory_buffer[0, :14]
         self.trajectory_buffer = self.trajectory_buffer[1:]
 
-        return np.concatenate([joint_command, self.last_action, [term_prob]])
+        return np.concatenate([joint_command, self.last_action, termination])
 
     def _get_joint_pos(self, state):
         q = state[..., 6:13]
@@ -273,11 +273,12 @@ class SACPlusTermination(SAC):
         angle = action[2]
         scale = action[3]
         hit_vel = np.array([np.cos(angle), np.sin(angle)])
-        return hit_pos, hit_vel, scale
+        return hit_pos, hit_vel, scale, angle
 
     def fit(self, dataset, **info):
-        self._smdp_replay_memory.add(dataset[0])
-        self._repaly_memory.add(dataset[1])
+        dataset = self.dataset_preprocessor(dataset)
+        self._smdp_replay_memory.add(dataset)
+        self._replay_memory.add(dataset)
         for i in range(20):
             if self._smdp_replay_memory.initialized:
                 # action_t = [pos_x, pos_y, vel_angle, scale, termination]
@@ -306,30 +307,33 @@ class SACPlusTermination(SAC):
 
                 self._update_target(self._critic_approximator, self._target_critic_approximator)
 
+    def dataset_preprocessor(self, dataset):
+
+        return dataset
+
     def beta_loss(self, action, next_state, action_new_prime):
         # - 1/n * sum_n( beta(s_n', w_n') * A(s_n', w_n') )
         adv_func = self.adv_func(action, next_state, action_new_prime)
-        state_prime_termination = np.concatenate((next_state, action_new_prime), axis=1)
-        beta = self.termination_approximator.predict(state_prime_termination, output_tensor=True)
+        beta = self.termination_approximator.predict(next_state, action_new_prime, output_tensor=True)
         return -(beta * adv_func.detach()).mean()
 
     def adv_func(self, action, next_state, action_new_prime):
         # A(s', w') = Q(s', w') - V(s') =  Q(s', w') - 1/n * [Q(s', w_0) + Q(s', w_1) + ... + Q(s', w_n)]
-        q_0 = self._critic_approximator(next_state, action_new_prime, output_tensor=True, idx=0)
-        q_1 = self._critic_approximator(next_state, action_new_prime, output_tensor=True, idx=0)
+        q_0 = self._critic_approximator(next_state, action_new_prime, output_tensor=False, idx=0)
+        q_1 = self._critic_approximator(next_state, action_new_prime, output_tensor=False, idx=0)
         q = torch.min(q_0, q_1)
         _q_sum = np.zeros(q)
         # sample w_n
         for i in range(self.num_adv_sample):
             # sample rule: Prob of w_old: 1-beta(s',w). Prob of w_new = beta(s',w) * policy_dist
-            state_prime_termination = np.concatenate((next_state, action), axis=1)
-            termination_prime, _ = self.termination_approximator.predict(state_prime_termination, output_tensor=False)
+            state_prime_termination = np.concatenate((next_state, action), axis=0)
+            termination_prime, _ = self.termination_approximator.predict(next_state, action, output_tensor=False)
             if np.random.uniform() > termination_prime:
                 sampled_action = action
             else:
                 sampled_action = self.policy.compute_action_and_log_prob_t(next_state)
-            _q_0 = self._critic_approximator(next_state, sampled_action, output_tensor=True, idx=0)
-            _q_1 = self._critic_approximator(next_state, sampled_action, output_tensor=True, idx=0)
+            _q_0 = self._critic_approximator(next_state, sampled_action, output_tensor=False, idx=0)
+            _q_1 = self._critic_approximator(next_state, sampled_action, output_tensor=False, idx=0)
             _q = torch.min(_q_0, _q_1)
             _q_sum += _q
         v = _q_sum / self.num_adv_sample

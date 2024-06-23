@@ -8,13 +8,16 @@ from hrl_air_hockey.utils.sac_network import SACActorNetwork, SACCriticNetwork, 
 
 def build_agent_T_SAC(mdp_info, env_info, planner_path, planner_config, actor_lr, critic_lr, termination_lr,
                       n_features_actor, n_features_critic, n_features_termination,
-                      batch_size, initial_replay_size, max_replay_size, tau,
+                      batch_size, initial_replay_size, max_replay_size, tau, num_adv_sample,
                       warmup_transitions, lr_alpha, target_entropy, dropout_ratio, layer_norm, use_cuda):
     if type(n_features_actor) is str:
         n_features_actor = list(map(int, n_features_actor.split(" ")))
 
     if type(n_features_critic) is str:
         n_features_critic = list(map(int, n_features_critic.split(" ")))
+
+    if type(n_features_termination) is str:
+        n_features_termination = list(map(int, n_features_termination.split(" ")))
 
     actor_mu_params = dict(network=SACActorNetwork,
                            input_shape=mdp_info.observation_space.shape,
@@ -66,10 +69,10 @@ def build_agent_T_SAC(mdp_info, env_info, planner_path, planner_config, actor_lr
 
     device = 'gpu' if use_cuda else 'cpu'
     config = planner_config
-    nn_planner_params = dict(planner_path=planner_path, env_info=env_info, config=config, device=device)
+    nn_planner_params = dict(planner_path=planner_path, env_info=env_info, config=config, device=device, violate_path=os.path.join(os.path.abspath(os.getcwd()), "violate_data/violate_data_1_1.csv"))
     agent = SACPlusTermination(mdp_info, actor_mu_params=actor_mu_params, actor_sigma_params=actor_sigma_params,
                                nn_planner_params=nn_planner_params, termination_params=termination_params,
-                               termination_optimizer=termination_optimizer,
+                               termination_optimizer=termination_optimizer, num_adv_sample=num_adv_sample,
                                actor_optimizer=actor_optimizer, critic_params=critic_params, **alg_params)
 
     return agent

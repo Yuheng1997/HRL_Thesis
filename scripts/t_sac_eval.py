@@ -18,6 +18,7 @@ def main(
         max_replay_size: int = 200000,
         actor_lr: float = 3e-4,
         critic_lr: float = 3e-4,
+        termination_lr: float = 3e-4,
         n_features: str = "128 128",
         tau: float = 0.003,
         lr_alpha: float = 1e-5,
@@ -35,8 +36,8 @@ def main(
     planner_config = Config
     agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info,
                                 planner_path=planner_path, planner_config=planner_config,
-                                actor_lr=actor_lr, critic_lr=critic_lr, n_features_actor=n_features,
-                                n_features_critic=n_features, batch_size=batch_size,
+                                actor_lr=actor_lr, critic_lr=critic_lr, termination_lr=termination_lr, n_features_actor=n_features,
+                                n_features_critic=n_features, n_features_termination=n_features, batch_size=batch_size,
                                 initial_replay_size=initial_replay_size, max_replay_size=max_replay_size, tau=tau,
                                 warmup_transitions=warmup_transitions, lr_alpha=lr_alpha, target_entropy=target_entropy,
                                 dropout_ratio=0, layer_norm=False, use_cuda=use_cuda)
