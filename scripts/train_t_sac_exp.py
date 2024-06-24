@@ -162,6 +162,7 @@ def experiment(env_name: str = 'HitBackEnv',
 
         J, R, E, V, alpha, task_info = compute_metrics(core, record, eval_params)
         size_replay_memory = core.agent.agent_1._replay_memory.size
+        size_replay_memory = core.agent.agent_1._smdp_replay_memory.size
 
         if task_curriculum:
             if task_info['success_rate'] >= 0.7:

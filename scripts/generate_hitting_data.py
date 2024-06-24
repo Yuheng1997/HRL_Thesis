@@ -191,33 +191,6 @@ def generate_configuration_of_point(point_function, vel_low, vel_high, scale_hig
     return q0, qd0, qdd0, pos_2d
 
 
-def clip_eta_y(eta_y, point_pos_y, point_vel_y):
-    dis = mallet_radius * 3
-    point_dis = 0.47085 - np.abs(point_pos_y)
-    ratio = point_dis / dis
-    if ratio < 1:
-        if point_pos_y > 0 and point_vel_y > 0:
-            return np.clip(a=eta_y, a_min=0, a_max=ratio * 0.2)
-        if point_pos_y < 0 and point_vel_y < 0:
-            return np.clip(a=eta_y, a_min=0, a_max=ratio * 0.2)
-        return eta_y
-    else:
-        return eta_y
-
-
-def clip_eta_x(eta_x, point_pos_x, point_vel_x):
-    dis = mallet_radius * 3
-    point_dis = 1.51 + point_pos_x - 0.60
-    ratio = point_dis / dis
-    if ratio < 1:
-        if point_vel_x < 0:
-            return np.clip(a=eta_x, a_min=0, a_max=ratio * 0.2)
-        else:
-            return eta_x
-    else:
-        return eta_x
-
-
 def compute_initial_state_add_noise():
     # q_limits = torch.tensor([2.967, 2.094, 2.967, 2.094, 2.967, 2.094, 3.054])
     q_up_limit_deg = [120, 80, 120, 110, 120, 120, 3]
@@ -235,11 +208,12 @@ def compute_initial_state_add_noise():
 
 
 def get_uniform_pos():
-    range = np.array([[0.60, 1.3], [-0.47085, 0.47085]])
+    range_y = table_width / 2 - mallet_radius
+    range = np.array([[0.60, 1.3], [-range_y, range_y]])
     point = np.random.rand(2) * (range[:, 1] - range[:, 0]) + range[:, 0]
     return point
 
 
 if __name__ == '__main__':
     save_path = 'datasets/uniform_train/data.tsv'
-    generate_uniform_points(n=120000, save_path=save_path)
+    generate_uniform_points(n=10, save_path=save_path)
