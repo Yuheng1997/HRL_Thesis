@@ -54,7 +54,7 @@ class Save:
 
 class Load:
     enable = True
-    epoch = 1000
+    epoch = 2200
 
 
 class Data:
