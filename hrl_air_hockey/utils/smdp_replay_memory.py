@@ -1,53 +1,14 @@
 import numpy as np
+from mushroom_rl.utils.replay_memory import ReplayMemory
 
-from mushroom_rl.core import Serializable
 
-
-class SMDPReplayMemory(Serializable):
-    """
-    This class implements function to manage a replay memory as the one used in
-    "Human-Level Control Through Deep Reinforcement Learning" by Mnih V. et al..
-
-    """
+class SMDPReplayMemory(ReplayMemory):
     def __init__(self, initial_size, max_size):
-        """
-        Constructor.
+        super().__init__(initial_size, max_size)
+        self._add_save_attr(_smdp_length='pickle!')
 
-        Args:
-            initial_size (int): initial number of elements in the replay memory;
-            max_size (int): maximum number of elements that the replay memory
-                can contain.
-
-        """
-        self._initial_size = initial_size
-        self._max_size = max_size
-
-        self.reset()
-
-        self._add_save_attr(
-            _initial_size='primitive',
-            _max_size='primitive',
-            _idx='primitive!',
-            _full='primitive!',
-            _states='pickle!',
-            _actions='pickle!',
-            _rewards='pickle!',
-            _next_states='pickle!',
-            _absorbing='pickle!',
-            _last='pickle!',
-            _smdp_length='pickle!'
-        )
 
     def add(self, dataset, n_steps_return=1, gamma=1.):
-        """
-        Add elements to the replay memory.
-
-        Args:
-            dataset (list): list of elements to add to the replay memory;
-            n_steps_return (int, 1): number of steps to consider for computing n-step return;
-            gamma (float, 1.): discount factor for n-step return.
-
-        """
         assert n_steps_return > 0
 
         i = 0
@@ -107,39 +68,5 @@ class SMDPReplayMemory(Serializable):
             np.array(ab), np.array(last), np.array(smdp_length)
 
     def reset(self):
-        """
-        Reset the replay memory.
-
-        """
-        self._idx = 0
-        self._full = False
-        self._states = [None for _ in range(self._max_size)]
-        self._actions = [None for _ in range(self._max_size)]
-        self._rewards = [None for _ in range(self._max_size)]
-        self._next_states = [None for _ in range(self._max_size)]
-        self._absorbing = [None for _ in range(self._max_size)]
-        self._last = [None for _ in range(self._max_size)]
+        super().reset()
         self._smdp_length = [None for _ in range(self._max_size)]
-
-    @property
-    def initialized(self):
-        """
-        Returns:
-            Whether the replay memory has reached the number of elements that
-            allows it to be used.
-
-        """
-        return self.size > self._initial_size
-
-    @property
-    def size(self):
-        """
-        Returns:
-            The number of elements contained in the replay memory.
-
-        """
-        return self._idx if not self._full else self._max_size
-
-    def _post_load(self):
-        if self._full is None:
-            self.reset()

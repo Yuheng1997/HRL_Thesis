@@ -228,13 +228,17 @@ class SACPlusTermination(SAC):
         self.termination_optimizer = termination_optimizer['class'](termination_parameters,
                                                                     **termination_optimizer['params'])
 
-        self.trajectory_buffer = None
-        self.last_action = None
         self.num_adv_sample = num_adv_sample
 
         self._add_save_attr(planner="torch", termination_approximator="mushroom")
 
     def episode_start(self):
+        self.cur_smdp_length = 0
+        self.sum_reward = 0
+        self.initial_state = None
+        self.initial_action = None
+        self.initial_smdp_state = None
+        self.initial_smdp_action = None
         self.trajectory_buffer = None
         self.last_action = None
         self.policy.reset()
@@ -244,7 +248,8 @@ class SACPlusTermination(SAC):
             self.last_action = self.policy.draw_action(state)
             q, dq = self._get_joint_pos(state)
             hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_action)
-            self.trajectory_buffer = self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale, self.last_action)[0]
+            self.trajectory_buffer = \
+            self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale, self.last_action)[0]
             termination = np.array([1])
         else:
             term_prob = self.termination_approximator.predict(state, self.last_action, output_tensor=False)
@@ -255,13 +260,22 @@ class SACPlusTermination(SAC):
 
                 q, dq = self._get_joint_pos(state)
                 hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_action)
-                self.trajectory_buffer = self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale, self.last_action)[0]
+                self.trajectory_buffer = \
+                self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale, self.last_action)[0]
                 termination = np.array([1])
         assert len(self.trajectory_buffer) > 0
         joint_command = self.trajectory_buffer[0, :14]
         self.trajectory_buffer = self.trajectory_buffer[1:]
 
-        return np.concatenate([joint_command, self.last_action, termination])
+        if termination == 1:
+            last_smdp_length = self.cur_smdp_length
+            self.cur_smdp_length = 0
+        else:
+            last_smdp_length = self.cur_smdp_length
+            self.cur_smdp_length += 1
+
+        return np.concatenate([joint_command, self.last_action, termination, np.array([last_smdp_length]),
+                               np.array([self.cur_smdp_length])])
 
     def _get_joint_pos(self, state):
         q = state[..., 6:13]
@@ -276,19 +290,18 @@ class SACPlusTermination(SAC):
         return hit_pos, hit_vel, scale, angle
 
     def fit(self, dataset, **info):
-        dataset = self.dataset_preprocessor(dataset)
-        self._smdp_replay_memory.add(dataset)
-        self._replay_memory.add(dataset)
+        smdp_dataset = self.dataset_preprocessor_1(dataset)
+        termination_dataset = self.dataset_preprocessor_2(dataset)
+        self._smdp_replay_memory.add(smdp_dataset)
+        self._replay_memory.add(termination_dataset)
         for i in range(20):
             if self._smdp_replay_memory.initialized:
-                # action_t = [pos_x, pos_y, vel_angle, scale, termination]
-                smdp_state, smdp_action_t, smdp_reward, smdp_next_state, absorbing, _, smdp_length = self._smdp_replay_memory.get(
+                # for updating the critic and actor
+                smdp_state, smdp_action, smdp_reward, smdp_next_state, absorbing, _, smdp_length = self._smdp_replay_memory.get(
                     self._batch_size())
-                initial_state, initial_action_t, reward, next_state, absorbing, _ = self._replay_memory.get(
-                    self._batch_size())
+                # for updating the termination network
+                initial_state, initial_action, _, next_state, _, _ = self._replay_memory.get(self._batch_size())
 
-                smdp_action = smdp_action_t[:, :4]
-                initial_action = smdp_action_t[:, :4]
                 if self._smdp_replay_memory.size > self._warmup_transitions():
                     action_new, log_prob = self.policy.compute_action_and_log_prob_t(smdp_state)
                     action_new_prime, _ = self.policy.compute_action_and_log_prob_t(next_state)
@@ -297,7 +310,7 @@ class SACPlusTermination(SAC):
                     self._optimize_actor_parameters(actor_loss)
                     self._update_alpha(log_prob.detach())
                     # update beta(termination)
-                    beta_loss = self.beta_loss(initial_action, next_state, action_new_prime)
+                    beta_loss = self.termination_loss(initial_action, next_state, action_new_prime)
                     self.optimize_termination_parameters(beta_loss)
 
                 q_next = self._next_q(smdp_next_state, absorbing)
@@ -307,34 +320,71 @@ class SACPlusTermination(SAC):
 
                 self._update_target(self._critic_approximator, self._target_critic_approximator)
 
-    def dataset_preprocessor(self, dataset):
+    def dataset_preprocessor_1(self, dataset):
+        smdp_dataset = list()
+        for i, d in enumerate(dataset):
+            high_action = d[1][14:18]
+            termination = d[1][18]
+            last_smdp_length = int(d[1][19])
+            cur_smdp_length = int(d[1][20])
+            reward = d[2]
+            next_state = d[3]
+            absorbing = d[4]
+            last = d[5]
+            self.sum_reward += reward * (self.mdp_info.gamma ** cur_smdp_length)
+            if termination == 1 or absorbing or last:
+                if self.initial_smdp_state is not None:
+                    smdp_dataset.append((self.initial_smdp_state, self.initial_smdp_action, self.sum_reward, next_state,
+                                         absorbing, last, last_smdp_length))
+                self.sum_reward = 0
+                self.initial_smdp_state = d[0]
+                self.initial_smdp_action = high_action
+        return smdp_dataset
 
-        return dataset
+    def dataset_preprocessor_2(self, dataset):
+        termination_dataset = list()
+        for i, d in enumerate(dataset):
+            high_action = d[1][14:18]
+            termination = d[1][18]
+            last_smdp_length = int(d[1][19])
+            reward = d[2]
+            next_state = d[3]
+            absorbing = d[4]
+            last = d[5]
+            if self.initial_state is not None:
+                termination_dataset.append((self.initial_state, self.initial_action, reward, next_state,
+                                            absorbing, last, last_smdp_length))
+            if termination == 1 or absorbing or last:
+                self.initial_state = d[0]
+                self.initial_action = high_action
+        return termination_dataset
 
-    def beta_loss(self, action, next_state, action_new_prime):
+    def termination_loss(self, action, next_state, action_new_prime):
         # - 1/n * sum_n( beta(s_n', w_n') * A(s_n', w_n') )
         adv_func = self.adv_func(action, next_state, action_new_prime)
         beta = self.termination_approximator.predict(next_state, action_new_prime, output_tensor=True)
-        return -(beta * adv_func.detach()).mean()
+        adv_func_tensor = torch.tensor(adv_func, device=beta.device, requires_grad=False)
+        return (beta * adv_func_tensor.view_as(beta)).mean()
 
     def adv_func(self, action, next_state, action_new_prime):
         # A(s', w') = Q(s', w') - V(s') =  Q(s', w') - 1/n * [Q(s', w_0) + Q(s', w_1) + ... + Q(s', w_n)]
         q_0 = self._critic_approximator(next_state, action_new_prime, output_tensor=False, idx=0)
-        q_1 = self._critic_approximator(next_state, action_new_prime, output_tensor=False, idx=0)
-        q = torch.min(q_0, q_1)
-        _q_sum = np.zeros(q)
+        q_1 = self._critic_approximator(next_state, action_new_prime, output_tensor=False, idx=1)
+        q = np.minimum(q_0, q_1)
+        _q_sum = np.zeros_like(q)
         # sample w_n
-        for i in range(self.num_adv_sample):
+        for _ in range(self.num_adv_sample):
             # sample rule: Prob of w_old: 1-beta(s',w). Prob of w_new = beta(s',w) * policy_dist
-            state_prime_termination = np.concatenate((next_state, action), axis=0)
-            termination_prime, _ = self.termination_approximator.predict(next_state, action, output_tensor=False)
-            if np.random.uniform() > termination_prime:
-                sampled_action = action
-            else:
-                sampled_action = self.policy.compute_action_and_log_prob_t(next_state)
+            termination_prime = self.termination_approximator.predict(next_state, action, output_tensor=False).flatten()
+            terminte_mask = np.random.rand(*termination_prime.shape) < termination_prime
+            sampled_action = np.zeros_like(action)
+            sampled_action[~terminte_mask, :] = action[~terminte_mask, :]
+            policy_actions, _ = self.policy.compute_action_and_log_prob_t(next_state[terminte_mask, :])
+            sampled_action[terminte_mask, :] = policy_actions.detach()
+
             _q_0 = self._critic_approximator(next_state, sampled_action, output_tensor=False, idx=0)
-            _q_1 = self._critic_approximator(next_state, sampled_action, output_tensor=False, idx=0)
-            _q = torch.min(_q_0, _q_1)
+            _q_1 = self._critic_approximator(next_state, sampled_action, output_tensor=False, idx=1)
+            _q = np.minimum(_q_0, _q_1)
             _q_sum += _q
         v = _q_sum / self.num_adv_sample
         return q - v
@@ -378,10 +428,8 @@ class SACPlusTermination(SAC):
 
         return q
 
-    # overwrite the functions
     def _post_load(self):
         self._update_optimizer_parameters(self.policy.parameters())
-        self.termination_class._update_optimizer_parameters(self.termination_class.policy.parameters())
 
     @property
     def _alpha(self):
