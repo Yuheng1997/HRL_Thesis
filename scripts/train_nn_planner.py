@@ -138,8 +138,7 @@ def train():
 
     # set up wandb
     os.environ["WANDB_API_KEY"] = Config.wandb.api_key
-    wandb.init(project=Config.wandb.project_name)
-    # wandb.init(project="neural_planner", id='2qrwuhon', resume='must')
+    wandb.init(project=Config.wandb.project_name, id=Config.wandb.continue_id, resume='must')
     wandb.watch(model, log='gradients', log_freq=Config.train.batch_size)
     # wandb.watch(model, log='parameters', log_freq=Config.train.batch_size)
 
