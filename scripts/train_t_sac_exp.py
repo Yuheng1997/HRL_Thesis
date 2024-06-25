@@ -134,26 +134,26 @@ def experiment(env_name: str = 'HitBackEnv',
     best_R = -np.inf
 
     # initial evaluate
-    # J, R, E, V, alpha, task_info = compute_metrics(core, record, eval_params)
+    J, R, E, V, alpha, task_info = compute_metrics(core, record, eval_params)
 
-    # logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
-    # size_replay_memory = core.agent.agent_1._replay_memory.size
-    # size_mdp_replay_memory = core.agent.agent_1._smdp_replay_memory.size
-    # logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
-    #                   size_mdp_replay_memory=size_mdp_replay_memory, **task_info)
-    #
-    # log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-    #             "Training/size_replaymemory": size_replay_memory, "Training/size_mdp_replay_memory": size_mdp_replay_memory}
+    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
+    size_replay_memory = core.agent.agent_1._replay_memory.size
+    size_mdp_replay_memory = core.agent.agent_1._smdp_replay_memory.size
+    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
+                      size_mdp_replay_memory=size_mdp_replay_memory, **task_info)
 
-    # task_dict = {}
-    # for key, value in task_info.items():
-    #     if hasattr(value, '__iter__'):
-    #         for i, v in enumerate(value):
-    #             task_dict[key + f"_{i}"] = v
-    #     else:
-    #         task_dict[key] = value
-    # log_dict.update(task_dict)
-    # wandb.log(log_dict, step=0)
+    log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
+                "Training/size_replaymemory": size_replay_memory, "Training/size_mdp_replay_memory": size_mdp_replay_memory}
+
+    task_dict = {}
+    for key, value in task_info.items():
+        if hasattr(value, '__iter__'):
+            for i, v in enumerate(value):
+                task_dict[key + f"_{i}"] = v
+        else:
+            task_dict[key] = value
+    log_dict.update(task_dict)
+    wandb.log(log_dict, step=0)
 
     for epoch in tqdm(range(n_epochs), disable=False):
         # core.agent.learning_agent.num_fits_left = n_steps
@@ -210,84 +210,80 @@ def compute_metrics(core, record, eval_params, return_dataset=False):
         for state in inital_states:
             num = np.clip(len(inital_states), 0, 100)
             s = np.array([state for i in range(num)])
-            a = np.array([agent.draw_action(state) for i in range(num)])
+            a = np.array([agent.draw_action(state)[14:18] for i in range(num)])
             Q.append(agent._critic_approximator(s, a).mean())
         return np.array(Q).mean()
 
-    def parse_dataset(_dataset, features=None):
+    def spilt_dataset(_dataset):
         assert len(_dataset) > 0
+        dataset = list()
+        for i, d in enumerate(_dataset):
+            state = d[0][:23]
+            action = d[1][0]
+            next_state = d[3][:23]
+            dataset.append((state, action, d[2], next_state, d[4], d[5]))
+        return dataset
 
-        shape = _dataset[0][0].shape if features is None else (features.size,)
-        dataset = []
+    def parse_dataset(dataset, features=None):
+        assert len(dataset) > 0
 
-        sum_gamma = 1
-        sum_r = 0
-        save_initial_state = True
-        for i in range(len(_dataset)):
-            sum_r += _dataset[i][2] * sum_gamma
-            if save_initial_state:
-                initial_state = np.array(_dataset[i][0][:23])
-            if _dataset[i][1][-1] or _dataset[i][-2]:
-                a_list = list(_dataset[i])
-                a_list[0] = initial_state
-                a_list[1] = a_list[1][1]
-                a_list[2] = sum_r
-                dataset.append(a_list)
-                sum_r = 0
-                sum_gamma = 1
-                save_initial_state = True
-            else:
-                save_initial_state = False
-                sum_gamma *= 0.99
-        if len(dataset) == 0:
-            sum_gamma = 1
-            sum_r = 0
-            save_initial_state = True
-            for i in range(len(_dataset)):
-                sum_r += _dataset[i][2] * sum_gamma
-                if save_initial_state:
-                    initial_state = np.array(_dataset[i][0])
-                if _dataset[i][-1]:
-                    a_list = list(_dataset[i])
-                    a_list[0] = initial_state
-                    a_list[1] = a_list[1][1]
-                    a_list[2] = sum_r
-                    dataset.append(a_list)
-                    sum_r = 0
-                    sum_gamma = 1
-                    save_initial_state = True
-                else:
-                    save_initial_state = False
-                    sum_gamma *= 0.99
+        shape = dataset[0][0].shape if features is None else (features.size,)
 
-        state = np.ones((len(dataset),) + shape)
-        action = np.ones((len(dataset),) + dataset[0][1].shape)
-        reward = np.ones(len(dataset))
-        next_state = np.ones((len(dataset),) + shape)
-        absorbing = np.ones(len(dataset))
-        last = np.ones(len(dataset))
+        sum_reward = 0
+        discount_gamma = 1
+        initial_smdp_state = None
+        initial_smdp_action = None
+        smdp_dataset = list()
+        for i, d in enumerate(dataset):
+            high_action = d[1][14:18]
+            termination = d[1][18]
+            last_smdp_length = int(d[1][19])
+            cur_smdp_length = int(d[1][20])
+            reward = d[2]
+            next_state = d[3]
+            absorbing = d[4]
+            last = d[5]
+            sum_reward += reward * discount_gamma
+            discount_gamma *= 0.99
+            if termination == 1 or absorbing or last:
+                if initial_smdp_state is not None:
+                    smdp_dataset.append((initial_smdp_state, initial_smdp_action, sum_reward, next_state,
+                                         absorbing, last))
+                discount_gamma = 1
+                sum_reward = 0
+                initial_smdp_state = d[0]
+                initial_smdp_action = high_action
+
+
+        state = np.ones((len(smdp_dataset),) + shape)
+        action = np.ones((len(smdp_dataset),) + smdp_dataset[0][1].shape)
+        reward = np.ones(len(smdp_dataset))
+        next_state = np.ones((len(smdp_dataset),) + shape)
+        absorbing = np.ones(len(smdp_dataset))
+        last = np.ones(len(smdp_dataset))
 
         if features is not None:
-            for i in range(len(dataset)):
-                state[i, ...] = features(dataset[i][0])
-                action[i, ...] = dataset[i][1]
-                reward[i] = dataset[i][2]
-                next_state[i, ...] = features(dataset[i][3])
-                absorbing[i] = dataset[i][4]
-                last[i] = dataset[i][5]
+            for i in range(len(smdp_dataset)):
+                state[i, ...] = features(smdp_dataset[i][0])
+                action[i, ...] = smdp_dataset[i][1]
+                reward[i] = smdp_dataset[i][2]
+                next_state[i, ...] = features(smdp_dataset[i][3])
+                absorbing[i] = smdp_dataset[i][4]
+                last[i] = smdp_dataset[i][5]
         else:
-            for i in range(len(dataset)):
-                state[i, ...] = dataset[i][0]
-                action[i, ...] = dataset[i][1]
-                reward[i] = dataset[i][2]
-                next_state[i, ...] = dataset[i][3]
-                absorbing[i] = dataset[i][4]
-                last[i] = dataset[i][5]
+            for i in range(len(smdp_dataset)):
+                state[i, ...] = smdp_dataset[i][0]
+                action[i, ...] = smdp_dataset[i][1]
+                reward[i] = smdp_dataset[i][2]
+                next_state[i, ...] = smdp_dataset[i][3]
+                absorbing[i] = smdp_dataset[i][4]
+                last[i] = smdp_dataset[i][5]
 
         return np.array(state), np.array(action), np.array(reward), np.array(
             next_state), np.array(absorbing), np.array(last)
 
     dataset, dataset_info = core.evaluate(**eval_params, get_env_info=True, record=record)
+    dataset = spilt_dataset(dataset)
     parsed_dataset = parse_dataset(dataset)
 
     rl_agent = core.agent.agent_1

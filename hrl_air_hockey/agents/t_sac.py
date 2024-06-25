@@ -290,6 +290,7 @@ class SACPlusTermination(SAC):
         return hit_pos, hit_vel, scale, angle
 
     def fit(self, dataset, **info):
+        return
         smdp_dataset = self.dataset_preprocessor_1(dataset)
         termination_dataset = self.dataset_preprocessor_2(dataset)
         self._smdp_replay_memory.add(smdp_dataset)
