@@ -351,12 +351,11 @@ class SACPlusTermination(SAC):
             next_state = d[3]
             absorbing = d[4]
             last = d[5]
-            if self.initial_state is not None:
-                termination_dataset.append((self.initial_state, self.initial_action, reward, next_state,
-                                            absorbing, last, last_smdp_length))
             if termination == 1 or absorbing or last:
                 self.initial_state = d[0]
                 self.initial_action = high_action
+            if self.initial_state is not None:
+                termination_dataset.append((self.initial_state, self.initial_action, reward, next_state, absorbing, last))
         return termination_dataset
 
     def termination_loss(self, action, next_state, action_new_prime):
