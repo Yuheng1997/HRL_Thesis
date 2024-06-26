@@ -149,7 +149,7 @@ class SACPlusTermination(SAC):
             self.sum_reward += reward * (self.mdp_info.gamma ** cur_smdp_length)
             if termination == 1 or absorbing or last:
                 if self.initial_smdp_state is not None:
-                    smdp_dataset.append((self.initial_smdp_state, self.initial_smdp_action, self.sum_reward, next_state,
+                    smdp_dataset.append((self.initial_smdp_state, self.initial_smdp_action, self.sum_reward, d[0],
                                          absorbing, last, last_smdp_length))
                 self.sum_reward = 0
                 self.initial_smdp_state = d[0]

@@ -11,7 +11,7 @@ from air_hockey_challenge.utils.kinematics import jacobian, forward_kinematics
 
 class TrajectoryPlanner:
     def __init__(self, planner_path, env_info, config, device, violate_path):
-        self.model = torch.load(planner_path)
+        self.model = torch.load(planner_path, map_location=torch.device(device))
         self.env_info = env_info
         self.air_hockey_dt = env_info['dt']
         self.robot_model = deepcopy(env_info['robot']['robot_model'])

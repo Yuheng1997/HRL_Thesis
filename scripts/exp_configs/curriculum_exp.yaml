@@ -1,7 +1,7 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-agent_1: 'Model_4250.pt'
-group: '14_06_plus_inv_traj'
+load_nn_agent: 'Model_1200.pt'
+group: '26_06_termination'
 render: False
 record: False
 #n_steps: 10000
@@ -9,6 +9,7 @@ n_episodes: 1000
 n_epochs: 100
 horizon: 1000
 n_steps_per_fit: 1
+num_adv_sample: 50
 initial_replay_size: 4000
 max_replay_size: 200000
 warmup_transitions: 4000
@@ -18,7 +19,6 @@ dropout_ratio: 0.01
 layer_norm: True
 n_eval_episodes: 20
 full_save: False
-termination: True
 
 #lr_alpha: 0.00001
 #actor_lr: 0.0003

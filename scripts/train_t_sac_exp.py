@@ -26,10 +26,10 @@ def experiment(env_name: str = 'HitBackEnv',
                n_steps_per_fit: int = 1,
                render: bool = True,
                record: bool = False,
-               n_eval_episodes: int = 1,
+               n_eval_episodes: int = 5,
                mode: str = 'disabled',
                horizon: int = 1000,
-               agent_1: str = 'Model_2600.pt',
+               load_nn_agent: str = 'Model_1200.pt',
                full_save: bool = False,
 
                group: str = None,
@@ -37,7 +37,7 @@ def experiment(env_name: str = 'HitBackEnv',
                actor_lr: float = 3e-4,
                critic_lr: float = 3e-4,
                termination_lr: float = 3e-4,
-               num_adv_sample: int = 100,
+               num_adv_sample: int = 50,
                n_features_actor: str = '256 256 256',
                n_features_critic: str = '256 256 256',
                n_features_termination: str = '256 256 256',
@@ -82,7 +82,7 @@ def experiment(env_name: str = 'HitBackEnv',
     current_time = datetime.now()
     current_time = current_time.strftime("%m-%d %H")
 
-    os.environ["WANDB_API_KEY"] = "a903361ff1d9498b25c276d46a0dcc63fe596aca"
+    os.environ["WANDB_API_KEY"] = Config.wandb.api_key
     wandb.init(project="LearnHitBack", dir=results_dir, config=config, name=f"{current_time}_seed{parallel_seed}",
                group=group, notes=f"logdir: {logger._results_dir}", mode=mode)
 
@@ -94,12 +94,12 @@ def experiment(env_name: str = 'HitBackEnv',
 
     env = HitBackEnv(horizon=horizon, gamma=0.99, task_curriculum=task_curriculum, curriculum_steps=curriculum_steps)
 
-    env.info.action_space = Box(np.array([0.8, -0.39105, -np.pi, 0.]), np.array([1.3, 0.39105, np.pi, 1]))
+    env.info.action_space = Box(np.array([0.6, -0.39105, -np.pi, 0.]), np.array([1.3, 0.39105, np.pi, 1]))
 
     if check_point is None:
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        planner_path = os.path.abspath(os.path.join(current_dir, os.pardir, 'trained_low_agent/Model_4250.pt'))
-        planner_path = "Transferred_model_4250.pt"
+        planner_path = os.path.abspath(os.path.join(current_dir, os.pardir, f'trained_low_agent/{load_nn_agent}'))
+        # planner_path = "Transferred_model_4250.pt"
         planner_config = Config
         agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info,
                                     planner_path=planner_path, planner_config=planner_config,
@@ -134,26 +134,26 @@ def experiment(env_name: str = 'HitBackEnv',
     best_R = -np.inf
 
     # initial evaluate
-    # J, R, E, V, alpha, task_info = compute_metrics(core, record, eval_params)
-    #
-    # logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
-    # size_replay_memory = core.agent.agent_1._replay_memory.size
-    # size_mdp_replay_memory = core.agent.agent_1._smdp_replay_memory.size
-    # logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
-    #                   size_mdp_replay_memory=size_mdp_replay_memory, **task_info)
-    #
-    # log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-    #             "Training/size_replaymemory": size_replay_memory, "Training/size_mdp_replay_memory": size_mdp_replay_memory}
-    #
-    # task_dict = {}
-    # for key, value in task_info.items():
-    #     if hasattr(value, '__iter__'):
-    #         for i, v in enumerate(value):
-    #             task_dict[key + f"_{i}"] = v
-    #     else:
-    #         task_dict[key] = value
-    # log_dict.update(task_dict)
-    # wandb.log(log_dict, step=0)
+    J, R, E, V, alpha, task_info = compute_metrics(core, record, eval_params)
+
+    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
+    size_replay_memory = core.agent.agent_1._replay_memory.size
+    size_mdp_replay_memory = core.agent.agent_1._smdp_replay_memory.size
+    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
+                      size_mdp_replay_memory=size_mdp_replay_memory, **task_info)
+
+    log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
+                "Training/size_replaymemory": size_replay_memory, "Training/size_mdp_replay_memory": size_mdp_replay_memory}
+
+    task_dict = {}
+    for key, value in task_info.items():
+        if hasattr(value, '__iter__'):
+            for i, v in enumerate(value):
+                task_dict[key + f"_{i}"] = v
+        else:
+            task_dict[key] = value
+    log_dict.update(task_dict)
+    wandb.log(log_dict, step=0)
 
     for epoch in tqdm(range(n_epochs), disable=False):
         # core.agent.learning_agent.num_fits_left = n_steps
@@ -162,7 +162,7 @@ def experiment(env_name: str = 'HitBackEnv',
 
         J, R, E, V, alpha, task_info = compute_metrics(core, record, eval_params)
         size_replay_memory = core.agent.agent_1._replay_memory.size
-        size_replay_memory = core.agent.agent_1._smdp_replay_memory.size
+        size_mdp_replay_memory = core.agent.agent_1._smdp_replay_memory.size
 
         if task_curriculum:
             if task_info['success_rate'] >= 0.7:
