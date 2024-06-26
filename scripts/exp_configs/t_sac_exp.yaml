@@ -38,7 +38,7 @@ sweep_params:
 
 experiments:
   exp_name: 'hit_back'
-  exp_file: 'train_curriculum_exp'
+  exp_file: 'train_t_sac_exp'
   n_seeds: 1
   n_cores: 4
   n_exps_in_parallel: 1
@@ -49,7 +49,7 @@ experiments:
   seconds: 0
   partition: 'stud'
   gres: None      # if use_cuda 'gpu:1'
-  conda_env: 'challenge'
+  conda_env: 'neural_planner'
   use_timestamp: True
   compact_dirs: False
   use_cuda: False 

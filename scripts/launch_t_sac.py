@@ -3,7 +3,7 @@ from itertools import product
 import yaml
 
 
-config_file = './exp_configs/curriculum_exp.yaml'
+config_file = './exp_configs/t_sac_exp.yaml'
 with open(config_file) as f:
     cfg = yaml.load(f, Loader=yaml.SafeLoader)
 
