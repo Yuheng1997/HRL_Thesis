@@ -134,26 +134,26 @@ def experiment(env_name: str = 'HitBackEnv',
     best_R = -np.inf
 
     # initial evaluate
-    J, R, E, V, alpha, task_info = compute_metrics(core, record, eval_params)
-
-    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
-    size_replay_memory = core.agent.agent_1._replay_memory.size
-    size_mdp_replay_memory = core.agent.agent_1._smdp_replay_memory.size
-    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
-                      size_mdp_replay_memory=size_mdp_replay_memory, **task_info)
-
-    log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                "Training/size_replaymemory": size_replay_memory, "Training/size_mdp_replay_memory": size_mdp_replay_memory}
-
-    task_dict = {}
-    for key, value in task_info.items():
-        if hasattr(value, '__iter__'):
-            for i, v in enumerate(value):
-                task_dict[key + f"_{i}"] = v
-        else:
-            task_dict[key] = value
-    log_dict.update(task_dict)
-    wandb.log(log_dict, step=0)
+    # J, R, E, V, alpha, task_info = compute_metrics(core, record, eval_params)
+    #
+    # logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
+    # size_replay_memory = core.agent.agent_1._replay_memory.size
+    # size_mdp_replay_memory = core.agent.agent_1._smdp_replay_memory.size
+    # logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
+    #                   size_mdp_replay_memory=size_mdp_replay_memory, **task_info)
+    #
+    # log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
+    #             "Training/size_replaymemory": size_replay_memory, "Training/size_mdp_replay_memory": size_mdp_replay_memory}
+    #
+    # task_dict = {}
+    # for key, value in task_info.items():
+    #     if hasattr(value, '__iter__'):
+    #         for i, v in enumerate(value):
+    #             task_dict[key + f"_{i}"] = v
+    #     else:
+    #         task_dict[key] = value
+    # log_dict.update(task_dict)
+    # wandb.log(log_dict, step=0)
 
     for epoch in tqdm(range(n_epochs), disable=False):
         # core.agent.learning_agent.num_fits_left = n_steps

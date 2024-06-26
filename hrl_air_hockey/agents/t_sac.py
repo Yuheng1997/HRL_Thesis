@@ -10,193 +10,7 @@ from hrl_air_hockey.utils.smdp_replay_memory import SMDPReplayMemory
 
 from copy import deepcopy
 from itertools import chain
-
 from hrl_air_hockey.bspline_planner.planner import TrajectoryPlanner
-
-
-class SACPolicy(Policy):
-    """
-    Class used to implement the policy used by the Soft Actor-Critic algorithm.
-    The policy is a Gaussian policy squashed by a tanh. This class implements the compute_action_and_log_prob and the
-    compute_action_and_log_prob_t methods, that are fundamental for the internals calculations of the SAC algorithm.
-
-    """
-
-    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max):
-        """
-        Constructor.
-
-        Args:
-            mu_approximator (Regressor): a regressor computing mean in given a state;
-            sigma_approximator (Regressor): a regressor computing the variance in given a state;
-            min_a (np.ndarray): a vector specifying the minimum action value for each component;
-            max_a (np.ndarray): a vector specifying the maximum action value for each component.
-            log_std_min ([float, Parameter]): min value for the policy log std;
-            log_std_max ([float, Parameter]): max value for the policy log std.
-
-        """
-        self._mu_approximator = mu_approximator
-        self._sigma_approximator = sigma_approximator
-
-        self._delta_a = to_float_tensor(.5 * (max_a - min_a), self.use_cuda)
-        self._central_a = to_float_tensor(.5 * (max_a + min_a), self.use_cuda)
-
-        self._log_std_min = to_parameter(log_std_min)
-        self._log_std_max = to_parameter(log_std_max)
-
-        self._eps_log_prob = 1e-6
-
-        use_cuda = self._mu_approximator.model.use_cuda
-
-        if use_cuda:
-            self._delta_a = self._delta_a.cuda()
-            self._central_a = self._central_a.cuda()
-
-        self._add_save_attr(
-            _mu_approximator='mushroom',
-            _sigma_approximator='mushroom',
-            _delta_a='torch',
-            _central_a='torch',
-            _log_std_min='mushroom',
-            _log_std_max='mushroom',
-            _eps_log_prob='primitive'
-        )
-
-    def __call__(self, state, action):
-        raise NotImplementedError
-
-    def draw_action(self, state):
-        return self.compute_action_and_log_prob_t(
-            state, compute_log_prob=False).detach().cpu().numpy()
-
-    def compute_action_and_log_prob(self, state):
-        """
-        Function that samples actions using the reparametrization trick and the log probability for such actions.
-
-        Args:
-            state (np.ndarray): the state in which the action is sampled.
-
-        Returns:
-            The actions sampled and the log probability as numpy arrays.
-
-        """
-        a, log_prob = self.compute_action_and_log_prob_t(state)
-        return a.detach().cpu().numpy(), log_prob.detach().cpu().numpy()
-
-    def compute_action_with_grad(self, state):
-        """
-        Function that samples actions using the reparametrization trick and the log probability for such actions.
-
-        Args:
-            state (np.ndarray): the state in which the action is sampled.
-
-        Returns:
-            The actions sampled as numpy arrays.
-
-        """
-        a, log_prob = self.compute_action_and_log_prob_t(state)
-        return a.cpu().numpy()
-
-    def compute_action_and_log_prob_t(self, state, compute_log_prob=True):
-        """
-        Function that samples actions using the reparametrization trick and, optionally, the log probability for such
-        actions.
-
-        Args:
-            state (np.ndarray): the state in which the action is sampled;
-            compute_log_prob (bool, True): whether to compute the log  probability or not.
-
-        Returns:
-            The actions sampled and, optionally, the log probability as torch tensors.
-
-        """
-        dist = self.distribution(state)
-        a_raw = dist.rsample()
-        a = torch.tanh(a_raw)
-        a_true = a * self._delta_a + self._central_a
-
-        if compute_log_prob:
-            log_prob = dist.log_prob(a_raw).sum(dim=1)
-            log_prob -= torch.log(1. - a.pow(2) + self._eps_log_prob).sum(dim=1)
-            return a_true, log_prob
-        else:
-            return a_true
-
-    def distribution(self, state):
-        """
-        Compute the policy distribution in the given states.
-
-        Args:
-            state (np.ndarray): the set of states where the distribution is computed.
-
-        Returns:
-            The torch distribution for the provided states.
-
-        """
-        mu = self._mu_approximator.predict(state, output_tensor=True)
-        log_sigma = self._sigma_approximator.predict(state, output_tensor=True)
-        # Bound the log_std
-        log_sigma = torch.clamp(log_sigma, self._log_std_min(), self._log_std_max())
-        return torch.distributions.Normal(mu, log_sigma.exp())
-
-    def entropy(self, state=None):
-        """
-        Compute the entropy of the policy.
-
-        Args:
-            state (np.ndarray): the set of states to consider.
-
-        Returns:
-            The value of the entropy of the policy.
-
-        """
-        _, log_pi = self.compute_action_and_log_prob(state)
-        return -log_pi.mean()
-
-    def set_weights(self, weights):
-        """
-        Setter.
-
-        Args:
-            weights (np.ndarray): the vector of the new weights to be used by the policy.
-
-        """
-        mu_weights = weights[:self._mu_approximator.weights_size]
-        sigma_weights = weights[self._mu_approximator.weights_size:]
-
-        self._mu_approximator.set_weights(mu_weights)
-        self._sigma_approximator.set_weights(sigma_weights)
-
-    def get_weights(self):
-        """
-        Getter.
-
-        Returns:
-             The current policy weights.
-
-        """
-        mu_weights = self._mu_approximator.get_weights()
-        sigma_weights = self._sigma_approximator.get_weights()
-
-        return np.concatenate([mu_weights, sigma_weights])
-
-    @property
-    def use_cuda(self):
-        """
-        True if the policy is using cuda_tensors.
-        """
-        return self._mu_approximator.model.use_cuda
-
-    def parameters(self):
-        """
-        Returns the trainable policy parameters, as expected by torch optimizers.
-
-        Returns:
-            List of parameters to be optimized.
-
-        """
-        return chain(self._mu_approximator.model.network.parameters(),
-                     self._sigma_approximator.model.network.parameters())
 
 
 class SACPlusTermination(SAC):
@@ -290,9 +104,9 @@ class SACPlusTermination(SAC):
         return hit_pos, hit_vel, scale, angle
 
     def fit(self, dataset, **info):
-        return
-        smdp_dataset = self.dataset_preprocessor_1(dataset)
-        termination_dataset = self.dataset_preprocessor_2(dataset)
+        # return
+        smdp_dataset = self.generate_smdp_dataset(dataset)
+        termination_dataset = self.generate_termination_dataset(dataset)
         self._smdp_replay_memory.add(smdp_dataset)
         self._replay_memory.add(termination_dataset)
         for i in range(20):
@@ -321,7 +135,7 @@ class SACPlusTermination(SAC):
 
                 self._update_target(self._critic_approximator, self._target_critic_approximator)
 
-    def dataset_preprocessor_1(self, dataset):
+    def generate_smdp_dataset(self, dataset):
         smdp_dataset = list()
         for i, d in enumerate(dataset):
             high_action = d[1][14:18]
@@ -342,7 +156,7 @@ class SACPlusTermination(SAC):
                 self.initial_smdp_action = high_action
         return smdp_dataset
 
-    def dataset_preprocessor_2(self, dataset):
+    def generate_termination_dataset(self, dataset):
         termination_dataset = list()
         for i, d in enumerate(dataset):
             high_action = d[1][14:18]
@@ -361,33 +175,61 @@ class SACPlusTermination(SAC):
 
     def termination_loss(self, action, next_state, action_new_prime):
         # - 1/n * sum_n( beta(s_n', w_n') * A(s_n', w_n') )
-        adv_func = self.adv_func(action, next_state, action_new_prime)
-        beta = self.termination_approximator.predict(next_state, action_new_prime, output_tensor=True)
-        adv_func_tensor = torch.tensor(adv_func, device=beta.device, requires_grad=False)
-        return (beta * adv_func_tensor.view_as(beta)).mean()
+        action = torch.tensor(action, dtype=torch.float32)
+        next_state = torch.tensor(next_state, dtype=torch.float32)
+
+        adv_func = self.adv_func(action, next_state, action_new_prime.detach())
+        beta = self.termination_approximator.predict(next_state, action_new_prime.detach(), output_tensor=True)
+        return (beta * adv_func.view_as(beta).detach()).mean()
 
     def adv_func(self, action, next_state, action_new_prime):
         # A(s', w') = Q(s', w') - V(s') =  Q(s', w') - 1/n * [Q(s', w_0) + Q(s', w_1) + ... + Q(s', w_n)]
-        q_0 = self._critic_approximator(next_state, action_new_prime, output_tensor=False, idx=0)
-        q_1 = self._critic_approximator(next_state, action_new_prime, output_tensor=False, idx=1)
-        q = np.minimum(q_0, q_1)
-        _q_sum = np.zeros_like(q)
+        action_tensor = torch.tensor(action, dtype=torch.float32)
+        q_0 = self._critic_approximator(next_state, action_new_prime, output_tensor=True, idx=0)
+        q_1 = self._critic_approximator(next_state, action_new_prime, output_tensor=True, idx=1)
+        q = torch.min(q_0, q_1)
+        _q_sum = torch.zeros_like(q)
         # sample w_n
         for _ in range(self.num_adv_sample):
             # sample rule: Prob of w_old: 1-beta(s',w). Prob of w_new = beta(s',w) * policy_dist
             termination_prime = self.termination_approximator.predict(next_state, action, output_tensor=False).flatten()
             terminte_mask = np.random.rand(*termination_prime.shape) < termination_prime
-            sampled_action = np.zeros_like(action)
-            sampled_action[~terminte_mask, :] = action[~terminte_mask, :]
+            _sampled_action = torch.zeros(action_tensor.shape)
+            _sampled_action[~terminte_mask, :] = action_tensor[~terminte_mask, :]
             policy_actions, _ = self.policy.compute_action_and_log_prob_t(next_state[terminte_mask, :])
-            sampled_action[terminte_mask, :] = policy_actions.detach()
+            _sampled_action[terminte_mask, :] = policy_actions
 
-            _q_0 = self._critic_approximator(next_state, sampled_action, output_tensor=False, idx=0)
-            _q_1 = self._critic_approximator(next_state, sampled_action, output_tensor=False, idx=1)
-            _q = np.minimum(_q_0, _q_1)
+            sampled_action = _sampled_action.clone()
+
+            _q_0 = self._critic_approximator(next_state, sampled_action, output_tensor=True, idx=0)
+            _q_1 = self._critic_approximator(next_state, sampled_action, output_tensor=True, idx=1)
+            _q = torch.min(_q_0, _q_1)
             _q_sum += _q
         v = _q_sum / self.num_adv_sample
         return q - v
+
+    # def adv_func(self, action, next_state, action_new_prime):
+    #     # A(s', w') = Q(s', w') - V(s') =  Q(s', w') - 1/n * [Q(s', w_0) + Q(s', w_1) + ... + Q(s', w_n)]
+    #     q_0 = self._critic_approximator(next_state, action_new_prime, output_tensor=False, idx=0)
+    #     q_1 = self._critic_approximator(next_state, action_new_prime, output_tensor=False, idx=1)
+    #     q = np.minimum(q_0, q_1)
+    #     _q_sum = np.zeros_like(q)
+    #     # sample w_n
+    #     for _ in range(self.num_adv_sample):
+    #         # sample rule: Prob of w_old: 1-beta(s',w). Prob of w_new = beta(s',w) * policy_dist
+    #         termination_prime = self.termination_approximator.predict(next_state, action, output_tensor=False).flatten()
+    #         terminte_mask = np.random.rand(*termination_prime.shape) < termination_prime
+    #         sampled_action = np.zeros_like(action)
+    #         sampled_action[~terminte_mask, :] = action[~terminte_mask, :]
+    #         policy_actions, _ = self.policy.compute_action_and_log_prob_t(next_state[terminte_mask, :])
+    #         sampled_action[terminte_mask, :] = policy_actions.detach()
+    #
+    #         _q_0 = self._critic_approximator(next_state, sampled_action, output_tensor=False, idx=0)
+    #         _q_1 = self._critic_approximator(next_state, sampled_action, output_tensor=False, idx=1)
+    #         _q = np.minimum(_q_0, _q_1)
+    #         _q_sum += _q
+    #     v = _q_sum / self.num_adv_sample
+    #     return q - v
 
     def optimize_termination_parameters(self, loss):
         self.termination_optimizer.zero_grad()
