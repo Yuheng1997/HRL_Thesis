@@ -38,6 +38,8 @@ class WandB:
     project_name = "neural_planner"
     # continue_id = 'lo8zjlre'
     continue_id = None
+    resume = 'allow'
+    # resume = 'must'
 
 
 class Plots:
