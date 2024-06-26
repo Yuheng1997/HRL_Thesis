@@ -43,7 +43,6 @@ class TrajectoryPlanner:
         # else:
         #     traj = self.generate_return_traj(q_0, dq_0)
 
-
     def interpolate_control_points(self, q_cps, t_cps):
         with torch.no_grad():
             q = torch.einsum('ijk,lkm->ljm', self.b_spline_q.N, q_cps)
