@@ -20,7 +20,7 @@ class BSplineQ:
 
 class TrainConfig:
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    num_epochs = 1100
+    num_epochs = 1200 * 2 + 2000
     batch_size = 128 // 2 # 400: // 8, 4000: // 2, 40000: * 4
     learning_rate = 5e-6
     weight_decay = 1e-10
@@ -36,10 +36,10 @@ class Model:
 class WandB:
     api_key = "a903361ff1d9498b25c276d46a0dcc63fe596aca"
     project_name = "neural_planner"
-    # continue_id = 'lo8zjlre'
-    continue_id = None
-    resume = 'allow'
-    # resume = 'must'
+    continue_id = 'j1yiafax'
+    # continue_id = None
+    # resume = 'allow'
+    resume = 'must'
 
 
 class Plots:
@@ -49,15 +49,15 @@ class Plots:
 
 class Save:
     enable = True
-    interval = 1100
+    interval = 1200 * 2 + 2000
     current_folder = os.getcwd()
     parent_folder = os.path.dirname(current_folder)
     path = os.path.join(parent_folder, 'trained_low_agent', "model")
 
 
 class Load:
-    enable = False
-    epoch = 1200
+    enable = True
+    epoch = 2400
 
 
 class Data:
