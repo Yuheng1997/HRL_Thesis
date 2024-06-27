@@ -26,7 +26,7 @@ def experiment(env_name: str = 'HitBackEnv',
                n_steps_per_fit: int = 1,
                render: bool = True,
                record: bool = False,
-               n_eval_episodes: int = 5,
+               n_eval_episodes: int = 1,
                mode: str = 'disabled',
                horizon: int = 1000,
                load_nn_agent: str = 'Model_1200.pt',
@@ -317,7 +317,7 @@ def get_dataset_info(core, dataset, dataset_info):
     num_list = []
     termination_counts = 0
     for i, d in enumerate(dataset):
-        action = d[1][0]
+        action = d[1]
         termination = action[18]
         if termination == 1:
             termination_counts += 1
