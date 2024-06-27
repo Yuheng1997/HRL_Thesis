@@ -310,7 +310,7 @@ def compute_metrics(core, record, eval_params, return_dataset=False):
 
 
 def get_dataset_info(core, dataset, dataset_info):
-    start_idx = 0
+    num_episode = 0
 
     epoch_info = {}
     success_list = []
@@ -325,10 +325,10 @@ def get_dataset_info(core, dataset, dataset_info):
         if last:
             success_list.append(dataset_info['success'][i])
             num_list.append(dataset_info['num_across_line'][i])
-            start_idx = i + 1
+            num_episode += 1
     epoch_info['success_rate'] = np.sum(success_list) / len(success_list)
     epoch_info['num_across_line'] = np.sum(num_list)
-    epoch_info['termination_num'] = termination_counts / start_idx
+    epoch_info['termination_num'] = termination_counts / num_episode
     return epoch_info
 
 
