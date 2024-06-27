@@ -315,14 +315,20 @@ def get_dataset_info(core, dataset, dataset_info):
     epoch_info = {}
     success_list = []
     num_list = []
-    for i, dataset in enumerate(dataset):
-        last = dataset[-1]
+    termination_counts = 0
+    for i, d in enumerate(dataset):
+        action = d[1][0]
+        termination = action[18]
+        if termination == 1:
+            termination_counts += 1
+        last = d[-1]
         if last:
             success_list.append(dataset_info['success'][i])
             num_list.append(dataset_info['num_across_line'][i])
             start_idx = i + 1
     epoch_info['success_rate'] = np.sum(success_list) / len(success_list)
     epoch_info['num_across_line'] = np.sum(num_list)
+    epoch_info['termination_num'] = termination_counts / start_idx
     return epoch_info
 
 

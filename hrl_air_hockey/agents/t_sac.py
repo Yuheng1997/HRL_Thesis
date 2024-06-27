@@ -194,12 +194,12 @@ class SACPlusTermination(SAC):
             # sample rule: Prob of w_old: 1-beta(s',w). Prob of w_new = beta(s',w) * policy_dist
             termination_prime = self.termination_approximator.predict(next_state, action, output_tensor=False).flatten()
             terminte_mask = np.random.rand(*termination_prime.shape) < termination_prime
-            _sampled_action = torch.zeros(action_tensor.shape)
-            _sampled_action[~terminte_mask, :] = action_tensor[~terminte_mask, :]
+            sampled_action = torch.zeros(action_tensor.shape)
+            sampled_action[~terminte_mask, :] = action_tensor[~terminte_mask, :]
             policy_actions, _ = self.policy.compute_action_and_log_prob_t(next_state[terminte_mask, :])
-            _sampled_action[terminte_mask, :] = policy_actions
+            sampled_action[terminte_mask, :] = policy_actions
 
-            sampled_action = _sampled_action.clone()
+            # sampled_action = _sampled_action.clone()
 
             _q_0 = self._critic_approximator(next_state, sampled_action, output_tensor=True, idx=0)
             _q_1 = self._critic_approximator(next_state, sampled_action, output_tensor=True, idx=1)
