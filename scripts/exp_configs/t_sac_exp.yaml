@@ -1,7 +1,7 @@
 env_name: 'HitBackEnv'
 mode: 'online'
 load_nn_agent: 'Model_1200.pt'
-group: '26_06_termination'
+group: '27_06_termination'
 render: False
 record: False
 #n_steps: 10000
@@ -42,7 +42,7 @@ experiments:
   n_seeds: 1
   n_cores: 4
   n_exps_in_parallel: 1
-  memory_single_job: 1300
+  memory_single_job: 1800
   days: 0
   hours: 23
   minutes: 59
