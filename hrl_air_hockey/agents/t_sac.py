@@ -109,7 +109,7 @@ class SACPlusTermination(SAC):
         termination_dataset = self.generate_termination_dataset(dataset)
         self._smdp_replay_memory.add(smdp_dataset)
         self._replay_memory.add(termination_dataset)
-        for i in range(20):
+        for i in range(2):
             if self._smdp_replay_memory.initialized:
                 # for updating the critic and actor
                 smdp_state, smdp_action, smdp_reward, smdp_next_state, absorbing, _, smdp_length = self._smdp_replay_memory.get(

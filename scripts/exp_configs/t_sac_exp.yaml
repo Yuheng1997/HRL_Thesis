@@ -1,7 +1,7 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-load_nn_agent: 'Model_1200.pt'
-group: '27_06_termination'
+load_nn_agent: 'Model_2400.pt'
+group: '28_06_termination'
 render: False
 record: False
 #n_steps: 10000
