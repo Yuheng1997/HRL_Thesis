@@ -38,7 +38,7 @@ def compute_vel_and_pos(robot_model, robot_data, hitting_point, hitting_directio
     bounds[1:, 0] = dq_min
     bounds[1:, 1] = dq_max
     bounds[0, 1] = 10
-    result_eta = linprog(c=c, A_ub=A, b_ub=_ub, method='highs', x0=[0, 0, 0, 0, 0, 0, 0, 0], bounds=bounds)
+    result_eta = linprog(c=c, A_ub=A, b_ub=_ub, method='highs', bounds=bounds)
     if result_eta.success:
         optimal_eta = result_eta.x[0]
         optimal_alpha = result_eta.x[1:]

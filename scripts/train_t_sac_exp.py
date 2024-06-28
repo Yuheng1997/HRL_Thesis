@@ -83,7 +83,7 @@ def experiment(env_name: str = 'HitBackEnv',
     current_time = current_time.strftime("%m-%d %H")
 
     os.environ["WANDB_API_KEY"] = Config.wandb.api_key
-    run = wandb.init(project="LearnHitBack", dir=results_dir, config=config, name=f"{current_time}_seed{parallel_seed}",
+    wandb.init(project="LearnHitBack", dir=results_dir, config=config, name=f"{current_time}_seed{parallel_seed}",
                group=group, notes=f"logdir: {logger._results_dir}", mode=mode)
 
     eval_params = {
@@ -153,7 +153,7 @@ def experiment(env_name: str = 'HitBackEnv',
         else:
             task_dict[key] = value
     log_dict.update(task_dict)
-    run.log(log_dict, step=0)
+    wandb.log(log_dict, step=0)
 
     for epoch in tqdm(range(n_epochs), disable=False):
         # core.agent.learning_agent.num_fits_left = n_steps
@@ -183,7 +183,7 @@ def experiment(env_name: str = 'HitBackEnv',
             else:
                 task_dict[key] = value
         log_dict.update(task_dict)
-        run.log(log_dict, step=epoch + 1)
+        wandb.log(log_dict, step=epoch + 1)
 
         logger.log_agent(agent_1, full_save=full_save)
 
