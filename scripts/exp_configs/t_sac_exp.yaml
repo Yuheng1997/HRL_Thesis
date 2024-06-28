@@ -1,7 +1,7 @@
 env_name: 'HitBackEnv'
 mode: 'online'
 load_nn_agent: 'Model_2400.pt'
-group: '28_06_curve_test'
+group: '28_06_t'
 render: False
 record: False
 #n_steps: 10000
@@ -9,11 +9,11 @@ n_episodes: 1000
 n_epochs: 100
 horizon: 1000
 n_steps_per_fit: 1
-num_adv_sample: 5
+num_adv_sample: 100
 initial_replay_size: 4000
 max_replay_size: 200000
 warmup_transitions: 4000
-batch_size: 64
+batch_size: 128
 tau: 0.003
 dropout_ratio: 0.01
 layer_norm: True
