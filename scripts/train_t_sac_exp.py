@@ -153,7 +153,7 @@ def experiment(env_name: str = 'HitBackEnv',
         else:
             task_dict[key] = value
     log_dict.update(task_dict)
-    wandb.log(log_dict)
+    wandb.log(log_dict, step=0)
 
     for epoch in tqdm(range(n_epochs), disable=False):
         # core.agent.learning_agent.num_fits_left = n_steps
