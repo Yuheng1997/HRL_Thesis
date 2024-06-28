@@ -178,13 +178,12 @@ class SACPlusTermination(SAC):
         action = torch.tensor(action, dtype=torch.float32)
         next_state = torch.tensor(next_state, dtype=torch.float32)
 
-        adv_func = self.adv_func(action, next_state, action_new_prime.detach())
+        adv_result = self.adv_func(action, next_state, action_new_prime.detach())
         beta = self.termination_approximator.predict(next_state, action_new_prime.detach(), output_tensor=True)
-        return (beta * adv_func.view_as(beta).detach()).mean()
+        return (beta * adv_result.view_as(beta).detach()).mean()
 
     def adv_func(self, action, next_state, action_new_prime):
         # A(s', w') = Q(s', w') - V(s') =  Q(s', w') - 1/n * [Q(s', w_0) + Q(s', w_1) + ... + Q(s', w_n)]
-        action_tensor = torch.tensor(action, dtype=torch.float32)
         q_0 = self._critic_approximator(next_state, action_new_prime, output_tensor=True, idx=0)
         q_1 = self._critic_approximator(next_state, action_new_prime, output_tensor=True, idx=1)
         q = torch.min(q_0, q_1)
@@ -194,8 +193,8 @@ class SACPlusTermination(SAC):
             # sample rule: Prob of w_old: 1-beta(s',w). Prob of w_new = beta(s',w) * policy_dist
             termination_prime = self.termination_approximator.predict(next_state, action, output_tensor=False).flatten()
             terminte_mask = np.random.rand(*termination_prime.shape) < termination_prime
-            sampled_action = torch.zeros(action_tensor.shape)
-            sampled_action[~terminte_mask, :] = action_tensor[~terminte_mask, :]
+            sampled_action = torch.zeros(action.shape)
+            sampled_action[~terminte_mask, :] = action[~terminte_mask, :]
             policy_actions, _ = self.policy.compute_action_and_log_prob_t(next_state[terminte_mask, :])
             sampled_action[terminte_mask, :] = policy_actions
 
