@@ -104,9 +104,7 @@ class SACPlusTermination(SAC):
         return hit_pos, hit_vel, scale, angle
 
     def fit(self, dataset, **info):
-        # return
-        smdp_dataset = self.generate_smdp_dataset(dataset)
-        termination_dataset = self.generate_termination_dataset(dataset)
+        smdp_dataset, termination_dataset = self.prepare_dataset(dataset)
         self._smdp_replay_memory.add(smdp_dataset)
         self._replay_memory.add(termination_dataset)
         for i in range(1):
@@ -115,17 +113,16 @@ class SACPlusTermination(SAC):
                 smdp_state, smdp_action, smdp_reward, smdp_next_state, absorbing, _, smdp_length = self._smdp_replay_memory.get(
                     self._batch_size())
                 # for updating the termination network
-                initial_state, initial_action, _, next_state, _, _ = self._replay_memory.get(self._batch_size())
+                _, initial_action, _, next_state, _, _ = self._replay_memory.get(self._batch_size())
 
                 if self._smdp_replay_memory.size > self._warmup_transitions():
                     action_new, log_prob = self.policy.compute_action_and_log_prob_t(smdp_state)
-                    action_new_prime, _ = self.policy.compute_action_and_log_prob_t(next_state)
                     # update actor
                     actor_loss = self._loss(smdp_state, action_new, log_prob)
                     self._optimize_actor_parameters(actor_loss)
                     self._update_alpha(log_prob.detach())
                     # update beta(termination)
-                    beta_loss = self.termination_loss(initial_action, next_state, action_new_prime)
+                    beta_loss = self.termination_loss(initial_action, next_state)
                     self.optimize_termination_parameters(beta_loss)
 
                 q_next = self._next_q(smdp_next_state, absorbing)
@@ -135,8 +132,9 @@ class SACPlusTermination(SAC):
 
                 self._update_target(self._critic_approximator, self._target_critic_approximator)
 
-    def generate_smdp_dataset(self, dataset):
+    def prepare_dataset(self, dataset):
         smdp_dataset = list()
+        termination_dataset = list()
         for i, d in enumerate(dataset):
             high_action = d[1][14:18]
             termination = d[1][18]
@@ -147,64 +145,46 @@ class SACPlusTermination(SAC):
             absorbing = d[4]
             last = d[5]
             self.sum_reward += reward * (self.mdp_info.gamma ** cur_smdp_length)
-            if termination == 1 or absorbing or last:
-                if self.initial_smdp_state is not None:
-                    smdp_dataset.append((self.initial_smdp_state, self.initial_smdp_action, self.sum_reward, d[0],
-                                         absorbing, last, last_smdp_length))
-                self.sum_reward = 0
+
+            if self.initial_smdp_state is None:
                 self.initial_smdp_state = d[0]
                 self.initial_smdp_action = high_action
-        return smdp_dataset
-
-    def generate_termination_dataset(self, dataset):
-        termination_dataset = list()
-        for i, d in enumerate(dataset):
-            high_action = d[1][14:18]
-            termination = d[1][18]
-            last_smdp_length = int(d[1][19])
-            reward = d[2]
-            next_state = d[3]
-            absorbing = d[4]
-            last = d[5]
+            termination_dataset.append(([None], self.initial_smdp_action, [None], next_state, [None], [None]))
             if termination == 1 or absorbing or last:
-                self.initial_state = d[0]
-                self.initial_action = high_action
-            if self.initial_state is not None:
-                termination_dataset.append((self.initial_state, self.initial_action, reward, next_state, absorbing, last))
-        return termination_dataset
+                smdp_dataset.append((self.initial_smdp_state, self.initial_smdp_action, self.sum_reward, d[0],
+                                     absorbing, last, last_smdp_length))
+                self.sum_reward = 0
+                self.initial_smdp_state = None
+                self.initial_smdp_action = None
 
-    def termination_loss(self, action, next_state, action_new_prime):
-        # - 1/n * sum_n( beta(s_n', w_n') * A(s_n', w_n') )
-        action = torch.tensor(action, dtype=torch.float32)
-        next_state = torch.tensor(next_state, dtype=torch.float32)
+        return smdp_dataset, termination_dataset
 
-        adv_result = self.adv_func(action, next_state, action_new_prime.detach())
-        beta = self.termination_approximator.predict(next_state, action_new_prime.detach(), output_tensor=True)
-        return (beta * adv_result.view_as(beta).detach()).mean()
+    def termination_loss(self, initial_action, next_state):
+        # Loss = - 1/n * sum_n(beta(s_n', w_n) * A(s_n', w_n)), n = batch_size
+        # A(s', w) = Q(s', w) - V(s') =  Q(s', w) - 1/r * [Q(s', w_0') + Q(s', w_1') + ... + Q(s', w_r')], r=sample_num
+        batch_size = next_state.shape[0]
+        action_dim = initial_action.shape[1]
 
-    def adv_func(self, action, next_state, action_new_prime):
-        # A(s', w') = Q(s', w') - V(s') =  Q(s', w') - 1/n * [Q(s', w_0) + Q(s', w_1) + ... + Q(s', w_n)]
-        q_0 = self._critic_approximator(next_state, action_new_prime, output_tensor=True, idx=0)
-        q_1 = self._critic_approximator(next_state, action_new_prime, output_tensor=True, idx=1)
-        q = torch.min(q_0, q_1)
-        _q_sum = torch.zeros_like(q)
-        # sample w_n
-        for _ in range(self.num_adv_sample):
-            # sample rule: Prob of w_old: 1-beta(s',w). Prob of w_new = beta(s',w) * policy_dist
-            termination_prime = self.termination_approximator.predict(next_state, action, output_tensor=False).flatten()
-            terminte_mask = np.random.rand(*termination_prime.shape) < termination_prime
-            sampled_action = torch.zeros(action.shape)
-            sampled_action[~terminte_mask, :] = action[~terminte_mask, :]
-            policy_actions, _ = self.policy.compute_action_and_log_prob_t(next_state[terminte_mask, :])
-            sampled_action[terminte_mask, :] = policy_actions
+        # sample rule: Prob of w_old: 1-beta(s',w). Prob of w_new = beta(s',w) * policy_dist
+        termination_prob = self.termination_approximator.predict(next_state, initial_action, output_tensor=False)
+        term_mask = np.random.rand(batch_size, self.num_adv_sample) < termination_prob
+        expand_next_action = np.zeros((batch_size, self.num_adv_sample, action_dim))
+        expand_next_state = np.repeat(next_state[:, np.newaxis, :], repeats=self.num_adv_sample, axis=1)
+        expand_next_action[term_mask, :] = self.policy.draw_action(expand_next_state)[term_mask, :]
+        expand_init_action = np.repeat(initial_action[:, np.newaxis, :], repeats=self.num_adv_sample, axis=1)
+        expand_next_action[~term_mask, :] = expand_init_action[~term_mask, :]
 
-            # sampled_action = _sampled_action.clone()
+        adv = self.adv_func(expand_next_state, expand_next_action, next_state, initial_action)
+        beta = self.termination_approximator.predict(next_state, initial_action, output_tensor=True)
+        adv_tensor = torch.tensor(adv, requires_grad=False)
+        return - (beta * adv_tensor).mean()
 
-            _q_0 = self._critic_approximator(next_state, sampled_action, output_tensor=True, idx=0)
-            _q_1 = self._critic_approximator(next_state, sampled_action, output_tensor=True, idx=1)
-            _q = torch.min(_q_0, _q_1)
-            _q_sum += _q
-        v = _q_sum / self.num_adv_sample
+    def adv_func(self, expand_next_state, sampled_next_action, next_state, initial_action):
+        batch_size = expand_next_state.shape[0]
+        v = np.zeros(batch_size)
+        for i in range(batch_size):
+            v[i] = self._target_critic_approximator.predict(expand_next_state[i, :], sampled_next_action[i, :], prediction='min').mean()
+        q = self._target_critic_approximator.predict(next_state, initial_action, prediction='min')
         return q - v
 
     # def adv_func(self, action, next_state, action_new_prime):
