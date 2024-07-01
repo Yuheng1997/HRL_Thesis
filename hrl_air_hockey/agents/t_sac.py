@@ -189,29 +189,6 @@ class SACPlusTermination(SAC):
         q = self._target_critic_approximator.predict(next_state, initial_action, prediction='min')
         return q - v
 
-    # def adv_func(self, action, next_state, action_new_prime):
-    #     # A(s', w') = Q(s', w') - V(s') =  Q(s', w') - 1/n * [Q(s', w_0) + Q(s', w_1) + ... + Q(s', w_n)]
-    #     q_0 = self._critic_approximator(next_state, action_new_prime, output_tensor=False, idx=0)
-    #     q_1 = self._critic_approximator(next_state, action_new_prime, output_tensor=False, idx=1)
-    #     q = np.minimum(q_0, q_1)
-    #     _q_sum = np.zeros_like(q)
-    #     # sample w_n
-    #     for _ in range(self.num_adv_sample):
-    #         # sample rule: Prob of w_old: 1-beta(s',w). Prob of w_new = beta(s',w) * policy_dist
-    #         termination_prime = self.termination_approximator.predict(next_state, action, output_tensor=False).flatten()
-    #         terminte_mask = np.random.rand(*termination_prime.shape) < termination_prime
-    #         sampled_action = np.zeros_like(action)
-    #         sampled_action[~terminte_mask, :] = action[~terminte_mask, :]
-    #         policy_actions, _ = self.policy.compute_action_and_log_prob_t(next_state[terminte_mask, :])
-    #         sampled_action[terminte_mask, :] = policy_actions.detach()
-    #
-    #         _q_0 = self._critic_approximator(next_state, sampled_action, output_tensor=False, idx=0)
-    #         _q_1 = self._critic_approximator(next_state, sampled_action, output_tensor=False, idx=1)
-    #         _q = np.minimum(_q_0, _q_1)
-    #         _q_sum += _q
-    #     v = _q_sum / self.num_adv_sample
-    #     return q - v
-
     def optimize_termination_parameters(self, loss):
         self.termination_optimizer.zero_grad()
         loss.backward()
