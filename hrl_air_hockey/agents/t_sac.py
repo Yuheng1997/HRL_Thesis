@@ -163,20 +163,16 @@ class SACPlusTermination(SAC):
         # Loss = - 1/n * sum_n(beta(s_n', w_n) * A(s_n', w_n)), n = batch_size
         # A(s', w) = Q(s', w) - V(s') =  Q(s', w) - 1/r * [Q(s', w_0') + Q(s', w_1') + ... + Q(s', w_r')], r=sample_num
         batch_size = next_state.shape[0]
-        action_dim = initial_action.shape[1]
 
         # sample rule: Prob of w_old: 1-beta(s',w). Prob of w_new = beta(s',w) * policy_dist
-        termination_prob = self.termination_approximator.predict(next_state, initial_action, output_tensor=False)
-        term_mask = np.random.rand(batch_size, self.num_adv_sample) < termination_prob
+        beta = self.termination_approximator.predict(next_state, initial_action, output_tensor=True)
+        term_mask = np.random.rand(batch_size, self.num_adv_sample) < beta
 
-        expand_next_action = np.zeros((batch_size, self.num_adv_sample, action_dim))
+        expand_next_action = np.repeat(initial_action[:, np.newaxis, :], repeats=self.num_adv_sample, axis=1)
         expand_next_state = np.repeat(next_state[:, np.newaxis, :], repeats=self.num_adv_sample, axis=1)
         expand_next_action[term_mask, :] = self.policy.draw_action(expand_next_state)[term_mask, :]
-        expand_init_action = np.repeat(initial_action[:, np.newaxis, :], repeats=self.num_adv_sample, axis=1)
-        expand_next_action[~term_mask, :] = expand_init_action[~term_mask, :]
 
         adv = self.adv_func(expand_next_state, expand_next_action, next_state, initial_action)
-        beta = self.termination_approximator.predict(next_state, initial_action, output_tensor=True)
         adv_tensor = torch.tensor(adv, requires_grad=False)
         return - (beta * adv_tensor).mean()
 
