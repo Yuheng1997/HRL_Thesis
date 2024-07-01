@@ -24,9 +24,9 @@ def experiment(env_name: str = 'HitBackEnv',
                n_episodes: int = 1,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
-               render: bool = True,
+               render: bool = False,
                record: bool = False,
-               n_eval_episodes: int = 0,
+               n_eval_episodes: int = 1,
                mode: str = 'disabled',
                horizon: int = 1000,
                load_nn_agent: str = 'Model_2400.pt',
@@ -160,7 +160,7 @@ def experiment(env_name: str = 'HitBackEnv',
         # core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
         core.learn(n_episodes=n_episodes, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
 
-        J, R, E, V, alpha, task_info = compute_metrics(core, record, eval_params)
+        J, R, E, V, alpha, task_info = compute_metrics(core, eval_params)
         size_replay_memory = core.agent.agent_1._replay_memory.size
         size_mdp_replay_memory = core.agent.agent_1._smdp_replay_memory.size
 
@@ -188,7 +188,7 @@ def experiment(env_name: str = 'HitBackEnv',
         logger.log_agent(agent_1, full_save=full_save)
 
 
-def compute_metrics(core, record, eval_params, return_dataset=False):
+def compute_metrics(core, eval_params, return_dataset=False):
     from mushroom_rl.utils.dataset import compute_J, compute_episodes_length
     from mushroom_rl.utils.frames import LazyFrames
 
@@ -282,7 +282,7 @@ def compute_metrics(core, record, eval_params, return_dataset=False):
         return np.array(state), np.array(action), np.array(reward), np.array(
             next_state), np.array(absorbing), np.array(last)
 
-    dataset, dataset_info = core.evaluate(**eval_params, get_env_info=True, record=record)
+    dataset, dataset_info = core.evaluate(**eval_params, get_env_info=True)
     dataset = spilt_dataset(dataset)
     parsed_dataset = parse_dataset(dataset)
 
