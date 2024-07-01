@@ -168,6 +168,7 @@ class SACPlusTermination(SAC):
         # sample rule: Prob of w_old: 1-beta(s',w). Prob of w_new = beta(s',w) * policy_dist
         termination_prob = self.termination_approximator.predict(next_state, initial_action, output_tensor=False)
         term_mask = np.random.rand(batch_size, self.num_adv_sample) < termination_prob
+
         expand_next_action = np.zeros((batch_size, self.num_adv_sample, action_dim))
         expand_next_state = np.repeat(next_state[:, np.newaxis, :], repeats=self.num_adv_sample, axis=1)
         expand_next_action[term_mask, :] = self.policy.draw_action(expand_next_state)[term_mask, :]
@@ -182,6 +183,7 @@ class SACPlusTermination(SAC):
     def adv_func(self, expand_next_state, sampled_next_action, next_state, initial_action):
         batch_size = expand_next_state.shape[0]
         v = np.zeros(batch_size)
+
         for i in range(batch_size):
             v[i] = self._target_critic_approximator.predict(expand_next_state[i, :], sampled_next_action[i, :], prediction='min').mean()
         q = self._target_critic_approximator.predict(next_state, initial_action, prediction='min')

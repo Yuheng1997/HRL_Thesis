@@ -134,26 +134,26 @@ def experiment(env_name: str = 'HitBackEnv',
     best_R = -np.inf
 
     # initial evaluate
-    # J, R, E, V, alpha, task_info = compute_metrics(core, record, eval_params)
+    J, R, E, V, alpha, task_info = compute_metrics(core, eval_params, record)
 
-    # logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
-    # size_replay_memory = core.agent.agent_1._replay_memory.size
-    # size_mdp_replay_memory = core.agent.agent_1._smdp_replay_memory.size
-    # logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
-    #                   size_mdp_replay_memory=size_mdp_replay_memory, **task_info)
-    #
-    # log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-    #             "Training/size_replaymemory": size_replay_memory, "Training/size_mdp_replay_memory": size_mdp_replay_memory}
-    #
-    # task_dict = {}
-    # for key, value in task_info.items():
-    #     if hasattr(value, '__iter__'):
-    #         for i, v in enumerate(value):
-    #             task_dict[key + f"_{i}"] = v
-    #     else:
-    #         task_dict[key] = value
-    # log_dict.update(task_dict)
-    # wandb.log(log_dict, step=0)
+    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
+    size_replay_memory = core.agent.agent_1._replay_memory.size
+    size_mdp_replay_memory = core.agent.agent_1._smdp_replay_memory.size
+    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
+                      size_mdp_replay_memory=size_mdp_replay_memory, **task_info)
+
+    log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
+                "Training/size_replaymemory": size_replay_memory, "Training/size_mdp_replay_memory": size_mdp_replay_memory}
+
+    task_dict = {}
+    for key, value in task_info.items():
+        if hasattr(value, '__iter__'):
+            for i, v in enumerate(value):
+                task_dict[key + f"_{i}"] = v
+        else:
+            task_dict[key] = value
+    log_dict.update(task_dict)
+    wandb.log(log_dict, step=0)
 
     for epoch in tqdm(range(n_epochs), disable=False):
         # core.agent.learning_agent.num_fits_left = n_steps
@@ -188,7 +188,7 @@ def experiment(env_name: str = 'HitBackEnv',
         logger.log_agent(agent_1, full_save=full_save)
 
 
-def compute_metrics(core, eval_params, return_dataset=False):
+def compute_metrics(core, eval_params, record=False, return_dataset=False):
     from mushroom_rl.utils.dataset import compute_J, compute_episodes_length
     from mushroom_rl.utils.frames import LazyFrames
 
@@ -282,7 +282,7 @@ def compute_metrics(core, eval_params, return_dataset=False):
         return np.array(state), np.array(action), np.array(reward), np.array(
             next_state), np.array(absorbing), np.array(last)
 
-    dataset, dataset_info = core.evaluate(**eval_params, get_env_info=True)
+    dataset, dataset_info = core.evaluate(**eval_params, record=record, get_env_info=True)
     dataset = spilt_dataset(dataset)
     parsed_dataset = parse_dataset(dataset)
 
