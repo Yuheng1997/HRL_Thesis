@@ -1,15 +1,9 @@
 import torch
 import numpy as np
 from mushroom_rl.algorithms.actor_critic import SAC
-from mushroom_rl.policy import Policy
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.torch import to_float_tensor
-from mushroom_rl.utils.parameters import to_parameter
 from hrl_air_hockey.utils.smdp_replay_memory import SMDPReplayMemory
-
-from copy import deepcopy
-from itertools import chain
 from hrl_air_hockey.bspline_planner.planner import TrajectoryPlanner
 
 
@@ -63,7 +57,7 @@ class SACPlusTermination(SAC):
             q, dq = self._get_joint_pos(state)
             hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_action)
             self.trajectory_buffer = \
-            self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale, self.last_action)[0]
+                self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale, self.last_action)[0]
             termination = np.array([1])
         else:
             term_prob = self.termination_approximator.predict(state, self.last_action, output_tensor=False)
@@ -75,7 +69,7 @@ class SACPlusTermination(SAC):
                 q, dq = self._get_joint_pos(state)
                 hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_action)
                 self.trajectory_buffer = \
-                self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale, self.last_action)[0]
+                    self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale, self.last_action)[0]
                 termination = np.array([1])
         assert len(self.trajectory_buffer) > 0
         joint_command = self.trajectory_buffer[0, :14]
@@ -166,7 +160,8 @@ class SACPlusTermination(SAC):
 
         # sample rule: Prob of w_old: 1-beta(s',w). Prob of w_new = beta(s',w) * policy_dist
         beta = self.termination_approximator.predict(next_state, initial_action, output_tensor=True)
-        term_mask = np.random.rand(batch_size, self.num_adv_sample) < beta
+        beta_ndarray = beta.clone().detach().cpu().numpy()
+        term_mask = np.random.rand(batch_size, self.num_adv_sample) < beta_ndarray
 
         expand_next_action = np.repeat(initial_action[:, np.newaxis, :], repeats=self.num_adv_sample, axis=1)
         expand_next_state = np.repeat(next_state[:, np.newaxis, :], repeats=self.num_adv_sample, axis=1)
@@ -174,14 +169,17 @@ class SACPlusTermination(SAC):
 
         adv = self.adv_func(expand_next_state, expand_next_action, next_state, initial_action)
         adv_tensor = torch.tensor(adv, requires_grad=False)
+
         return - (beta * adv_tensor).mean()
 
     def adv_func(self, expand_next_state, sampled_next_action, next_state, initial_action):
         batch_size = expand_next_state.shape[0]
-        v = np.zeros(batch_size)
 
-        for i in range(batch_size):
-            v[i] = self._target_critic_approximator.predict(expand_next_state[i, :], sampled_next_action[i, :], prediction='min').mean()
+        _v = self._target_critic_approximator.predict(expand_next_state.reshape(self.num_adv_sample * batch_size, -1),
+                                                      sampled_next_action.reshape(self.num_adv_sample * batch_size, -1),
+                                                      prediction='min')
+        v = np.mean(_v.reshape(batch_size, self.num_adv_sample), axis=1)
+
         q = self._target_critic_approximator.predict(next_state, initial_action, prediction='min')
         return q - v
 
