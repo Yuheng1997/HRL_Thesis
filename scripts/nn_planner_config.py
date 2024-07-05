@@ -39,7 +39,7 @@ class WandB:
     # continue_id = 'j1yiafax'
     # continue_id = '2bh2zhmu'
     continue_id = None
-    # resume = 'allow'
+    resume = 'allow'
     # resume = 'must'
 
 
