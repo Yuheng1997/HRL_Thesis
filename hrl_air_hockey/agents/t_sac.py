@@ -103,26 +103,23 @@ class SACPlusTermination(SAC):
         self._replay_memory.add(termination_dataset)
         for i in range(1):
             if self._smdp_replay_memory.initialized:
-                # for updating the critic and actor
-                smdp_state, smdp_action, smdp_reward, smdp_next_state, absorbing, _, smdp_length = self._smdp_replay_memory.get(
+                state, option, reward, next_state, absorbing, _, option_length = self._smdp_replay_memory.get(
                     self._batch_size())
-                # for updating the termination network
-                _, initial_action, _, next_state, _, _ = self._replay_memory.get(self._batch_size())
 
                 if self._smdp_replay_memory.size > self._warmup_transitions():
-                    action_new, log_prob = self.policy.compute_action_and_log_prob_t(smdp_state)
+                    action_new, log_prob = self.policy.compute_action_and_log_prob_t(state)
                     # update actor
-                    actor_loss = self._loss(smdp_state, action_new, log_prob)
+                    actor_loss = self._loss(state, action_new, log_prob)
                     self._optimize_actor_parameters(actor_loss)
                     self._update_alpha(log_prob.detach())
                     # update beta(termination)
-                    beta_loss = self.termination_loss(initial_action, next_state)
+                    beta_loss = self.termination_loss(state, option)
                     self.optimize_termination_parameters(beta_loss)
 
-                q_next = self._next_q(smdp_next_state, absorbing)
-                q = smdp_reward + (self.mdp_info.gamma ** smdp_length) * q_next
+                q_next = self._next_q(next_state, absorbing)
+                q = reward + (self.mdp_info.gamma ** option_length) * q_next
 
-                self._critic_approximator.fit(smdp_state, smdp_action, q, **self._critic_fit_params)
+                self._critic_approximator.fit(state, option, q, **self._critic_fit_params)
 
                 self._update_target(self._critic_approximator, self._target_critic_approximator)
 
@@ -153,34 +150,38 @@ class SACPlusTermination(SAC):
 
         return smdp_dataset, termination_dataset
 
-    def termination_loss(self, initial_action, next_state):
+    def termination_loss(self, state, option):
         # Loss = - 1/n * sum_n(beta(s_n', w_n) * A(s_n', w_n)), n = batch_size
         # A(s', w) = Q(s', w) - V(s') =  Q(s', w) - 1/r * [Q(s', w_0') + Q(s', w_1') + ... + Q(s', w_r')], r=sample_num
-        batch_size = next_state.shape[0]
+        batch_size = state.shape[0]
 
         # sample rule: Prob of w_old: 1-beta(s',w). Prob of w_new = beta(s',w) * policy_dist
-        beta = self.termination_approximator.predict(next_state, initial_action, output_tensor=True)
+        beta = self.termination_approximator.predict(state, option, output_tensor=True)
         beta_ndarray = beta.clone().detach().cpu().numpy()
+        # sample w_n
+        option_term_mask = np.random.rand(batch_size) < beta_ndarray.squeeze(-1)
+        sampled_option = option
+        sampled_option[option_term_mask, :] = self.policy.draw_action(state)[option_term_mask, :]
+        # sample for v(s')
         term_mask = np.random.rand(batch_size, self.num_adv_sample) < beta_ndarray
+        expand_next_option = np.repeat(option[:, np.newaxis, :], repeats=self.num_adv_sample, axis=1)
+        expand_state = np.repeat(state[:, np.newaxis, :], repeats=self.num_adv_sample, axis=1)
+        expand_next_option[term_mask, :] = self.policy.draw_action(expand_state)[term_mask, :]
 
-        expand_next_action = np.repeat(initial_action[:, np.newaxis, :], repeats=self.num_adv_sample, axis=1)
-        expand_next_state = np.repeat(next_state[:, np.newaxis, :], repeats=self.num_adv_sample, axis=1)
-        expand_next_action[term_mask, :] = self.policy.draw_action(expand_next_state)[term_mask, :]
-
-        adv = self.adv_func(expand_next_state, expand_next_action, next_state, initial_action)
+        adv = self.adv_func(expand_state, expand_next_option, state, sampled_option)
         adv_tensor = torch.tensor(adv, requires_grad=False)
 
         return - (beta * adv_tensor).mean()
 
-    def adv_func(self, expand_next_state, sampled_next_action, next_state, initial_action):
+    def adv_func(self, expand_next_state, sampled_next_option, state, sampled_option):
         batch_size = expand_next_state.shape[0]
 
         _v = self._target_critic_approximator.predict(expand_next_state.reshape(self.num_adv_sample * batch_size, -1),
-                                                      sampled_next_action.reshape(self.num_adv_sample * batch_size, -1),
+                                                      sampled_next_option.reshape(self.num_adv_sample * batch_size, -1),
                                                       prediction='min')
         v = np.mean(_v.reshape(batch_size, self.num_adv_sample), axis=1)
 
-        q = self._target_critic_approximator.predict(next_state, initial_action, prediction='min')
+        q = self._target_critic_approximator.predict(state, sampled_option, prediction='min')
         return q - v
 
     def optimize_termination_parameters(self, loss):
