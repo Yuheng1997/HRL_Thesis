@@ -156,20 +156,21 @@ class SACPlusTermination(SAC):
         batch_size = state.shape[0]
 
         # sample rule: Prob of w_old: 1-beta(s',w). Prob of w_new = beta(s',w) * policy_dist
-        beta = self.termination_approximator.predict(state, option, output_tensor=True)
-        beta_ndarray = beta.clone().detach().cpu().numpy()
+        _beta = self.termination_approximator.predict(state, option, output_tensor=False)
         # sample w_n
-        option_term_mask = np.random.rand(batch_size) < beta_ndarray.squeeze(-1)
+        option_term_mask = np.random.rand(batch_size) < _beta.squeeze(-1)
         sampled_option = option
         sampled_option[option_term_mask, :] = self.policy.draw_action(state)[option_term_mask, :]
         # sample for v(s')
-        term_mask = np.random.rand(batch_size, self.num_adv_sample) < beta_ndarray
+        term_mask = np.random.rand(batch_size, self.num_adv_sample) < _beta
         expand_next_option = np.repeat(option[:, np.newaxis, :], repeats=self.num_adv_sample, axis=1)
         expand_state = np.repeat(state[:, np.newaxis, :], repeats=self.num_adv_sample, axis=1)
         expand_next_option[term_mask, :] = self.policy.draw_action(expand_state)[term_mask, :]
 
         adv = self.adv_func(expand_state, expand_next_option, state, sampled_option)
         adv_tensor = torch.tensor(adv, requires_grad=False)
+
+        beta = self.termination_approximator.predict(state, sampled_option, output_tensor=True)
 
         return - (beta * adv_tensor).mean()
 
