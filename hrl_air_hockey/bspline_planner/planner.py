@@ -114,7 +114,7 @@ class TrajectoryPlanner:
         for i in range(len(traj)):
             position = forward_kinematics(mj_model=self.robot_model, mj_data=self.robot_data, q=traj[i][:7])[0][:3]
             positions.append(position)
-        constraint_loss, x_loss, y_loss, z_loss = self.constraint_loss(positions, 0.02)
+        constraint_loss, x_loss, y_loss, z_loss = self.constraint_loss(positions, 0.01)
         # print('constraint_loss', constraint_loss)
         if constraint_loss > 0.001:
             self.num_violate_point += 1
@@ -132,10 +132,11 @@ class TrajectoryPlanner:
             writer.writerow(data_2.tolist())
 
     def constraint_loss(self, position, dt):
-        ee_pos = torch.tensor(position)
+        position_array = np.array(position)
+        ee_pos = torch.tensor(position_array)
         huber_along_path = lambda x: dt * self.huber(x, torch.zeros_like(x))
         relu_huber_along_path = lambda x: huber_along_path(torch.relu(x))
-        x_b = torch.tensor([0.58415, 1.51])
+        x_b = torch.tensor([0.6, 1.31])
         y_b = torch.tensor([-0.47085, 0.47085])
         z = torch.tensor(0.1645)
         x_loss = relu_huber_along_path(x_b[0] - ee_pos[:, 0]) + relu_huber_along_path(ee_pos[:, 0] - x_b[1])
