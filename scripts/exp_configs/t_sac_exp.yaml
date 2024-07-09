@@ -16,7 +16,7 @@ warmup_transitions: 4000
 batch_size: 64
 tau: 0.003
 dropout_ratio: 0.01
-layer_norm: True
+layer_norm: False
 n_eval_episodes: 20
 full_save: False
 
