@@ -23,10 +23,12 @@ class TrajectoryPlanner:
                                   num_T_pts=config.bspline_t.num_T_pts, device=device)
         self.huber = torch.nn.HuberLoss(reduction='none')
         self.violate_data_path = violate_path
+        self.num_violate_point = 0
 
-    def plan_trajectory(self, q_0, dq_0, hit_pos, hit_dir, hit_scale, high_action):
+    def plan_trajectory(self, q_0, dq_0, hit_pos, hit_dir, hit_scale):
         ddq_0 = np.zeros_like(q_0)
-        q_f, dq_f = compute_vel_and_pos(self.robot_model, self.robot_data, np.array([*hit_pos, self.desired_height]), np.array([*hit_dir, 0.]),
+        q_f, dq_f = compute_vel_and_pos(self.robot_model, self.robot_data, np.array([*hit_pos, self.desired_height]),
+                                        np.array([*hit_dir, 0.]),
                                         scale=hit_scale, initial_q=q_0)
         ddq_f = np.zeros_like(q_0)
 
@@ -35,13 +37,13 @@ class TrajectoryPlanner:
             q_cps, t_cps = self.model(features.to(torch.float32))
             q_cps, t_cps = q_cps.to(torch.float32), t_cps.to(torch.float32)
         traj = self.interpolate_control_points(q_cps, t_cps)
-        return traj
+
         # check traj:
-        # good_traj = self.check_traj_violation(high_action, traj[0], q_0, dq_0)
-        # if good_traj:
-        #     return traj
-        # else:
-        #     traj = self.generate_return_traj(q_0, dq_0)
+        good_traj = self.check_traj_violation(traj=traj[0])
+        if not good_traj:
+            self.add_violate_traj(q_0=q_0, dq_0=dq_0, ddq_0=ddq_0, q_f=q_f, dq_f=dq_f, ddq_f=ddq_f, pos_2d_end=hit_pos[:2])
+
+        return traj
 
     def interpolate_control_points(self, q_cps, t_cps):
         with torch.no_grad():
@@ -106,7 +108,7 @@ class TrajectoryPlanner:
         q_des = q + qd_des * 0.02
         return [[*q_des, *qd_des]]
 
-    def check_traj_violation(self, high_action, traj, q_0, dq_0):
+    def check_traj_violation(self, traj):
         # check constraint, obstacle
         positions = []
         for i in range(len(traj)):
@@ -114,15 +116,20 @@ class TrajectoryPlanner:
             positions.append(position)
         constraint_loss, x_loss, y_loss, z_loss = self.constraint_loss(positions, 0.02)
         # print('constraint_loss', constraint_loss)
-        # save the violate datapoint
-        if constraint_loss > 0.0001:
-            with open(self.violate_data_path, 'a', newline='') as file:
-                writer = csv.writer(file)
-                data = np.array([*high_action, *q_0, *dq_0])
-                writer.writerow(data.tolist())
+        if constraint_loss > 0.001:
+            self.num_violate_point += 1
             return False
         else:
             return True
+
+    def add_violate_traj(self, q_0, dq_0, ddq_0, q_f, dq_f, ddq_f, pos_2d_end):
+        pos_2d_start = forward_kinematics(mj_model=self.robot_model, mj_data=self.robot_data, q=q_0)[0][:2]
+        with open(self.violate_data_path, 'a', newline='') as file:
+            writer = csv.writer(file)
+            data_1 = np.concatenate([q_0, dq_0, ddq_0, pos_2d_start])
+            data_2 = np.concatenate([q_f, dq_f, ddq_f, pos_2d_end])
+            writer.writerow(data_1.tolist())
+            writer.writerow(data_2.tolist())
 
     def constraint_loss(self, position, dt):
         ee_pos = torch.tensor(position)

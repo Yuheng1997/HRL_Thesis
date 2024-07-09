@@ -57,7 +57,7 @@ class SACPlusTermination(SAC):
             q, dq = self._get_joint_pos(state)
             hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_action)
             self.trajectory_buffer = \
-                self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale, self.last_action)[0]
+                self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale)[0]
             termination = np.array([1])
         else:
             term_prob = self.termination_approximator.predict(state, self.last_action, output_tensor=False)
@@ -69,7 +69,7 @@ class SACPlusTermination(SAC):
                 q, dq = self._get_joint_pos(state)
                 hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_action)
                 self.trajectory_buffer = \
-                    self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale, self.last_action)[0]
+                    self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale)[0]
                 termination = np.array([1])
         assert len(self.trajectory_buffer) > 0
         joint_command = self.trajectory_buffer[0, :14]

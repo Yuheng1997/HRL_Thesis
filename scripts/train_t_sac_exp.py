@@ -138,9 +138,13 @@ def experiment(env_name: str = 'HitBackEnv',
 
     logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
     size_replay_memory = core.agent.agent_1.replay_memory.size
-    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory, **task_info)
+    num_violate_point = core.agent.agent_1.traj_planner.num_violate_point
+
+    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
+                      num_violate_point=num_violate_point, **task_info)
 
     log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
+                "Training/num_violate_point": num_violate_point,
                 "Training/size_replay_memory": size_replay_memory}
 
     task_dict = {}
@@ -160,6 +164,7 @@ def experiment(env_name: str = 'HitBackEnv',
 
         J, R, E, V, alpha, task_info = compute_metrics(core, eval_params)
         size_replay_memory = core.agent.agent_1.replay_memory.size
+        num_violate_point = core.agent.agent_1.traj_planner.num_violate_point
 
         if task_curriculum:
             if task_info['success_rate_epoch'] >= 0.7:
@@ -168,8 +173,10 @@ def experiment(env_name: str = 'HitBackEnv',
 
         # Write logging
         logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
-        logger.epoch_info(epoch + 1, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory, **task_info)
+        logger.epoch_info(epoch + 1, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
+                          num_violate_point=num_violate_point, **task_info)
         log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
+                    "Training/num_violate_point": num_violate_point,
                     "Training/size_replay_memory": size_replay_memory}
 
         task_dict = {}
