@@ -1,7 +1,7 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-load_nn_agent: 'Model_2400.pt'
-group: '28_06_low_batch_1_fit'
+load_nn_agent: 'Model_4600.pt'
+group: '09_07_'
 render: False
 record: False
 #n_steps: 10000

@@ -162,7 +162,7 @@ def experiment(env_name: str = 'HitBackEnv',
         size_replay_memory = core.agent.agent_1._replay_memory.size
 
         if task_curriculum:
-            if task_info['success_rate'] >= 0.7:
+            if task_info['success_rate_epoch'] >= 0.7:
                 core.mdp.update_task()
             task_info['task_id'] = env.task_curriculum_dict['idx']
 
@@ -170,7 +170,7 @@ def experiment(env_name: str = 'HitBackEnv',
         logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
         logger.epoch_info(epoch + 1, J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
         log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                    "Training/size_replaymemory": size_replay_memory}
+                    "Training/size_replay_memory": size_replay_memory}
 
         task_dict = {}
         for key, value in task_info.items():
@@ -312,20 +312,31 @@ def get_dataset_info(core, dataset, dataset_info):
     epoch_info = {}
     success_list = []
     num_list = []
+    num_under_30_traj = 0
     termination_counts = 0
+    num_traj = 0
     for i, d in enumerate(dataset):
         action = d[1]
+        last_traj_length = action[19]
         termination = action[18]
         if termination == 1:
+            num_traj += 1
             termination_counts += 1
+            if last_traj_length < 30:
+                num_under_30_traj += 1
         last = d[-1]
         if last:
             success_list.append(dataset_info['success'][i])
             num_list.append(dataset_info['num_across_line'][i])
             num_episode += 1
-    epoch_info['success_rate'] = np.sum(success_list) / len(success_list)
-    epoch_info['num_across_line'] = np.sum(num_list)
-    epoch_info['termination_num'] = termination_counts / num_episode
+            if not termination == 1:
+                num_traj += 1
+    epoch_info['success_rate_epoch'] = np.sum(success_list) / len(success_list)
+    epoch_info['num_across_line_epoch'] = np.sum(num_list)
+    epoch_info['termination_num_episode'] = termination_counts / num_episode
+    epoch_info['mean_traj_length_episode'] = len(dataset) / num_traj / num_episode
+    epoch_info['num_under_30_traj_epoch'] = num_under_30_traj
+
     return epoch_info
 
 
