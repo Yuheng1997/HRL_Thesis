@@ -5,7 +5,7 @@ group: '09_07_fix_metrics'
 render: False
 record: False
 #n_steps: 10000
-n_episodes: 1000
+n_episodes: 500
 n_epochs: 100
 horizon: 1000
 n_steps_per_fit: 1
