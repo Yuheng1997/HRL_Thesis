@@ -164,9 +164,9 @@ class SACPlusTermination(SAC):
             last = d[5]
             cur_smdp_length = d[1][20]
             if absorbing == 1 or last == 1 or cur_smdp_length == 0:
-                can_terminate = 1
-            else:
                 can_terminate = 0
+            else:
+                can_terminate = 1
             t_dataset.append((state, option, reward, next_state, absorbing, last, can_terminate))
         return t_dataset
 
