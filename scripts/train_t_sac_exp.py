@@ -137,13 +137,11 @@ def experiment(env_name: str = 'HitBackEnv',
     J, R, E, V, alpha, task_info = compute_metrics(core, eval_params, record)
 
     logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
-    size_replay_memory = core.agent.agent_1._replay_memory.size
-    size_mdp_replay_memory = core.agent.agent_1._smdp_replay_memory.size
-    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
-                      size_mdp_replay_memory=size_mdp_replay_memory, **task_info)
+    size_replay_memory = core.agent.agent_1.replay_memory.size
+    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory, **task_info)
 
     log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                "Training/size_replaymemory": size_replay_memory, "Training/size_mdp_replay_memory": size_mdp_replay_memory}
+                "Training/size_replaymemory": size_replay_memory}
 
     task_dict = {}
     for key, value in task_info.items():
@@ -162,7 +160,6 @@ def experiment(env_name: str = 'HitBackEnv',
 
         J, R, E, V, alpha, task_info = compute_metrics(core, eval_params)
         size_replay_memory = core.agent.agent_1._replay_memory.size
-        size_mdp_replay_memory = core.agent.agent_1._smdp_replay_memory.size
 
         if task_curriculum:
             if task_info['success_rate'] >= 0.7:
@@ -173,7 +170,7 @@ def experiment(env_name: str = 'HitBackEnv',
         logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
         logger.epoch_info(epoch + 1, J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
         log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                    "Training/size_replaymemory": size_replay_memory, "Training/size_mdp_replay_memory": size_mdp_replay_memory}
+                    "Training/size_replaymemory": size_replay_memory}
 
         task_dict = {}
         for key, value in task_info.items():

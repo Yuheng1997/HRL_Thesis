@@ -2,7 +2,7 @@ import numpy as np
 from mushroom_rl.utils.replay_memory import ReplayMemory
 
 
-class SMDPReplayMemory(ReplayMemory):
+class TReplayMemory(ReplayMemory):
     def __init__(self, initial_size, max_size):
         super().__init__(initial_size, max_size)
         self._add_save_attr(_smdp_length='pickle!')
