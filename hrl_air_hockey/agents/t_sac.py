@@ -17,7 +17,7 @@ class SACPlusTermination(SAC):
 
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params,
                  nn_planner_params, termination_params, termination_optimizer, batch_size,
-                 initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, num_adv_sample,
+                 initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, num_adv_sample, device,
                  use_log_alpha_loss=False, log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None):
 
         super().__init__(mdp_info=mdp_info, actor_mu_params=actor_mu_params, actor_sigma_params=actor_sigma_params,
@@ -37,6 +37,7 @@ class SACPlusTermination(SAC):
                                                                     **termination_optimizer['params'])
 
         self.num_adv_sample = num_adv_sample
+        self.device = device
 
         self._add_save_attr(planner="torch", termination_approximator="mushroom")
 
@@ -187,7 +188,7 @@ class SACPlusTermination(SAC):
         expand_sampled_option = self.policy.draw_action(expand_state)
 
         adv = self.adv_func(expand_state, expand_sampled_option, state, sampled_option)
-        adv_tensor = torch.tensor(adv, requires_grad=False)
+        adv_tensor = torch.tensor(adv, requires_grad=False, device=self.device)
 
         beta = self.termination_approximator.predict(state, sampled_option, output_tensor=True)
 

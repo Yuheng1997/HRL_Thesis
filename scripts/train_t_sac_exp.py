@@ -48,7 +48,7 @@ def experiment(env_name: str = 'HitBackEnv',
                warmup_transitions: int = 10,
                lr_alpha: float = 1e-5,
                target_entropy: float = -4,
-               use_cuda: bool = False,
+               use_cuda: bool = True,
                dropout_ratio: float = 0.01,
                layer_norm: bool = False,
 

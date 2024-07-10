@@ -1,11 +1,11 @@
 env_name: 'HitBackEnv'
 mode: 'online'
 load_nn_agent: 'Model_2400.pt'
-group: '09_07_fix_metrics'
+group: '10_07_cuda'
 render: False
 record: False
 #n_steps: 10000
-n_episodes: 500
+n_episodes: 50
 n_epochs: 100
 horizon: 1000
 n_steps_per_fit: 1

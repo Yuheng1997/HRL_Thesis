@@ -67,12 +67,12 @@ def build_agent_T_SAC(mdp_info, env_info, planner_path, planner_config, actor_lr
     termination_optimizer = {'class': optim.Adam,
                              'params': {'lr': termination_lr}}
 
-    device = 'gpu' if use_cuda else 'cpu'
+    device = 'cuda:0' if use_cuda else 'cpu'
     config = planner_config
     nn_planner_params = dict(planner_path=planner_path, env_info=env_info, config=config, device=device, violate_path=os.path.join(os.path.abspath(os.getcwd()), "violate_data/violate_data_1_2.csv"))
     agent = SACPlusTermination(mdp_info, actor_mu_params=actor_mu_params, actor_sigma_params=actor_sigma_params,
                                nn_planner_params=nn_planner_params, termination_params=termination_params,
                                termination_optimizer=termination_optimizer, num_adv_sample=num_adv_sample,
-                               actor_optimizer=actor_optimizer, critic_params=critic_params, **alg_params)
+                               actor_optimizer=actor_optimizer, critic_params=critic_params, device=device, **alg_params)
 
     return agent

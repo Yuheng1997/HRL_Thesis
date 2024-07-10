@@ -12,6 +12,7 @@ from air_hockey_challenge.utils.kinematics import jacobian, forward_kinematics
 class TrajectoryPlanner:
     def __init__(self, planner_path, env_info, config, device, violate_path):
         self.model = torch.load(planner_path, map_location=torch.device(device))
+        self.model.to_device(device)
         self.env_info = env_info
         self.air_hockey_dt = env_info['dt']
         self.robot_model = deepcopy(env_info['robot']['robot_model'])
@@ -24,6 +25,7 @@ class TrajectoryPlanner:
         self.huber = torch.nn.HuberLoss(reduction='none')
         self.violate_data_path = violate_path
         self.num_violate_point = 0
+        self.device = device
 
     def plan_trajectory(self, q_0, dq_0, hit_pos, hit_dir, hit_scale):
         ddq_0 = np.zeros_like(q_0)
@@ -34,7 +36,7 @@ class TrajectoryPlanner:
 
         with torch.no_grad():
             features = torch.as_tensor(np.concatenate([q_0, dq_0, ddq_0, q_f, dq_f, ddq_f]))[None, :]
-            q_cps, t_cps = self.model(features.to(torch.float32))
+            q_cps, t_cps = self.model(features.to(torch.float32).to(self.device))
             q_cps, t_cps = q_cps.to(torch.float32), t_cps.to(torch.float32)
         traj = self.interpolate_control_points(q_cps, t_cps)
 
@@ -62,10 +64,10 @@ class TrajectoryPlanner:
 
             traj = list()
 
-            t_cumsum = t_cumsum.numpy()
-            q = q.numpy()
-            q_dot = q_dot.numpy()
-            q_ddot = q_ddot.numpy()
+            t_cumsum = t_cumsum.cpu().numpy()
+            q = q.cpu().numpy()
+            q_dot = q_dot.cpu().numpy()
+            q_ddot = q_ddot.cpu().numpy()
             for n in range(q_cps.shape[0]):
                 _dt = t_cumsum[n]
                 _q = q[n]
@@ -116,7 +118,7 @@ class TrajectoryPlanner:
             positions.append(position)
         constraint_loss, x_loss, y_loss, z_loss = self.constraint_loss(positions, 0.01)
         # print('constraint_loss', constraint_loss)
-        if constraint_loss > 0.1:
+        if constraint_loss > 0.02:
             self.num_violate_point += 1
             return False
         else:
