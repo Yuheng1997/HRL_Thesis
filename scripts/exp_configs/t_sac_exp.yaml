@@ -48,7 +48,7 @@ experiments:
   minutes: 59
   seconds: 0
   partition: 'stud'
-  gres: None      # if use_cuda 'gpu:1'
+  gres: 'gpu:1'   # if use_cuda 'gpu:1'
   conda_env: 'neural_planner'
   use_timestamp: True
   compact_dirs: False
