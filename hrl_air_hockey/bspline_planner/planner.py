@@ -127,7 +127,7 @@ class TrajectoryPlanner:
     def add_violate_traj(self, q_0, dq_0, ddq_0, q_f, dq_f, ddq_f, pos_2d_end):
         pos_2d_start = forward_kinematics(mj_model=self.robot_model, mj_data=self.robot_data, q=q_0)[0][:2]
         with open(self.violate_data_path, 'a', newline='') as file:
-            writer = csv.writer(file)
+            writer = csv.writer(file, delimiter='\t')
             data_1 = np.concatenate([q_0, dq_0, ddq_0, pos_2d_start])
             data_2 = np.concatenate([q_f, dq_f, ddq_f, pos_2d_end])
             writer.writerow(data_1.tolist())
