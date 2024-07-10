@@ -5,7 +5,7 @@ group: '10_07_cuda'
 render: False
 record: False
 #n_steps: 10000
-n_episodes: 50
+n_episodes: 200
 n_epochs: 100
 horizon: 1000
 n_steps_per_fit: 1
