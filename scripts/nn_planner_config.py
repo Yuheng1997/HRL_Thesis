@@ -20,7 +20,7 @@ class BSplineQ:
 
 class TrainConfig:
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    num_epochs = 3500 + 1100
+    num_epochs = 4600 + 1000
     batch_size = 128 // 2 # 400: // 8, 4000: // 2, 40000: * 4
     learning_rate = 5e-6
     weight_decay = 1e-10
@@ -50,7 +50,7 @@ class Plots:
 
 class Save:
     enable = True
-    interval = 3500 + 1100
+    interval = 4600 + 1000
     current_folder = os.getcwd()
     parent_folder = os.path.dirname(current_folder)
     path = os.path.join(parent_folder, 'trained_low_agent', "model")
@@ -58,12 +58,13 @@ class Save:
 
 class Load:
     enable = True
-    epoch = 3500
+    epoch = 4600
 # 4 things to change: epoch, load, save, id
 
 class Data:
     hit_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/train/data.tsv")
-    uniform_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/uniform_train/data.tsv")
+    # uniform_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/uniform_train/data.tsv")
+    uniform_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/uniform_train/merged_file.tsv")
 
 
 class Config:
