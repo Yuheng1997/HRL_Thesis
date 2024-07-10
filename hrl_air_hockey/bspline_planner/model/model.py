@@ -54,7 +54,7 @@ class NNPlanner(nn.Module):
 
     def forward(self, x):
         q0, q_dot_0, q_ddot_0, qd, q_dot_d, q_ddot_d = torch.split(x, self.n_dof, dim=1)
-        expected_time = torch.max(torch.abs(qd - q0) / self.q_dot7_limit, dim=-1)[0]
+        expected_time = torch.max(torch.abs(qd - q0) / Limits.q_dot7.unsqueeze(0).to(q0.device), dim=-1)[0]
 
         y = self.fc(x)
 
@@ -107,5 +107,4 @@ class NNPlanner(nn.Module):
         self.qdd3 = self.qdd3.to(device)
         self.qd1 = self.qd1.to(device)
         self.td1 = self.td1.to(device)
-        self.q_dot7_limit = Limits.q_dot7.unsqueeze(0).to(device)
         return self.to(device)
