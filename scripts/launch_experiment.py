@@ -4,7 +4,7 @@ LOCAL = is_local()
 TEST = False
 USE_CUDA = True
 
-PARTITION = 'stud'  # 'amd', 'rtx'
+PARTITION = 'stud3080'  # 'amd', 'rtx'
 GRES = 'gpu:1' if USE_CUDA else None  # gpu:rtx2080:1, gpu:rtx3080:1
 CONDA_ENV = 'neural_planner'  # None
 
