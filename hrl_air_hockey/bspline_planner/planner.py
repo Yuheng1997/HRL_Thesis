@@ -118,7 +118,7 @@ class TrajectoryPlanner:
             positions.append(position)
         constraint_loss, x_loss, y_loss, z_loss = self.constraint_loss(positions, 0.01)
         # print('constraint_loss', constraint_loss)
-        if constraint_loss > 0.005:
+        if constraint_loss > 0.002:
             self.num_violate_point += 1
             return False
         else:

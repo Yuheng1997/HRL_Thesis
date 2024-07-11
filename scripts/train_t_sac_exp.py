@@ -12,6 +12,7 @@ from hrl_air_hockey.experiment_launcher import single_experiment, run_experiment
 from baseline.baseline_agent.baseline_agent import BaselineAgent
 
 from hrl_air_hockey.envs.hit_back_env import HitBackEnv
+from hrl_air_hockey.agents.t_sac import SACPlusTermination
 from hrl_air_hockey.agents.double_agent_wrapper import HRLTournamentAgentWrapper
 from hrl_air_hockey.utils.agent_builder import build_agent_T_SAC
 from nn_planner_config import Config
@@ -57,7 +58,7 @@ def experiment(env_name: str = 'HitBackEnv',
                # check_point: str = 'logs/hit_back_2024-05-08_20-09-58/parallel_seed___1/0/HitBackEnv_2024-05-08-20-18-50',
                # check_point: str = 'logs/hit_back_2024-05-09_10-15-30/check_point___.-logs-high_level_2024-05-07_01-01-02-parallel_seed___0-0-BaseEnv_2024-05-07-01-01-21/parallel_seed___1/0/HitBackEnv_2024-05-09-10-16-56',
                # check_point: str = 'logs/high_level_2024-05-15_23-16-22/parallel_seed___1/0/BaseEnv_2024-05-15-23-17-20',
-               # check_point: str = 'logs/high_level_2024-05-22_19-59-26/parallel_seed___0/0/BaseEnv_2024-05-22-19-59-51',
+               # check_point: str = 'hit_back_2024-07-10_15-31-43/parallel_seed___2/0/HitBackEnv_2024-07-10-15-32-25',
                check_point: str = None,
 
                # curriculum config
@@ -113,19 +114,33 @@ def experiment(env_name: str = 'HitBackEnv',
         agent_1._log_alpha = torch.tensor(np.log(0.4)).to(agent_1._log_alpha).requires_grad_(True)
         agent_1._alpha_optim = optim.Adam([agent_1._log_alpha], lr=lr_alpha)
     else:
-        raise NotImplemented
-        # def get_file_by_postfix(parent_dir, postfix):
-        #     file_list = list()
-        #     for root, dirs, files in os.walk(parent_dir):
-        #         for f in files:
-        #             if f.endswith(postfix):
-        #                 a = os.path.join(root, f)
-        #                 file_list.append(a)
-        #     return file_list
-        #
-        # agent = SAC.load(get_file_by_postfix(check_point, 'agent-0.msh')[0])
-        # rl_agent._alpha_optim = optim.Adam([rl_agent._log_alpha], lr=lr_alpha)
-        # rl_agent = SAC.load(check_point)
+        # raise NotImplemented
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        planner_path = os.path.abspath(os.path.join(current_dir, os.pardir, f'trained_low_agent/{load_nn_agent}'))
+        # planner_path = "Transferred_model_4250.pt"
+        planner_config = Config
+        high_agent = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info,
+                                    planner_path=planner_path, planner_config=planner_config,
+                                    actor_lr=actor_lr, critic_lr=critic_lr, termination_lr=termination_lr,
+                                    n_features_actor=n_features_actor, n_features_critic=n_features_critic,
+                                    n_features_termination=n_features_termination, batch_size=batch_size,
+                                    initial_replay_size=initial_replay_size, max_replay_size=max_replay_size, tau=tau,
+                                    num_adv_sample=num_adv_sample, warmup_transitions=warmup_transitions,
+                                    lr_alpha=lr_alpha, target_entropy=target_entropy, dropout_ratio=dropout_ratio,
+                                    layer_norm=layer_norm, use_cuda=use_cuda)
+        def get_file_by_postfix(parent_dir, postfix):
+            file_list = list()
+            for root, dirs, files in os.walk(parent_dir):
+                for f in files:
+                    if f.endswith(postfix):
+                        a = os.path.join(root, f)
+                        file_list.append(a)
+            return file_list
+        cur_path = os.path.abspath('.')
+        parent_dir = os.path.dirname(cur_path)
+        check_path = os.path.join(parent_dir, 'trained_high_agent', check_point)
+        agent_1 = high_agent.load(get_file_by_postfix(check_path, 'agent-2.msh')[0])
+        agent_1._alpha_optim = optim.Adam([agent_1._log_alpha], lr=lr_alpha)
 
     baseline_agent = BaselineAgent(env.env_info, agent_id=2)
     wrapped_agent = HRLTournamentAgentWrapper(env.env_info, agent_1, baseline_agent)

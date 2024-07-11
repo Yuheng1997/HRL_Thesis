@@ -101,7 +101,7 @@ class SACPlusTermination(SAC):
     def fit(self, dataset, **info):
         t_dataset = self.add_t_dataset(dataset)
         self.replay_memory.add(t_dataset)
-        for i in range(1):
+        for i in range(10):
             if self.replay_memory.initialized:
                 state, option, reward, next_state, absorbing, _, can_terminate = self.replay_memory.get(
                     self._batch_size())
@@ -245,7 +245,7 @@ class SACPlusTermination(SAC):
         return q
 
     def _post_load(self):
-        self._update_optimizer_parameters(self.policy.parameters())
+        super()._post_load()
 
     @property
     def _alpha(self):
