@@ -39,7 +39,7 @@ class SACPlusTermination(SAC):
         self.num_adv_sample = num_adv_sample
         self.device = device
 
-        self._add_save_attr(planner="torch", termination_approximator="mushroom")
+        self._add_save_attr(traj_planner="torch", termination_approximator="mushroom")
 
     def episode_start(self):
         self.cur_smdp_length = 0
@@ -246,6 +246,7 @@ class SACPlusTermination(SAC):
 
     def _post_load(self):
         super()._post_load()
+        self.traj_planner = TrajectoryPlanner(**nn_planner_params)
 
     @property
     def _alpha(self):
