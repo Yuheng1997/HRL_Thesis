@@ -58,7 +58,7 @@ class Save:
 
 class Load:
     enable = True
-    epoch = 5600 + 1000
+    epoch = 5600
 # 4 things to change: epoch, load, save, id
 
 class Data:
