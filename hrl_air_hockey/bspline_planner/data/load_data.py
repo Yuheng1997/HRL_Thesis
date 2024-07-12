@@ -1,4 +1,5 @@
 import torch
+import pandas as pd
 import numpy as np
 from torch.utils.data import DataLoader
 
@@ -37,7 +38,9 @@ def load_data(path, batch_size, device='cpu', shuffle=True):
 def get_hitting_data(path, batch_size, device='cpu', shuffle=True, split=.9):
     dataset_path = path
 
-    data = np.loadtxt(dataset_path, delimiter='\t').astype(np.float32)
+    data = pd.read_csv(dataset_path, delimiter='\t', header=None).astype(np.float32)
+
+    data = data.values
 
     #np.random.shuffle(data)
     print(len(data))
