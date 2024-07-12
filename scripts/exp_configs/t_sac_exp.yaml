@@ -1,7 +1,7 @@
 env_name: 'HitBackEnv'
 mode: 'online'
 load_nn_agent: 'Model_5600.pt'
-group: '11_07_change_parameters'
+group: '12_07_not_record_violate_point'
 render: False
 record: False
 #n_steps: 10000
@@ -42,7 +42,7 @@ experiments:
   n_seeds: 1
   n_cores: 4
   n_exps_in_parallel: 1
-  memory_single_job: 2500
+  memory_single_job: 2000
   days: 0
   hours: 23
   minutes: 59
