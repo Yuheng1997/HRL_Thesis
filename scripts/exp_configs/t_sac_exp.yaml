@@ -5,7 +5,7 @@ group: '12_07_not_record_violate_point'
 render: False
 record: False
 #n_steps: 10000
-n_episodes: 200
+n_episodes: 100
 n_epochs: 100
 horizon: 1000
 n_steps_per_fit: 1
@@ -17,7 +17,7 @@ batch_size: 256
 tau: 0.003
 dropout_ratio: 0.01
 layer_norm: False
-n_eval_episodes: 20
+n_eval_episodes: 10
 full_save: False
 
 #lr_alpha: 0.00001
