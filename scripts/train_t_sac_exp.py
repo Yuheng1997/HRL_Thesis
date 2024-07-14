@@ -20,14 +20,15 @@ from nn_planner_config import Config
 
 @single_experiment
 def experiment(env_name: str = 'HitBackEnv',
-               n_epochs: int = 2,
-               n_steps: int = 5,
+               n_epochs: int = 1,
+               n_steps: int = 1000,
                n_episodes: int = 1,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
                render: bool = False,
                record: bool = False,
                n_eval_episodes: int = 1,
+               n_eval_steps: int = 1000,
                mode: str = 'disabled',
                horizon: int = 1000,
                load_nn_agent: str = 'Model_2400.pt',
@@ -43,10 +44,10 @@ def experiment(env_name: str = 'HitBackEnv',
                n_features_critic: str = '256 256 256',
                n_features_termination: str = '256 256 256',
                batch_size: int = 8,
-               initial_replay_size: int = 10,
+               initial_replay_size: int = 8,
                max_replay_size: int = 200000,
                tau: float = 1e-3,
-               warmup_transitions: int = 10,
+               warmup_transitions: int = 8,
                lr_alpha: float = 1e-5,
                target_entropy: float = -4,
                use_cuda: bool = True,
@@ -58,7 +59,7 @@ def experiment(env_name: str = 'HitBackEnv',
                # check_point: str = 'logs/hit_back_2024-05-08_20-09-58/parallel_seed___1/0/HitBackEnv_2024-05-08-20-18-50',
                # check_point: str = 'logs/hit_back_2024-05-09_10-15-30/check_point___.-logs-high_level_2024-05-07_01-01-02-parallel_seed___0-0-BaseEnv_2024-05-07-01-01-21/parallel_seed___1/0/HitBackEnv_2024-05-09-10-16-56',
                # check_point: str = 'logs/high_level_2024-05-15_23-16-22/parallel_seed___1/0/BaseEnv_2024-05-15-23-17-20',
-               # check_point: str = 'hit_back_2024-07-10_15-31-43/parallel_seed___2/0/HitBackEnv_2024-07-10-15-32-25',
+               # check_point: str = 'HitBackEnv_2024-07-14-22-38-26',
                check_point: str = None,
 
                # curriculum config
@@ -88,7 +89,7 @@ def experiment(env_name: str = 'HitBackEnv',
                group=group, notes=f"logdir: {logger._results_dir}", mode=mode)
 
     eval_params = {
-        "n_episodes": n_eval_episodes,
+        "n_steps": n_eval_steps,
         "quiet": quiet,
         "render": render
     }
@@ -114,20 +115,6 @@ def experiment(env_name: str = 'HitBackEnv',
         agent_1._log_alpha = torch.tensor(np.log(0.4)).to(agent_1._log_alpha).requires_grad_(True)
         agent_1._alpha_optim = optim.Adam([agent_1._log_alpha], lr=lr_alpha)
     else:
-        # raise NotImplemented
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        planner_path = os.path.abspath(os.path.join(current_dir, os.pardir, f'trained_low_agent/{load_nn_agent}'))
-        # planner_path = "Transferred_model_4250.pt"
-        planner_config = Config
-        high_agent = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info,
-                                    planner_path=planner_path, planner_config=planner_config,
-                                    actor_lr=actor_lr, critic_lr=critic_lr, termination_lr=termination_lr,
-                                    n_features_actor=n_features_actor, n_features_critic=n_features_critic,
-                                    n_features_termination=n_features_termination, batch_size=batch_size,
-                                    initial_replay_size=initial_replay_size, max_replay_size=max_replay_size, tau=tau,
-                                    num_adv_sample=num_adv_sample, warmup_transitions=warmup_transitions,
-                                    lr_alpha=lr_alpha, target_entropy=target_entropy, dropout_ratio=dropout_ratio,
-                                    layer_norm=layer_norm, use_cuda=use_cuda)
         def get_file_by_postfix(parent_dir, postfix):
             file_list = list()
             for root, dirs, files in os.walk(parent_dir):
@@ -139,7 +126,7 @@ def experiment(env_name: str = 'HitBackEnv',
         cur_path = os.path.abspath('.')
         parent_dir = os.path.dirname(cur_path)
         check_path = os.path.join(parent_dir, 'trained_high_agent', check_point)
-        agent_1 = high_agent.load(get_file_by_postfix(check_path, 'agent-2.msh')[0])
+        agent_1 = SACPlusTermination.load(get_file_by_postfix(check_path, 'agent-0.msh')[0])
         agent_1._alpha_optim = optim.Adam([agent_1._log_alpha], lr=lr_alpha)
 
     baseline_agent = BaselineAgent(env.env_info, agent_id=2)
@@ -152,7 +139,7 @@ def experiment(env_name: str = 'HitBackEnv',
     J, R, E, V, alpha, task_info = compute_metrics(core, eval_params, record)
 
     logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
-    size_replay_memory = core.agent.agent_1.replay_memory.size
+    size_replay_memory = core.agent.agent_1._replay_memory.size
     num_violate_point = core.agent.agent_1.traj_planner.num_violate_point
 
     logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
@@ -175,14 +162,14 @@ def experiment(env_name: str = 'HitBackEnv',
     for epoch in tqdm(range(n_epochs), disable=False):
         # core.agent.learning_agent.num_fits_left = n_steps
         # core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
-        core.learn(n_episodes=n_episodes, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
+        core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
 
         J, R, E, V, alpha, task_info = compute_metrics(core, eval_params)
-        size_replay_memory = core.agent.agent_1.replay_memory.size
+        size_replay_memory = core.agent.agent_1._replay_memory.size
         num_violate_point = core.agent.agent_1.traj_planner.num_violate_point
 
         if task_curriculum:
-            if task_info['success_rate_epoch'] >= 0.7:
+            if task_info['success_rate'] >= 0.7:
                 core.mdp.update_task()
             task_info['task_id'] = env.task_curriculum_dict['idx']
 
@@ -229,7 +216,7 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
         for state in inital_states:
             num = np.clip(len(inital_states), 0, 100)
             s = np.array([state for i in range(num)])
-            a = np.array([agent.draw_action(state)[14:18] for i in range(num)])
+            a = np.array([agent.policy.draw_action(state) for i in range(num)])
             Q.append(agent._critic_approximator(s, a).mean())
         return np.array(Q).mean()
 
@@ -328,8 +315,6 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
 
 
 def get_dataset_info(core, dataset, dataset_info):
-    num_episode = 0
-
     epoch_info = {}
     success_list = []
     num_list = []
@@ -343,21 +328,20 @@ def get_dataset_info(core, dataset, dataset_info):
         if termination == 1:
             num_traj += 1
             termination_counts += 1
-            if last_traj_length < 20:
+            if last_traj_length < 10:
                 num_short_traj += 1
         last = d[-1]
         if last:
             success_list.append(dataset_info['success'][i])
             num_list.append(dataset_info['num_across_line'][i])
-            num_episode += 1
             if not termination == 1:
                 num_traj += 1
-    epoch_info['success_rate_epoch'] = np.sum(success_list) / len(success_list)
-    epoch_info['num_across_line_epoch'] = np.sum(num_list)
-    epoch_info['termination_num_episode'] = termination_counts / num_episode
-    epoch_info['mean_traj_length_epoch'] = len(dataset) / num_traj
-    epoch_info['num_short_traj_epoch'] = num_short_traj
-    epoch_info['num_traj_epoch'] = num_traj
+    epoch_info['success_rate'] = np.sum(success_list) / len(success_list)
+    epoch_info['num_across_line'] = np.sum(num_list)
+    epoch_info['termination_num'] = termination_counts
+    epoch_info['mean_traj_length'] = len(dataset) / num_traj
+    epoch_info['num_short_traj'] = num_short_traj
+    epoch_info['num_traj'] = num_traj
 
     return epoch_info
 
