@@ -5,9 +5,10 @@ import mujoco
 
 
 class BaseEnv(position.IiwaPositionTournament):
-    def __init__(self, horizon=9000, gamma=0.99, initial_puck_pos=None):
+    def __init__(self, visual_target=False, horizon=9000, gamma=0.99, initial_puck_pos=None):
         # 包括 定位goal，dynamics_info, info, mdp_info
         super().__init__(gamma=gamma, horizon=horizon, interpolation_order=(3, 3), viewer_params={}, agent_name='agent', opponent_name='opponent')
+        self.visual_target = visual_target
         self.absorb_type = None
         self.gamma = gamma
         self.info.gamma = gamma
@@ -71,6 +72,8 @@ class BaseEnv(position.IiwaPositionTournament):
             a1 = action[0].flatten()[:14].reshape(2, 7)
             a2 = action[1]
             target_pos = action[0].flatten()[14:16]
+            if self.visual_target:
+                self.update_visual_ball(target_pos)
             return super().step((a1, a2))
 
     def setup(self, obs):
@@ -103,6 +106,15 @@ class BaseEnv(position.IiwaPositionTournament):
         puck_range = np.array([[0.8-1.51, -0.39105], [1.3-1.51, 0.39105]])
         self._model.site('puck_vis').size = np.array([*(puck_range[1] - puck_range[0]) / 2, 0.001])
         self._model.site('puck_vis').pos = np.array([*(puck_range[1] + puck_range[0]) / 2, 0.0])
+
+    def update_visual_ball(self, target_pos):
+        self._model.site('ball_1').rgba = np.array([0.3, 0.9, 0.3, 0.2])
+        self._model.site('ball_1').size = np.array(0.05)
+        self._model.site('ball_1').pos = np.array([*target_pos, 0.0]) - np.array([1.51, 0, 0])
+
+        self._model.site('ball_2').rgba = np.array([0.3, 0.9, 0.3, 0.2])
+        self._model.site('ball_2').size = np.array(0.05)
+        self._model.site('ball_2').pos = np.array([*target_pos, 0.0]) - np.array([1.51, 0, 0])
 
 
 if __name__ == '__main__':
