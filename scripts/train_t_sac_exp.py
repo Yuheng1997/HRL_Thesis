@@ -99,9 +99,7 @@ def experiment(env_name: str = 'HitBackEnv',
     env.info.action_space = Box(np.array([0.6, -0.39105, -np.pi, 0.]), np.array([1.3, 0.39105, np.pi, 1]))
 
     if check_point is None:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        planner_path = os.path.abspath(os.path.join(current_dir, os.pardir, f'trained_low_agent/{load_nn_agent}'))
-        # planner_path = "Transferred_model_4250.pt"
+        planner_path = os.path.join('..', 'trained_low_agent', load_nn_agent)
         planner_config = Config
         agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info,
                                     planner_path=planner_path, planner_config=planner_config,

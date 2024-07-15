@@ -13,7 +13,7 @@ from nn_planner_config import Config
 
 
 def main(
-        check_point: str = 'HitBackEnv_2024-07-14-22-38-26',
+        check_point: str = 'hit_back_2024-07-14_23-36-56/parallel_seed___0/0/HitBackEnv_2024-07-14-23-37-22',
 ):
     env = HitBackEnv()
 
@@ -29,7 +29,8 @@ def main(
     cur_path = os.path.abspath('.')
     parent_dir = os.path.dirname(cur_path)
     check_path = os.path.join(parent_dir, 'trained_high_agent', check_point)
-    agent_1 = SACPlusTermination.load(get_file_by_postfix(check_path, 'agent-1.msh')[0])
+    agent_1 = SACPlusTermination.load(get_file_by_postfix(check_path, 'agent-0.msh')[0])
+
 
     baseline_agent = BaselineAgent(env.env_info, agent_id=2)
     agent = HRLTournamentAgentWrapper(env.env_info, agent_1, baseline_agent)
