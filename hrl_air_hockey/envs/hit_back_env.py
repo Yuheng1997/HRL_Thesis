@@ -6,7 +6,7 @@ import mujoco
 
 
 class HitBackEnv(position.IiwaPositionTournament):
-    def __init__(self, horizon=9000, gamma=0.99, curriculum_steps=10, task_curriculum=True, initial_puck_pos=None):
+    def __init__(self, visual_target=False, horizon=9000, gamma=0.99, curriculum_steps=10, task_curriculum=True, initial_puck_pos=None):
         # 包括 定位goal，dynamics_info, info, mdp_info
 
         viewer_params = {
@@ -17,6 +17,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         super().__init__(gamma=gamma, horizon=horizon, interpolation_order=(3, 3), viewer_params=viewer_params,
                          agent_name='agent',
                          opponent_name='opponent')
+        self.visual_target = visual_target
         self.absorb_type = None
         self.gamma = gamma
         self.info.gamma = gamma
@@ -142,7 +143,8 @@ class HitBackEnv(position.IiwaPositionTournament):
             a1 = action[0].flatten()[:14].reshape(2, 7)
             a2 = action[1]
             target_pos = action[0].flatten()[14:16]
-            self.update_visual_ball(target_pos)
+            if self.visual_target:
+                self.update_visual_ball(target_pos)
             return super().step((a1, a2))
 
     def setup(self, obs):

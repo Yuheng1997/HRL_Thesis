@@ -15,7 +15,7 @@ from nn_planner_config import Config
 def main(
         check_point: str = 'hit_back_2024-07-14_23-36-56/parallel_seed___0/0/HitBackEnv_2024-07-14-23-37-22',
 ):
-    env = HitBackEnv()
+    env = HitBackEnv(visual_target=True)
 
     def get_file_by_postfix(parent_dir, postfix):
         file_list = list()
