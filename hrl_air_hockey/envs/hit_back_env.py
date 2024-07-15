@@ -141,6 +141,8 @@ class HitBackEnv(position.IiwaPositionTournament):
         else:
             a1 = action[0].flatten()[:14].reshape(2, 7)
             a2 = action[1]
+            target_pos = action[0].flatten()[14:16]
+            self.update_visual_ball(target_pos)
             return super().step((a1, a2))
 
     def setup(self, obs):
@@ -187,6 +189,15 @@ class HitBackEnv(position.IiwaPositionTournament):
         puck_range = self.task_curriculum_dict['puck_range'][task_idx]
         self._model.site('puck_vis').size = np.array([*(puck_range[1] - puck_range[0]) / 2, 0.001])
         self._model.site('puck_vis').pos = np.array([*(puck_range[1] + puck_range[0]) / 2, 0.0])
+
+    def update_visual_ball(self, target_pos):
+        self._model.site('ball_1').rgba = np.array([0.3, 0.9, 0.3, 0.2])
+        self._model.site('ball_1').size = np.array(0.05)
+        self._model.site('ball_1').pos = np.array([*target_pos, 0.0]) - np.array([1.51, 0, 0])
+
+        self._model.site('ball_2').rgba = np.array([0.3, 0.9, 0.3, 0.2])
+        self._model.site('ball_2').size = np.array(0.05)
+        self._model.site('ball_2').pos = np.array([*target_pos, 0.0]) - np.array([1.51, 0, 0])
 
 
 if __name__ == '__main__':
