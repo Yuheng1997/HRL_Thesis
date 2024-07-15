@@ -12,6 +12,7 @@ from hrl_air_hockey.experiment_launcher import single_experiment, run_experiment
 from baseline.baseline_agent.baseline_agent import BaselineAgent
 
 from hrl_air_hockey.envs.hit_back_env import HitBackEnv
+from hrl_air_hockey.envs.base_env import BaseEnv
 from hrl_air_hockey.agents.t_sac import SACPlusTermination
 from hrl_air_hockey.agents.double_agent_wrapper import HRLTournamentAgentWrapper
 from hrl_air_hockey.utils.agent_builder import build_agent_T_SAC
@@ -19,19 +20,19 @@ from nn_planner_config import Config
 
 
 @single_experiment
-def experiment(env_name: str = 'BaseEnv',
+def experiment(env_name: str = 'HitBackEnv',
                n_epochs: int = 1,
-               n_steps: int = 1000,
+               n_steps: int = 10000,
                n_episodes: int = 1,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
-               render: bool = False,
+               render: bool = True,
                record: bool = False,
                n_eval_episodes: int = 1,
                n_eval_steps: int = 1000,
                mode: str = 'disabled',
-               horizon: int = 1000,
-               load_nn_agent: str = 'Model_2400.pt',
+               horizon: int = 300,
+               load_nn_agent: str = 'Model_5600.pt',
                full_save: bool = False,
 
                group: str = None,
@@ -59,7 +60,7 @@ def experiment(env_name: str = 'BaseEnv',
                check_point: str = None,
 
                # curriculum config
-               task_curriculum: bool = True,
+               task_curriculum: bool = False,
                curriculum_steps: int = 10,
 
                parallel_seed: int = None,
@@ -90,7 +91,7 @@ def experiment(env_name: str = 'BaseEnv',
         "render": render
     }
 
-    env = HitBackEnv(horizon=horizon, gamma=0.99, task_curriculum=task_curriculum, curriculum_steps=curriculum_steps)
+    env = BaseEnv(horizon=horizon)
 
     env.info.action_space = Box(np.array([0.6, -0.39105, -np.pi, 0.]), np.array([1.3, 0.39105, np.pi, 1]))
 
@@ -327,11 +328,9 @@ def get_dataset_info(core, dataset, dataset_info):
         last = d[-1]
         if last:
             success_list.append(dataset_info['success'][i])
-            num_list.append(dataset_info['num_across_line'][i])
             if not termination == 1:
                 num_traj += 1
     epoch_info['success_rate'] = np.sum(success_list) / len(success_list)
-    epoch_info['num_across_line'] = np.sum(num_list)
     epoch_info['termination_num'] = termination_counts
     epoch_info['mean_traj_length'] = len(dataset) / num_traj
     epoch_info['num_short_traj'] = num_short_traj

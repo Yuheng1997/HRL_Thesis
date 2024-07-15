@@ -263,6 +263,7 @@ class SACPlusTermination(SAC):
         super()._post_load()
         self.state_shape = self.mdp_info.observation_space.shape
         self.action_shape = self.mdp_info.action_space.shape
+        self.nn_planner_params['planner_path'] = '../trained_low_agent/Model_5600.pt'
         self.traj_planner = TrajectoryPlanner(**self.nn_planner_params)
 
     @property
