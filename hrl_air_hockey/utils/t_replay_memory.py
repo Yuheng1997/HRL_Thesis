@@ -43,28 +43,11 @@ class TReplayMemory(ReplayMemory):
         Returns:
             The requested number of samples.
         """
-        initial_value = -1000.
-        initial_boolean = True
-        s = torch.full((n_samples, *self.state_shape), initial_value, device=self.device)
-        a = torch.full((n_samples, *self.action_shape), initial_value, device=self.device)
-        r = torch.full((n_samples,), initial_value, device=self.device)
-        ss = torch.full((n_samples, *self.state_shape), initial_value, device=self.device)
-        ab = torch.full((n_samples,), initial_value, device=self.device)
-        last = torch.full((n_samples,), initial_value, device=self.device)
-        can_terminate = torch.full((n_samples,), initial_boolean, device=self.device)
 
-        j = 0
-        for i in np.random.randint(self.size, size=n_samples):
-            s[j] = self._states[i]
-            a[j] = self._actions[i]
-            r[j] = self._rewards[i]
-            ss[j] = self._next_states[i]
-            ab[j] = self._absorbing[i]
-            last[j] = self._last[i]
-            can_terminate[j] = self._can_terminate[i]
-            j += 1
+        index_list = np.random.randint(0, self.size, n_samples)
 
-        return s, a, r, ss, ab, last, can_terminate
+        return self._states[index_list], self._actions[index_list], self._rewards[index_list], self._rewards[
+            index_list], self._absorbing[index_list], self._last[index_list], self._can_terminate[index_list]
 
     def reset(self):
         self._idx = 0
