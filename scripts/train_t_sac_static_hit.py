@@ -324,7 +324,7 @@ def get_dataset_info(core, dataset, dataset_info):
     epoch_info['num_short_traj'] = num_short_traj
     epoch_info['num_traj'] = num_traj
     epoch_info['beta_termination'] = beta_termination
-    epoch_info['mean_rest_traj_len'] = rest_traj_len / beta_termination
+    epoch_info['rest_traj_len'] = rest_traj_len
 
     return epoch_info
 
