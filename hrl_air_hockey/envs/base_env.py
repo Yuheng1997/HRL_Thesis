@@ -6,8 +6,12 @@ import mujoco
 
 class BaseEnv(position.IiwaPositionTournament):
     def __init__(self, visual_target=False, horizon=9000, gamma=0.99, initial_puck_pos=None):
-        # 包括 定位goal，dynamics_info, info, mdp_info
-        super().__init__(gamma=gamma, horizon=horizon, interpolation_order=(3, 3), viewer_params={}, agent_name='agent', opponent_name='opponent')
+        viewer_params = {
+            'camera_params': {
+                'static': dict(distance=3.0, elevation=-45.0, azimuth=90.0, lookat=(0., 0., 0.))
+            }
+        }
+        super().__init__(gamma=gamma, horizon=horizon, interpolation_order=(3, 3), viewer_params=viewer_params, agent_name='agent', opponent_name='opponent')
         self.visual_target = visual_target
         self.absorb_type = None
         self.gamma = gamma

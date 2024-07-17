@@ -55,7 +55,7 @@ def experiment(env_name: str = 'BaseEnv',
                layer_norm: bool = False,
 
                # Continue training
-               # check_point: str = 'HitBackEnv_2024-07-14-22-38-26',
+               # check_point: str = 'static_hit_2024-07-15_16-27-51/parallel_seed___2/0/BaseEnv_2024-07-15-17-34-35',
                check_point: str = None,
 
                # curriculum config
@@ -117,6 +117,7 @@ def experiment(env_name: str = 'BaseEnv',
                         a = os.path.join(root, f)
                         file_list.append(a)
             return file_list
+
         cur_path = os.path.abspath('.')
         parent_dir = os.path.dirname(cur_path)
         check_path = os.path.join(parent_dir, 'trained_high_agent', check_point)
@@ -130,17 +131,17 @@ def experiment(env_name: str = 'BaseEnv',
     best_R = -np.inf
 
     # initial evaluate
-    J, R, E, V, alpha, task_info = compute_metrics(core, eval_params, record)
+    J, R, E, V, alpha, Beta, task_info = compute_metrics(core, eval_params, record)
 
-    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
+    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, **task_info)
     size_replay_memory = core.agent.agent_1._replay_memory.size
     num_violate_point = core.agent.agent_1.traj_planner.num_violate_point
 
-    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
+    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, size_replay_memory=size_replay_memory,
                       num_violate_point=num_violate_point, **task_info)
 
     log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                "Training/num_violate_point": num_violate_point,
+                "Training/beta": Beta, "Training/num_violate_point": num_violate_point,
                 "Training/size_replay_memory": size_replay_memory}
 
     task_dict = {}
@@ -158,7 +159,7 @@ def experiment(env_name: str = 'BaseEnv',
         # core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
 
-        J, R, E, V, alpha, task_info = compute_metrics(core, eval_params)
+        J, R, E, V, alpha, Beta, task_info = compute_metrics(core, eval_params, record)
         size_replay_memory = core.agent.agent_1._replay_memory.size
         num_violate_point = core.agent.agent_1.traj_planner.num_violate_point
 
@@ -168,11 +169,11 @@ def experiment(env_name: str = 'BaseEnv',
             task_info['task_id'] = env.task_curriculum_dict['idx']
 
         # Write logging
-        logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, **task_info)
-        logger.epoch_info(epoch + 1, J=J, R=R, E=E, V=V, alpha=alpha, size_replay_memory=size_replay_memory,
+        logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, **task_info)
+        logger.epoch_info(epoch + 1, J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, size_replay_memory=size_replay_memory,
                           num_violate_point=num_violate_point, **task_info)
         log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                    "Training/num_violate_point": num_violate_point,
+                    "Training/beta": Beta, "Training/num_violate_point": num_violate_point,
                     "Training/size_replay_memory": size_replay_memory}
 
         task_dict = {}
@@ -214,6 +215,21 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
             Q.append(agent._critic_approximator(s, a).mean())
         return np.array(Q).mean()
 
+    def sample_states_traj(dataset):
+        i = 1
+        states = list()
+        while not dataset[i][5]:
+            states.append(dataset[i][0])
+            i += 1
+        return np.array(states)
+
+    def compute_max_beta(agent, dataset):
+        initial_state = dataset[0][0]
+        initial_option = agent.policy.draw_action(initial_state)
+        states_traj = sample_states_traj(dataset)
+        beta = np.array([agent.termination_approximator.predict(states_traj[i], initial_option) for i in range(len(states_traj))])
+        return np.max(beta)
+
     def spilt_dataset(_dataset):
         assert len(_dataset) > 0
         dataset = list()
@@ -224,59 +240,23 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
             dataset.append((state, action, d[2], next_state, d[4], d[5]))
         return dataset
 
-    def parse_dataset(dataset, features=None):
-        assert len(dataset) > 0
+    def parse_dataset(_dataset):
+        assert len(_dataset) > 0
 
-        shape = dataset[0][0].shape if features is None else (features.size,)
+        state = np.ones((len(_dataset),) + _dataset[0][0].shape)
+        action = np.ones((len(_dataset),) + (4,))
+        reward = np.ones(len(_dataset))
+        next_state = np.ones((len(_dataset),) + _dataset[0][0].shape)
+        absorbing = np.ones(len(_dataset))
+        last = np.ones(len(_dataset))
 
-        sum_reward = 0
-        discount_gamma = 1
-        initial_smdp_state = None
-        initial_smdp_action = None
-        smdp_dataset = list()
-        for i, d in enumerate(dataset):
-            high_action = d[1][14:18]
-            termination = d[1][18]
-            last_smdp_length = int(d[1][19])
-            cur_smdp_length = int(d[1][20])
-            reward = d[2]
-            next_state = d[3]
-            absorbing = d[4]
-            last = d[5]
-            sum_reward += reward * discount_gamma
-            discount_gamma *= 0.99
-            if termination == 1 or absorbing or last:
-                if initial_smdp_state is not None:
-                    smdp_dataset.append((initial_smdp_state, initial_smdp_action, sum_reward, next_state,
-                                         absorbing, last))
-                discount_gamma = 1
-                sum_reward = 0
-                initial_smdp_state = d[0]
-                initial_smdp_action = high_action
-
-        state = np.ones((len(smdp_dataset),) + shape)
-        action = np.ones((len(smdp_dataset),) + smdp_dataset[0][1].shape)
-        reward = np.ones(len(smdp_dataset))
-        next_state = np.ones((len(smdp_dataset),) + shape)
-        absorbing = np.ones(len(smdp_dataset))
-        last = np.ones(len(smdp_dataset))
-
-        if features is not None:
-            for i in range(len(smdp_dataset)):
-                state[i, ...] = features(smdp_dataset[i][0])
-                action[i, ...] = smdp_dataset[i][1]
-                reward[i] = smdp_dataset[i][2]
-                next_state[i, ...] = features(smdp_dataset[i][3])
-                absorbing[i] = smdp_dataset[i][4]
-                last[i] = smdp_dataset[i][5]
-        else:
-            for i in range(len(smdp_dataset)):
-                state[i, ...] = smdp_dataset[i][0]
-                action[i, ...] = smdp_dataset[i][1]
-                reward[i] = smdp_dataset[i][2]
-                next_state[i, ...] = smdp_dataset[i][3]
-                absorbing[i] = smdp_dataset[i][4]
-                last[i] = smdp_dataset[i][5]
+        for i in range(len(_dataset)):
+            state[i, ...] = _dataset[i][0]
+            action[i, ...] = _dataset[i][1][14:18]
+            reward[i] = _dataset[i][2]
+            next_state[i, ...] = _dataset[i][3]
+            absorbing[i] = _dataset[i][4]
+            last[i] = _dataset[i][5]
 
         return np.array(state), np.array(action), np.array(reward), np.array(
             next_state), np.array(absorbing), np.array(last)
@@ -294,6 +274,8 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
 
     V = compute_V(rl_agent, dataset)
 
+    Beta = compute_max_beta(rl_agent, dataset)
+
     alpha = rl_agent._alpha.cpu().detach().numpy()
 
     task_info = get_dataset_info(core, dataset, dataset_info)
@@ -303,9 +285,9 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
         core.mdp.clear_task_info()
 
     if return_dataset:
-        return J, R, E, V, alpha, task_info, parsed_dataset, dataset_info
+        return J, R, E, V, alpha, Beta, task_info, parsed_dataset, dataset_info
 
-    return J, R, E, V, alpha, task_info
+    return J, R, E, V, alpha, Beta, task_info
 
 
 def get_dataset_info(core, dataset, dataset_info):
@@ -315,10 +297,16 @@ def get_dataset_info(core, dataset, dataset_info):
     num_short_traj = 0
     termination_counts = 0
     num_traj = 0
+    beta_termination = 0
+    rest_traj_len = 0
     for i, d in enumerate(dataset):
         action = d[1]
         last_traj_length = action[19]
         termination = action[18]
+        beta_t = action[21]
+        if beta_t == 1:
+            rest_traj_len += action[22]
+            beta_termination += 1
         if termination == 1:
             num_traj += 1
             termination_counts += 1
@@ -327,15 +315,15 @@ def get_dataset_info(core, dataset, dataset_info):
         last = d[-1]
         if last:
             success_list.append(dataset_info['success'][i])
-            num_list.append(dataset_info['num_across_line'][i])
             if not termination == 1:
                 num_traj += 1
     epoch_info['success_rate'] = np.sum(success_list) / len(success_list)
-    epoch_info['num_across_line'] = np.sum(num_list)
     epoch_info['termination_num'] = termination_counts
     epoch_info['mean_traj_length'] = len(dataset) / num_traj
     epoch_info['num_short_traj'] = num_short_traj
     epoch_info['num_traj'] = num_traj
+    epoch_info['beta_termination'] = beta_termination
+    epoch_info['mean_rest_traj_len'] = rest_traj_len / beta_termination
 
     return epoch_info
 

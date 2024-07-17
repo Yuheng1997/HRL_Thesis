@@ -63,6 +63,7 @@ class SACPlusTermination(SAC):
         self.policy.reset()
 
     def draw_action(self, state):
+        rest_traj_len = 0
         if self.trajectory_buffer is None or len(self.trajectory_buffer) == 0:
             self.last_action = self.policy.draw_action(state)
             q, dq = self._get_joint_pos(state)
@@ -70,18 +71,23 @@ class SACPlusTermination(SAC):
             self.trajectory_buffer = \
                 self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale)[0]
             termination = np.array([1])
+            beta_termination = np.array([0])
         else:
             term_prob = self.termination_approximator.predict(state, self.last_action, output_tensor=False)
             # term_prob = 0.02
             termination = np.array([0])
+            beta_termination = np.array([0])
             if np.random.uniform() < term_prob:
                 self.last_action = self.policy.draw_action(state)
 
                 q, dq = self._get_joint_pos(state)
                 hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_action)
+
+                rest_traj_len = len(self.trajectory_buffer)
                 self.trajectory_buffer = \
                     self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale)[0]
                 termination = np.array([1])
+                beta_termination = np.array([1])
         assert len(self.trajectory_buffer) > 0
         joint_command = self.trajectory_buffer[0, :14]
         self.trajectory_buffer = self.trajectory_buffer[1:]
@@ -94,7 +100,7 @@ class SACPlusTermination(SAC):
             self.cur_smdp_length += 1
 
         return np.concatenate([joint_command, self.last_action, termination, np.array([last_smdp_length]),
-                               np.array([self.cur_smdp_length])])
+                               np.array([self.cur_smdp_length]), beta_termination, np.array([rest_traj_len])])
 
     def _get_joint_pos(self, state):
         q = state[..., 6:13]
@@ -128,16 +134,19 @@ class SACPlusTermination(SAC):
 
                 beta_prime = self.termination_approximator.predict(next_state, option, output_tensor=True).squeeze(-1)
                 option_prime = self.policy.draw_action(next_state)
-                gt = (reward + self.mdp_info.gamma * (1 - beta_prime.detach()) *
-                      torch.tensor(self._target_critic_approximator.predict(next_state, option, prediction='min'),
-                                   device=self.device) +
-                      self.mdp_info.gamma * beta_prime.detach() *
-                      torch.tensor(self._target_critic_approximator.predict(next_state, option_prime, prediction='min'),
-                                   device=self.device))
+
+                gt = (reward + self.mdp_info.gamma * (1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing)
+                      + self.mdp_info.gamma * beta_prime.detach() * self.q_next(next_state, option_prime, absorbing))
 
                 self._critic_approximator.fit(state, option, gt, **self._critic_fit_params)
 
                 self._update_target(self._critic_approximator, self._target_critic_approximator)
+
+    def q_next(self, next_state, option, absorbing):
+        _, log_p = self.policy.compute_action_and_log_prob(next_state)
+        q = self._target_critic_approximator.predict(next_state, option, prediction='min') - self._alpha_np * log_p
+        q *= 1 - absorbing.cpu().numpy()
+        return torch.tensor(q, device=self.device)
 
     def prepare_dataset(self, dataset):
         smdp_dataset = list()
@@ -213,8 +222,7 @@ class SACPlusTermination(SAC):
 
         _v = self._target_critic_approximator.predict(expand_next_state.reshape(self.num_adv_sample * batch_size, -1),
                                                       expand_sampled_option.reshape(self.num_adv_sample * batch_size,
-                                                                                    -1),
-                                                      prediction='min')
+                                                                                    -1), prediction='min')
         v = np.mean(_v.reshape(batch_size, self.num_adv_sample), axis=1)
 
         q = self._target_critic_approximator.predict(next_state, sampled_option, prediction='min')

@@ -46,7 +46,7 @@ class TReplayMemory(ReplayMemory):
 
         index_list = np.random.randint(0, self.size, n_samples)
 
-        return self._states[index_list], self._actions[index_list], self._rewards[index_list], self._rewards[
+        return self._states[index_list], self._actions[index_list], self._rewards[index_list], self._next_states[
             index_list], self._absorbing[index_list], self._last[index_list], self._can_terminate[index_list]
 
     def reset(self):
