@@ -41,7 +41,10 @@ class TrajectoryPlanner:
         traj = self.interpolate_control_points(q_cps, t_cps)
 
         # check traj:
-        good_traj = self.check_traj_violation(traj=traj[0])
+        try:
+            good_traj = self.check_traj_violation(traj=traj[0])
+        except:
+            print(q_0, '\n', dq_0, '\n', ddq_0, '\n', q_f, '\n', dq_f, '\n', ddq_f, '\n', hit_pos, '\n', hit_dir, '\n', hit_scale, '\n')
         if not good_traj:
             self.add_violate_traj(q_0=q_0, dq_0=dq_0, ddq_0=ddq_0, q_f=q_f, dq_f=dq_f, ddq_f=ddq_f, pos_2d_end=hit_pos[:2])
 
