@@ -1,14 +1,14 @@
 env_name: 'BaseEnv'
 mode: 'online'
 load_nn_agent: 'Model_5600.pt'
-group: '17_07_print_error'
+group: '18_07_immediate_reward'
 render: False
 record: False
 
 #n_episodes: 100
-n_steps: 50000
+n_steps: 15000
 n_epochs: 100
-horizon: 1000
+horizon: 300
 n_steps_per_fit: 1
 num_adv_sample: 50
 initial_replay_size: 10000
@@ -19,7 +19,7 @@ tau: 0.003
 dropout_ratio: 0.01
 layer_norm: False
 #n_eval_episodes: 10
-n_eval_steps: 5000
+n_eval_steps: 1500
 full_save: False
 
 #lr_alpha: 0.00001

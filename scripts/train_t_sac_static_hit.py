@@ -20,18 +20,18 @@ from nn_planner_config import Config
 
 
 @single_experiment
-def experiment(env_name: str = 'HitBackEnv',
+def experiment(env_name: str = 'StaticHit',
                n_epochs: int = 1,
                n_steps: int = 1000,
                n_episodes: int = 1,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
-               render: bool = False,
+               render: bool = True,
                record: bool = False,
                n_eval_episodes: int = 1,
-               n_eval_steps: int = 200,
+               n_eval_steps: int = 300,
                mode: str = 'disabled',
-               horizon: int = 200,
+               horizon: int = 300,
                load_nn_agent: str = 'Model_5600.pt',
                full_save: bool = False,
 
