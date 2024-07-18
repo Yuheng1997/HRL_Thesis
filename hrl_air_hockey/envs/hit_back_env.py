@@ -91,26 +91,24 @@ class HitBackEnv(position.IiwaPositionTournament):
         r = 0
 
         # check flag
-        if puck_pos[0] < 0.1:
-            if self.count_over_line:
-                self.count_over_line = False
-        if puck_pos[0] > 0.1:
+        if puck_pos[0] < 0.0:
+            if self.has_hit:
+                self.has_hit = False
+        if puck_pos[0] > 0.0:
             if self.back_penalty:
                 self.back_penalty = False
 
-        # over the line reward
-        if not self.count_over_line:
-            if puck_pos[0] > 0.1 and puck_vel[0] > 1e-8:
-                r += 10
-                self.count_over_line = True
-                v_norm = np.clip(np.linalg.norm(puck_vel[:2]), a_min=0, a_max=2)
+        # has_hit
+        if not self.has_hit:
+            if puck_vel[0] > 0.:
+                self.has_hit = True
+                v_norm = np.clip(puck_vel[0], a_min=0, a_max=2)
                 r += v_norm * 10
-                self.cross_line_count += 1
 
         # penalty of backside
         if not self.back_penalty:
             if puck_pos[0] < -0.8:
-                r -= 10
+                r -= 25
                 self.back_penalty = True
 
         # Puck stuck on our side for more than 8s
@@ -122,11 +120,6 @@ class HitBackEnv(position.IiwaPositionTournament):
             r -= 10
             self.timer = 0
 
-        # hit back reward:
-        if -0.8 < puck_pos[0] < 0:
-            if cur_puck_vel[0] * puck_vel[0] < 0:
-                self._task_success = True
-                r += 20
         return r
 
     def _create_info_dictionary(self, cur_obs):
