@@ -91,10 +91,9 @@ class HitBackEnv(position.IiwaPositionTournament):
         r = 0
 
         # check flag
-        if puck_pos[0] < 0.0:
+        if puck_pos[0] > 0.0:
             if self.has_hit:
                 self.has_hit = False
-        if puck_pos[0] > 0.0:
             if self.back_penalty:
                 self.back_penalty = False
 
@@ -108,7 +107,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         # penalty of backside
         if not self.back_penalty:
             if puck_pos[0] < -0.8:
-                r -= 25
+                r -= 10
                 self.back_penalty = True
 
         # Puck stuck on our side for more than 8s
@@ -119,6 +118,10 @@ class HitBackEnv(position.IiwaPositionTournament):
         if self.timer > 8.0 and np.abs(puck_pos[0]) >= 0.15:
             r -= 10
             self.timer = 0
+
+        # success
+        if 0.1 > puck_pos[0] > 0.0 and puck_vel[0] > 0:
+            self._task_success = True
 
         return r
 

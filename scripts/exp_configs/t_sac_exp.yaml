@@ -1,7 +1,7 @@
 env_name: 'HitBackEnv'
 mode: 'online'
 load_nn_agent: 'Model_5600.pt'
-group: '18_07_adjust_reward'
+group: '19_07_adjust_reward'
 render: False
 record: False
 
@@ -27,7 +27,7 @@ full_save: False
 lr_alpha: 0.000001
 actor_lr: 0.00003
 critic_lr: 0.0003
-target_entropy: -4
+target_entropy: -6
 
 task_curriculum: True
 curriculum_steps: 10
