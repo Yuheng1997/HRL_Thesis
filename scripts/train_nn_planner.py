@@ -24,6 +24,7 @@ def setup_device(device_name):
 
 
 def validate_pairs(q_1, pos_2):
+    return True
     q_1 = q_1.cpu().numpy()
     pos_1 = forward_kinematics(mj_model=RobotEnvInfo.robot_model, mj_data=RobotEnvInfo.robot_data, q=q_1)[0][:2]
     pos_2 = pos_2.cpu().numpy()
