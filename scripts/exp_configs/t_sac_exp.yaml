@@ -1,7 +1,7 @@
 env_name: 'HitBackEnv'
 mode: 'online'
 load_nn_agent: 'Model_5600.pt'
-group: '19_07_adjust_reward'
+group: '22_07_adjust_logp'
 render: False
 record: False
 

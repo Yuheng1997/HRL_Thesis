@@ -60,12 +60,14 @@ class SACPlusTermination(SAC):
         self.initial_smdp_action = None
         self.trajectory_buffer = None
         self.last_action = None
+        self.last_log_p = None
         self.policy.reset()
 
     def draw_action(self, state):
         rest_traj_len = 0
         if self.trajectory_buffer is None or len(self.trajectory_buffer) == 0:
-            self.last_action = self.policy.draw_action(state)
+            self.last_action, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
+            self.last_action = self.last_action.squeeze()
             q, dq = self._get_joint_pos(state)
             hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_action)
             self.trajectory_buffer = \
@@ -78,8 +80,8 @@ class SACPlusTermination(SAC):
             termination = np.array([0])
             beta_termination = np.array([0])
             if np.random.uniform() < term_prob:
-                self.last_action = self.policy.draw_action(state)
-
+                self.last_action, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
+                self.last_action = self.last_action.squeeze()
                 q, dq = self._get_joint_pos(state)
                 hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_action)
 
@@ -98,9 +100,9 @@ class SACPlusTermination(SAC):
         else:
             last_smdp_length = self.cur_smdp_length
             self.cur_smdp_length += 1
-
+        # 14 + 4 + 1 + 1+ 1+ 1 + 1 + 1 = 24
         return np.concatenate([joint_command, self.last_action, termination, np.array([last_smdp_length]),
-                               np.array([self.cur_smdp_length]), beta_termination, np.array([rest_traj_len])])
+                               np.array([self.cur_smdp_length]), beta_termination, np.array([rest_traj_len]), self.last_log_p])
 
     def _get_joint_pos(self, state):
         q = state[..., 6:13]
@@ -119,7 +121,7 @@ class SACPlusTermination(SAC):
         self._replay_memory.add(t_dataset)
         for i in range(1):
             if self._replay_memory.initialized:
-                state, option, reward, next_state, absorbing, _, can_terminate = self._replay_memory.get(
+                state, option, reward, next_state, absorbing, _, log_p = self._replay_memory.get(
                     self._batch_size())
 
                 if self._replay_memory.size > self._warmup_transitions():
@@ -129,21 +131,20 @@ class SACPlusTermination(SAC):
                     self._optimize_actor_parameters(actor_loss)
                     self._update_alpha(log_prob.detach())
                     # update beta(termination)
-                    beta_loss = self.termination_loss(next_state, option, can_terminate)
+                    beta_loss = self.termination_loss(next_state, option)
                     self.optimize_termination_parameters(beta_loss)
 
                 beta_prime = self.termination_approximator.predict(next_state, option, output_tensor=True).squeeze(-1)
-                option_prime = self.policy.draw_action(next_state)
+                option_prime, log_p_prime = self.policy.compute_action_and_log_prob(next_state)
 
-                gt = (reward + self.mdp_info.gamma * (1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing)
-                      + self.mdp_info.gamma * beta_prime.detach() * self.q_next(next_state, option_prime, absorbing))
+                gt = (reward + self.mdp_info.gamma * (1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing, log_p=log_p.cpu().numpy())
+                      + self.mdp_info.gamma * beta_prime.detach() * self.q_next(next_state, option_prime, absorbing, log_p=log_p_prime))
 
                 self._critic_approximator.fit(state, option, gt, **self._critic_fit_params)
 
                 self._update_target(self._critic_approximator, self._target_critic_approximator)
 
-    def q_next(self, next_state, option, absorbing):
-        _, log_p = self.policy.compute_action_and_log_prob(next_state)
+    def q_next(self, next_state, option, absorbing, log_p):
         q = self._target_critic_approximator.predict(next_state, option, prediction='min') - self._alpha_np * log_p
         q *= 1 - absorbing.cpu().numpy()
         return torch.tensor(q, device=self.device)
@@ -185,15 +186,12 @@ class SACPlusTermination(SAC):
             absorbing = torch.tensor(d[4], device=self.device)
             last = torch.tensor(d[5], device=self.device)
             cur_smdp_length = torch.tensor(d[1][20])
-            if cur_smdp_length == 0:
-                can_terminate = torch.tensor(False)
-            else:
-                can_terminate = torch.tensor(True)
-            t_dataset.append((state, option, reward, next_state, absorbing, last, can_terminate))
+            log_p = torch.tensor(d[1][23], device=self.device)
+            t_dataset.append((state, option, reward, next_state, absorbing, last, log_p))
 
         return t_dataset
 
-    def termination_loss(self, next_state, option, can_terminate):
+    def termination_loss(self, next_state, option):
         # Loss = - 1/n * sum_n(beta(s_n', w_n) * A(s_n', w_n)), n = batch_size
         # A(s', w) = Q(s', w) - V(s') =  Q(s', w) - 1/r * [Q(s', w_0') + Q(s', w_1') + ... + Q(s', w_r')], r=sample_num
         batch_size = next_state.shape[0]
@@ -205,7 +203,6 @@ class SACPlusTermination(SAC):
         sampled_option = option.clone()
         sampled_option[option_term_mask, :] = torch.tensor(self.policy.draw_action(next_state)[option_term_mask, :],
                                                            device=self.device)
-        sampled_option[~can_terminate, :] = option[~can_terminate, :].clone()
         # sample for v(s')
         expand_next_state = next_state.clone().unsqueeze(1).repeat(1, self.num_adv_sample, 1)
         expand_sampled_option = self.policy.draw_action(expand_next_state)
@@ -232,40 +229,6 @@ class SACPlusTermination(SAC):
         self.termination_optimizer.zero_grad()
         loss.backward()
         self.termination_optimizer.step()
-
-    def _loss(self, state, action_new, log_prob):
-        q_0 = self._critic_approximator(state, action_new, output_tensor=True, idx=0)
-        q_1 = self._critic_approximator(state, action_new, output_tensor=True, idx=1)
-
-        q = torch.min(q_0, q_1)
-
-        return (self._alpha * log_prob - q).mean()
-
-    def _update_alpha(self, log_prob):
-        if self._use_log_alpha_loss:
-            alpha_loss = - (self._log_alpha * (log_prob + self._target_entropy)).mean()
-        else:
-            alpha_loss = - (self._alpha * (log_prob + self._target_entropy)).mean()
-        self._alpha_optim.zero_grad()
-        alpha_loss.backward()
-        self._alpha_optim.step()
-
-    def _next_q(self, next_state, absorbing):
-        """
-        Args:
-            next_state (np.ndarray): the states where next action has to be evaluated;
-            absorbing (np.ndarray): the absorbing flag for the states in ``next_state``.
-
-        Returns:
-            Action-values returned by the critic for ``next_state`` and the action returned by the actor.
-
-        """
-        a, log_prob_next = self.policy.compute_action_and_log_prob(next_state)
-        q = self._target_critic_approximator.predict(
-            next_state, a, prediction='min') - self._alpha_np * log_prob_next
-        q *= 1 - absorbing
-
-        return q
 
     def _post_load(self):
         super()._post_load()

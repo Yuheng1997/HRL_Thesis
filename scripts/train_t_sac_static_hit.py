@@ -22,7 +22,7 @@ from nn_planner_config import Config
 @single_experiment
 def experiment(env_name: str = 'StaticHit',
                n_epochs: int = 1,
-               n_steps: int = 1000,
+               n_steps: int = 500,
                n_episodes: int = 1,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
@@ -132,28 +132,28 @@ def experiment(env_name: str = 'StaticHit',
     best_R = -np.inf
 
     # initial evaluate
-    J, R, E, V, alpha, Beta, task_info = compute_metrics(core, eval_params, record)
-
-    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, **task_info)
-    size_replay_memory = core.agent.agent_1._replay_memory.size
-    num_violate_point = core.agent.agent_1.traj_planner.num_violate_point
-
-    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, size_replay_memory=size_replay_memory,
-                      num_violate_point=num_violate_point, **task_info)
-
-    log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                "Training/beta": Beta, "Training/num_violate_point": num_violate_point,
-                "Training/size_replay_memory": size_replay_memory}
-
-    task_dict = {}
-    for key, value in task_info.items():
-        if hasattr(value, '__iter__'):
-            for i, v in enumerate(value):
-                task_dict[key + f"_{i}"] = v
-        else:
-            task_dict[key] = value
-    log_dict.update(task_dict)
-    wandb.log(log_dict, step=0)
+    # J, R, E, V, alpha, Beta, task_info = compute_metrics(core, eval_params, record)
+    #
+    # logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, **task_info)
+    # size_replay_memory = core.agent.agent_1._replay_memory.size
+    # num_violate_point = core.agent.agent_1.traj_planner.num_violate_point
+    #
+    # logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, size_replay_memory=size_replay_memory,
+    #                   num_violate_point=num_violate_point, **task_info)
+    #
+    # log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
+    #             "Training/beta": Beta, "Training/num_violate_point": num_violate_point,
+    #             "Training/size_replay_memory": size_replay_memory}
+    #
+    # task_dict = {}
+    # for key, value in task_info.items():
+    #     if hasattr(value, '__iter__'):
+    #         for i, v in enumerate(value):
+    #             task_dict[key + f"_{i}"] = v
+    #     else:
+    #         task_dict[key] = value
+    # log_dict.update(task_dict)
+    # wandb.log(log_dict, step=0)
 
     for epoch in tqdm(range(n_epochs), disable=False):
         # core.agent.learning_agent.num_fits_left = n_steps
@@ -307,7 +307,6 @@ def get_dataset_info(core, dataset, dataset_info):
         beta_t = action[21]
         if beta_t == 1:
             rest_traj_len += action[22]
-            beta_termination += 1
         if termination == 1:
             num_traj += 1
             termination_counts += 1
@@ -323,7 +322,6 @@ def get_dataset_info(core, dataset, dataset_info):
     epoch_info['mean_traj_length'] = len(dataset) / num_traj
     epoch_info['num_short_traj'] = num_short_traj
     epoch_info['num_traj'] = num_traj
-    epoch_info['beta_termination'] = beta_termination
     epoch_info['rest_traj_len'] = rest_traj_len
 
     return epoch_info
