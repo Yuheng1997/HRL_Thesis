@@ -53,7 +53,7 @@ class TrajectoryPlanner:
 
     def clip_dq(self, _dq):
         dq = _dq.copy()
-        max_dq = Limits.q_dot7.numpy()
+        max_dq = Limits.q_dot7.numpy() / 0.8
         if (np.abs(dq) > max_dq).any():
             dq[np.abs(dq) < 1e-3] = 1e-3
             beta = np.min(max_dq / np.abs(dq))

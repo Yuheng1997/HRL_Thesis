@@ -137,7 +137,7 @@ class SACPlusTermination(SAC):
                 beta_prime = self.termination_approximator.predict(next_state, option, output_tensor=True).squeeze(-1)
                 option_prime, log_p_prime = self.policy.compute_action_and_log_prob(next_state)
 
-                gt = (reward + self.mdp_info.gamma * (1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing, log_p=log_p_prime)
+                gt = (reward + self.mdp_info.gamma * (1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing, log_p=None)
                       + self.mdp_info.gamma * beta_prime.detach() * self.q_next(next_state, option_prime, absorbing, log_p=log_p_prime))
 
                 self._critic_approximator.fit(state, option, gt, **self._critic_fit_params)
@@ -145,9 +145,19 @@ class SACPlusTermination(SAC):
                 self._update_target(self._critic_approximator, self._target_critic_approximator)
 
     def q_next(self, next_state, option, absorbing, log_p):
+        if log_p is None:
+            log_p = self.inv_log_p(next_state, option)
         q = self._target_critic_approximator.predict(next_state, option, prediction='min') - self._alpha_np * log_p
         q *= 1 - absorbing.cpu().numpy()
         return torch.tensor(q, device=self.device)
+
+    def inv_log_p(self, state, a):
+        a_true = (a - self.policy._central_a) / self.policy._delta_a
+        a_raw = torch.atanh(a_true)
+        dist = self.policy.distribution(state)
+        log_p = dist.log_prob(a_raw).sum(dim=1)
+        log_p -= torch.log(1. - a.pow(2) + self.policy._eps_log_prob).sum(dim=1)
+        return log_p
 
     def prepare_dataset(self, dataset):
         smdp_dataset = list()
