@@ -5,7 +5,7 @@ group: '22_07_adjust_logp'
 render: False
 record: False
 
-n_episodes: 100
+#n_episodes: 100
 n_steps: 50000
 n_epochs: 100
 horizon: 1000
@@ -18,15 +18,15 @@ batch_size: 256
 tau: 0.003
 dropout_ratio: 0.01
 layer_norm: False
-n_eval_episodes: 10
+#n_eval_episodes: 10
 n_eval_steps: 5000
 full_save: False
 
 #lr_alpha: 0.00001
 #actor_lr: 0.0003
-lr_alpha: 0.000001
+lr_alpha: 0.00001
 actor_lr: 0.00003
-critic_lr: 0.0003
+critic_lr: 0.00003
 target_entropy: -2
 
 task_curriculum: True

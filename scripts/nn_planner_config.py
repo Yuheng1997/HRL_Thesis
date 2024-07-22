@@ -64,8 +64,8 @@ class Load:
 class Data:
     hit_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/train/data.tsv")
     # uniform_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/uniform_train/data.tsv")
-    uniform_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/uniform_train/merged_file.tsv")
-
+    uniform_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/uniform_train/data.tsv")
+    violate_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/uniform_train/violate_pairs.tsv")
 
 class Config:
     train = TrainConfig()

@@ -236,11 +236,3 @@ class SACPlusTermination(SAC):
         self.action_shape = self.mdp_info.action_space.shape
         self.nn_planner_params['planner_path'] = '../trained_low_agent/Model_5600.pt'
         self.traj_planner = TrajectoryPlanner(**self.nn_planner_params)
-
-    @property
-    def _alpha(self):
-        return self._log_alpha.exp()
-
-    @property
-    def _alpha_np(self):
-        return self._alpha.detach().cpu().numpy()

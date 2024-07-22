@@ -10,7 +10,7 @@ from nn_planner_config import Config
 from hrl_air_hockey.bspline_planner.losses.hitting import HittingLoss
 from hrl_air_hockey.bspline_planner.utils.constants import Limits, RobotEnvInfo
 from hrl_air_hockey.bspline_planner.utils.bspline import BSpline
-from hrl_air_hockey.bspline_planner.data.load_data import get_hitting_data
+from hrl_air_hockey.bspline_planner.data.load_data import get_hitting_data, get_violate_data
 from hrl_air_hockey.bspline_planner.model.model import NNPlanner
 from hrl_air_hockey.bspline_planner.losses.constraint_functions import air_hockey_puck, air_hockey_table
 from hrl_air_hockey.bspline_planner.differentiable_robot_model import DifferentiableRobotModel
@@ -32,7 +32,7 @@ def validate_pairs(q_1, pos_2):
     return dist > 1.2 * (RobotEnvInfo.puck_radius + RobotEnvInfo.mallet_radius)
 
 
-def train_epoch(model, loss_fn, optimizer, data_loader, device, is_training=True):
+def train_epoch(model, loss_fn, optimizer, data_loader, violate_loader, device, is_training=True):
     model_losses = torch.tensor([])
     constraint_losses = torch.tensor([])
     obstacle_losses = torch.tensor([])
@@ -64,6 +64,30 @@ def train_epoch(model, loss_fn, optimizer, data_loader, device, is_training=True
             loss_tuple = loss_fn(q_cps, t_cps, pairs[:, -2:])
             model_loss = torch.mean(loss_tuple[0])
 
+            if is_training:
+                model_loss.backward()
+                optimizer.step()
+
+            model_losses = torch.cat((model_losses, model_loss.unsqueeze(0)))
+            constraint_losses = torch.cat((constraint_losses, torch.mean(loss_tuple[1]).unsqueeze(0)))
+            obstacle_losses = torch.cat((obstacle_losses, torch.mean(loss_tuple[2]).unsqueeze(0)))
+            q_losses = torch.cat((q_losses, torch.mean(loss_tuple[3]).unsqueeze(0)))
+            q_dot_losses = torch.cat((q_dot_losses, torch.mean(loss_tuple[4]).unsqueeze(0)))
+            q_ddot_losses = torch.cat((q_ddot_losses, torch.mean(loss_tuple[5]).unsqueeze(0)))
+            q_dddot_losses = torch.cat((q_dddot_losses, torch.mean(loss_tuple[6]).unsqueeze(0)))
+            t_losses = torch.cat((t_losses, torch.mean(loss_tuple[13]).unsqueeze(0)))
+            time_elapsed = torch.cat((time_elapsed, torch.mean(loss_tuple[12]).unsqueeze(0)))
+            x_loss = torch.cat((x_loss, torch.mean(loss_tuple[-3]).unsqueeze(0)))
+            y_loss = torch.cat((y_loss, torch.mean(loss_tuple[-2]).unsqueeze(0)))
+            z_loss = torch.cat((z_loss, torch.mean(loss_tuple[-1]).unsqueeze(0)))
+
+        # use violate point to train
+        for _, data in enumerate(violate_loader):
+            if is_training:
+                optimizer.zero_grad()
+            q_cps, t_cps = model(data[:, :42])
+            loss_tuple = loss_fn(q_cps, t_cps, data[:, -2:])
+            model_loss = torch.mean(loss_tuple[0])
             if is_training:
                 model_loss.backward()
                 optimizer.step()
@@ -118,8 +142,10 @@ def train():
     # training_loader, validation_loader = load_data(Config.train.batch_size, device)
     train_path = Config.data.uniform_path
     # train_path = train_path.replace("data.tsv", "prepare_data_5000.tsv")
-    print("Data path: ", train_path)
+    violate_path = Config.data.violate_path
+
     training_loader, validation_loader = get_hitting_data(batch_size=Config.train.batch_size, device=device, path=train_path, shuffle=True)
+    violate_loader = get_violate_data(batch_size=Config.train.batch_size, device=device, path=violate_path, shuffle=True)
     Limits.to_device(device)
 
     # Initialize the model
@@ -152,7 +178,7 @@ def train():
         start_time = time.time()
         print('EPOCH {}:'.format(epoch))
 
-        train_metrics = train_epoch(model, loss_fn, optimizer, training_loader, device, is_training=True)
+        train_metrics = train_epoch(model, loss_fn, optimizer, training_loader, violate_loader, device, is_training=True)
 
         loss_fn.alpha_update(train_metrics['train/q_loss'].item(),
                              train_metrics['train/q_dot_loss'].item(),

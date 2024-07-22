@@ -4,7 +4,7 @@ import csv
 from copy import deepcopy
 from scipy.interpolate import interp1d
 from hrl_air_hockey.bspline_planner.utils.bspline import BSpline
-from .utils.constants import TableConstraint
+from .utils.constants import TableConstraint, Limits
 from .utils.compute_vel_and_pos import compute_vel_and_pos
 from air_hockey_challenge.utils.kinematics import jacobian, forward_kinematics
 
@@ -28,6 +28,7 @@ class TrajectoryPlanner:
         self.device = device
 
     def plan_trajectory(self, q_0, dq_0, hit_pos, hit_dir, hit_scale):
+        clip_dq_0 = self.clip_dq(dq_0)
         ddq_0 = np.zeros_like(q_0)
         q_f, dq_f = compute_vel_and_pos(self.robot_model, self.robot_data, np.array([*hit_pos, self.desired_height]),
                                         np.array([*hit_dir, 0.]),
@@ -35,7 +36,7 @@ class TrajectoryPlanner:
         ddq_f = np.zeros_like(q_0)
 
         with torch.no_grad():
-            features = torch.as_tensor(np.concatenate([q_0, dq_0, ddq_0, q_f, dq_f, ddq_f]))[None, :]
+            features = torch.as_tensor(np.concatenate([q_0, clip_dq_0, ddq_0, q_f, dq_f, ddq_f]))[None, :]
             q_cps, t_cps = self.model(features.to(torch.float32).to(self.device))
             q_cps, t_cps = q_cps.to(torch.float32), t_cps.to(torch.float32)
         traj = self.interpolate_control_points(q_cps, t_cps)
@@ -44,11 +45,22 @@ class TrajectoryPlanner:
         try:
             good_traj = self.check_traj_violation(traj=traj[0])
         except:
-            print(q_0, '\n', dq_0, '\n', ddq_0, '\n', q_f, '\n', dq_f, '\n', ddq_f, '\n', hit_pos, '\n', hit_dir, '\n', hit_scale, '\n')
+            print(q_0, '\n', clip_dq_0, '\n', ddq_0, '\n', q_f, '\n', dq_f, '\n', ddq_f, '\n', hit_pos, '\n', hit_dir, '\n', hit_scale, '\n')
         if not good_traj:
-            self.add_violate_traj(q_0=q_0, dq_0=dq_0, ddq_0=ddq_0, q_f=q_f, dq_f=dq_f, ddq_f=ddq_f, pos_2d_end=hit_pos[:2])
+            self.add_violate_traj(q_0=q_0, dq_0=clip_dq_0, ddq_0=ddq_0, q_f=q_f, dq_f=dq_f, ddq_f=ddq_f, pos_2d_end=hit_pos[:2])
 
         return traj
+
+    def clip_dq(self, _dq):
+        dq = _dq.copy()
+        max_dq = Limits.q_dot7.numpy()
+        if (np.abs(dq) > max_dq).any():
+            dq[np.abs(dq) < 1e-3] = 1e-3
+            beta = np.min(max_dq / np.abs(dq))
+            clip_dq = dq * beta
+        else:
+            clip_dq = dq
+        return clip_dq
 
     def interpolate_control_points(self, q_cps, t_cps):
         with torch.no_grad():
@@ -128,13 +140,11 @@ class TrajectoryPlanner:
             return True
 
     def add_violate_traj(self, q_0, dq_0, ddq_0, q_f, dq_f, ddq_f, pos_2d_end):
-        pos_2d_start = forward_kinematics(mj_model=self.robot_model, mj_data=self.robot_data, q=q_0)[0][:2]
+        # pos_2d_start = forward_kinematics(mj_model=self.robot_model, mj_data=self.robot_data, q=q_0)[0][:2]
         with open(self.violate_data_path, 'a', newline='') as file:
             writer = csv.writer(file, delimiter='\t')
-            data_1 = np.concatenate([q_0, dq_0, ddq_0, pos_2d_start])
-            data_2 = np.concatenate([q_f, dq_f, ddq_f, pos_2d_end])
-            writer.writerow(data_1.tolist())
-            writer.writerow(data_2.tolist())
+            data = np.concatenate([q_0, dq_0, ddq_0, q_f, dq_f, ddq_f, pos_2d_end])
+            writer.writerow(data.tolist())
 
     def constraint_loss(self, position, dt):
         position_array = np.array(position)

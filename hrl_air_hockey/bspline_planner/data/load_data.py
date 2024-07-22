@@ -22,13 +22,15 @@ def load_data(path, batch_size, device='cpu', shuffle=True):
 
     train_data = np.loadtxt(dataset_path, delimiter='\t').astype(np.float32)
     q0, qk, xyth, q_dot_0, q_dot_k, q_ddot_0, puck_pose = unpack_data_boundaries(train_data)
-    train_data = torch.from_numpy(np.hstack((q0, q_dot_0, q_ddot_0, qk, q_dot_k, np.zeros_like(q_ddot_0)))).to(torch.float32).to(device)
+    train_data = torch.from_numpy(np.hstack((q0, q_dot_0, q_ddot_0, qk, q_dot_k, np.zeros_like(q_ddot_0)))).to(
+        torch.float32).to(device)
     train_ds = DataLoader(train_data, batch_size, shuffle=shuffle,
                           generator=torch.Generator(device=device))
 
     val_data = np.loadtxt(dataset_path.replace("train", "val"), delimiter='\t').astype(np.float32)
     q0, qk, xyth, q_dot_0, q_dot_k, q_ddot_0, puck_pose = unpack_data_boundaries(val_data)
-    val_data = torch.from_numpy(np.hstack((q0, q_dot_0, q_ddot_0, qk, q_dot_k, np.zeros_like(q_ddot_0)))).to(torch.float32).to(device)
+    val_data = torch.from_numpy(np.hstack((q0, q_dot_0, q_ddot_0, qk, q_dot_k, np.zeros_like(q_ddot_0)))).to(
+        torch.float32).to(device)
     val_ds = DataLoader(val_data, batch_size, shuffle=shuffle,
                         generator=torch.Generator(device=device))
 
@@ -42,8 +44,7 @@ def get_hitting_data(path, batch_size, device='cpu', shuffle=True, split=.9):
 
     data = data.values
 
-    #np.random.shuffle(data)
-    print(len(data))
+    print(path, ' total data_points: ', len(data))
 
     total_length = len(data)
     split_index = int(split * total_length)
@@ -57,6 +58,20 @@ def get_hitting_data(path, batch_size, device='cpu', shuffle=True, split=.9):
                         generator=torch.Generator(device=device))
 
     return train_ds, val_ds
+
+
+def get_violate_data(path, batch_size, device='cpu', shuffle=True):
+    dataset_path = path
+    data = pd.read_csv(dataset_path, delimiter='\t', header=None).astype(np.float32)
+    data = data.values
+
+    print(path, " violation's data length: ", len(data))
+
+    _data = torch.from_numpy(data).to(device)
+
+    ds = DataLoader(_data, batch_size, shuffle=shuffle, generator=torch.Generator(device=device))
+
+    return ds
 
 
 def get_resample_data(path, batch_size, device='cpu', shuffle=True, split=.9):
