@@ -27,7 +27,7 @@ full_save: False
 lr_alpha: 0.000001
 actor_lr: 0.00003
 critic_lr: 0.0003
-target_entropy: -6
+target_entropy: -2
 
 task_curriculum: True
 curriculum_steps: 10
