@@ -155,7 +155,7 @@ class SACPlusTermination(SAC):
         a = (a_true - self.policy._central_a) / self.policy._delta_a
         a_raw = torch.atanh(a)
         dist = self.policy.distribution(state)
-        log_p = dist.log_prob(a_raw).sum(dim=1)
+        log_p = dist.log_prob(a_raw).sum(dim=1).detach()
         log_p -= torch.log(1. - a.pow(2) + self.policy._eps_log_prob).sum(dim=1)
         return log_p
 

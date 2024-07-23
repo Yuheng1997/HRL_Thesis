@@ -6,20 +6,20 @@ render: False
 record: False
 
 #n_episodes: 100
-n_steps: 15000
+n_steps: 20000
 n_epochs: 100
 horizon: 300
 n_steps_per_fit: 1
 num_adv_sample: 50
-initial_replay_size: 10000
+initial_replay_size: 20000
 max_replay_size: 1000000
-warmup_transitions: 10000
+warmup_transitions: 20000
 batch_size: 256
 tau: 0.003
 dropout_ratio: 0.01
 layer_norm: False
 #n_eval_episodes: 10
-n_eval_steps: 1500
+n_eval_steps: 3000
 full_save: False
 
 #lr_alpha: 0.00001
