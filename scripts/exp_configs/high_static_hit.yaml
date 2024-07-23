@@ -12,7 +12,7 @@ horizon: 300
 n_steps_per_fit: 1
 num_adv_sample: 50
 initial_replay_size: 10000
-max_replay_size: 200000
+max_replay_size: 1000000
 warmup_transitions: 10000
 batch_size: 256
 tau: 0.003
