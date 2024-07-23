@@ -25,8 +25,9 @@ full_save: False
 #lr_alpha: 0.00001
 #actor_lr: 0.0003
 lr_alpha: 0.00001
-actor_lr: 0.0003
-critic_lr: 0.0003
+actor_lr: 0.00003
+critic_lr: 0.00003
+termination_lr: 0.000001
 target_entropy: -2
 
 task_curriculum: False
