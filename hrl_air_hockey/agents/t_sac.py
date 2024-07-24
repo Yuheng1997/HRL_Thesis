@@ -147,7 +147,6 @@ class SACPlusTermination(SAC):
     def q_next(self, next_state, option, absorbing, log_p):
         if log_p is None:
             log_p = self.inv_log_p(next_state, option).detach().cpu().numpy()
-            # log_p = 0
         q = self._target_critic_approximator.predict(next_state, option, prediction='min') - self._alpha_np * log_p
         q *= 1 - absorbing.cpu().numpy()
         return torch.tensor(q, device=self.device)
@@ -173,9 +172,9 @@ class SACPlusTermination(SAC):
         self._alpha_optim.zero_grad()
         alpha_loss.backward()
         self._alpha_optim.step()
-        self._log_alpha = self._log_alpha.detach()
-        self._log_alpha.clip_(min=np.log(0.1), max=np.log(0.8))
-        self._log_alpha.requires_grad_()
+        # self._log_alpha = self._log_alpha.detach()
+        # self._log_alpha.clip_(min=np.log(0.1), max=np.log(0.8))
+        # self._log_alpha.requires_grad_()
 
     def prepare_dataset(self, dataset):
         smdp_dataset = list()
