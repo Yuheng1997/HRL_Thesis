@@ -153,17 +153,16 @@ class SACPlusTermination(SAC):
         return torch.tensor(q, device=self.device)
 
     def inv_log_p(self, state, a_true):
-        try:
-            a = (a_true - self.policy._central_a.detach().clone()) / self.policy._delta_a.detach().clone()
-            a_raw = torch.atanh(a)
-            mu = self.policy._mu_approximator.predict(state, output_tensor=True).detach()
-            log_sigma = self.policy._sigma_approximator.predict(state, output_tensor=True).detach()
-            log_sigma = torch.clamp(log_sigma, self.policy._log_std_min(), self.policy._log_std_max())
-            dist = torch.distributions.Normal(mu, log_sigma.exp())
-            log_p = dist.log_prob(a_raw).sum(dim=1).detach()
-            log_p -= torch.log(1. - a.pow(2) + self.policy._eps_log_prob).sum(dim=1)
-        except:
-            print('problem')
+        a = (a_true - self.policy._central_a.detach().clone()) / self.policy._delta_a.detach().clone()
+        epsilon = 1e-5
+        a = torch.clamp(a, min=-1 + epsilon, max=1 - epsilon)
+        a_raw = torch.atanh(a)
+        mu = self.policy._mu_approximator.predict(state, output_tensor=True).detach()
+        log_sigma = self.policy._sigma_approximator.predict(state, output_tensor=True).detach()
+        log_sigma = torch.clamp(log_sigma, self.policy._log_std_min(), self.policy._log_std_max())
+        dist = torch.distributions.Normal(mu, log_sigma.exp())
+        log_p = dist.log_prob(a_raw).sum(dim=1).detach()
+        log_p -= torch.log(1. - a.pow(2) + self.policy._eps_log_prob).sum(dim=1)
         return log_p
 
     def _update_alpha(self, log_prob):
