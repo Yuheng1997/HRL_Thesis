@@ -1,7 +1,7 @@
 env_name: 'BaseEnv'
 mode: 'online'
 load_nn_agent: 'Model_5600.pt'
-group: '23_07_logp'
+group: '24_07_logp_clip_alpha'
 render: False
 record: False
 

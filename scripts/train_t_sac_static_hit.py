@@ -22,14 +22,14 @@ from nn_planner_config import Config
 @single_experiment
 def experiment(env_name: str = 'StaticHit',
                n_epochs: int = 10,
-               n_steps: int = 6000,
+               n_steps: int = 300,
                n_episodes: int = 1,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
                render: bool = False,
                record: bool = False,
                n_eval_episodes: int = 1,
-               n_eval_steps: int = 300,
+               n_eval_steps: int = 10,
                mode: str = 'disabled',
                horizon: int = 300,
                load_nn_agent: str = 'Model_5600.pt',
@@ -217,11 +217,11 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
         return np.array(Q).mean()
 
     def sample_states_traj(dataset):
-        i = 1
         states = list()
-        while not dataset[i][5]:
+        for i in range(len(dataset)):
             states.append(dataset[i][0])
-            i += 1
+            if dataset[i][5]:
+                break
         return np.array(states)
 
     def compute_max_beta(agent, dataset):
