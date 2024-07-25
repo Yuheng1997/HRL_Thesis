@@ -1,7 +1,7 @@
 env_name: 'BaseEnv'
 mode: 'online'
 load_nn_agent: 'Model_5600.pt'
-group: '25_07_use_log_alpha'
+group: '25_07_detach_actorloss'
 render: False
 record: False
 
