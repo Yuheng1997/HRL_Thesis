@@ -174,7 +174,7 @@ class SACPlusTermination(SAC):
 
     def _update_alpha(self, log_prob):
         # alpha_loss = - (self._log_alpha * (log_prob + self._target_entropy)).mean()
-        alpha_loss = - (self._alpha * (log_prob + self._target_entropy)).mean()
+        alpha_loss = (self._alpha * (log_prob + self._target_entropy)).mean()
         self._alpha_optim.zero_grad()
         alpha_loss.backward()
         self._alpha_optim.step()
