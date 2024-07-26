@@ -1,7 +1,7 @@
 env_name: 'BaseEnv'
 mode: 'online'
 load_nn_agent: 'Model_5600.pt'
-group: '25_07_detach_actorloss'
+group: '26_07_terminationloss'
 render: False
 record: False
 
