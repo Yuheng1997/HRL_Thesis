@@ -245,7 +245,7 @@ class SACPlusTermination(SAC):
 
         beta = self.termination_approximator.predict(next_state, sampled_option, output_tensor=True)
 
-        return - (beta * adv_tensor).mean()
+        return (beta * adv_tensor).mean()
 
     def adv_func(self, expand_next_state, expand_sampled_option, next_state, sampled_option):
         batch_size = expand_next_state.shape[0]
