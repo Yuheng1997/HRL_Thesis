@@ -50,7 +50,7 @@ class BaseEnv(position.IiwaPositionTournament):
             if puck_vel[0] > 1e-8:
                 self.has_hit = True
                 v_norm = np.clip(puck_vel[0], a_min=0, a_max=2)
-                r += v_norm * 10
+                r += v_norm * 30 + 30
                 self._task_success = True
         return r
 
