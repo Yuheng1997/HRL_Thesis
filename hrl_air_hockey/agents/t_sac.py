@@ -125,9 +125,9 @@ class SACPlusTermination(SAC):
                     self._batch_size())
 
                 if self._replay_memory.size > self._warmup_transitions():
-                    action_new, log_prob = self.policy.compute_action_and_log_prob_t(state)
+                    action_new, log_prob = self.policy.compute_action_and_log_prob_t(next_state)
                     # update actor
-                    actor_loss = self._loss(state, action_new, log_prob)
+                    actor_loss = self._loss(next_state, action_new, log_prob)
                     self._optimize_actor_parameters(actor_loss)
                     self._update_alpha(log_prob.detach())
                     # update beta(termination)

@@ -73,6 +73,6 @@ def build_agent_T_SAC(mdp_info, env_info, planner_path, planner_config, actor_lr
     agent = SACPlusTermination(mdp_info, actor_mu_params=actor_mu_params, actor_sigma_params=actor_sigma_params,
                                nn_planner_params=nn_planner_params, termination_params=termination_params,
                                termination_optimizer=termination_optimizer, num_adv_sample=num_adv_sample,
-                               actor_optimizer=actor_optimizer, critic_params=critic_params, device=device, log_std_min=-30, log_std_max=5, **alg_params)
+                               actor_optimizer=actor_optimizer, critic_params=critic_params, device=device, **alg_params)
 
     return agent
