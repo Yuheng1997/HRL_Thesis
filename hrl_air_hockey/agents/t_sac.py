@@ -136,9 +136,8 @@ class SACPlusTermination(SAC):
 
                 beta_prime = self.termination_approximator.predict(next_state, option, output_tensor=True).squeeze(-1)
                 option_prime, log_p_prime = self.policy.compute_action_and_log_prob(next_state)
-                last_option, last_log_p = self.policy.compute_action_and_log_prob(state)
 
-                gt = (reward + self.mdp_info.gamma * (1 - beta_prime.detach()) * self.q_next(next_state, last_option, absorbing, log_p=last_log_p)
+                gt = (reward + self.mdp_info.gamma * (1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing, log_p=None)
                       + self.mdp_info.gamma * beta_prime.detach() * self.q_next(next_state, option_prime, absorbing, log_p=log_p_prime))
 
                 self._critic_approximator.fit(state, option, gt, **self._critic_fit_params)
@@ -179,9 +178,6 @@ class SACPlusTermination(SAC):
         self._alpha_optim.zero_grad()
         alpha_loss.backward()
         self._alpha_optim.step()
-        # self._log_alpha = self._log_alpha.detach()
-        # self._log_alpha.clip_(min=np.log(0.1), max=np.log(0.8))
-        # self._log_alpha.requires_grad_()
 
     def prepare_dataset(self, dataset):
         smdp_dataset = list()
