@@ -1,7 +1,7 @@
 env_name: 'BaseEnv'
 mode: 'online'
 load_nn_agent: 'Model_5600.pt'
-group: '29_07_back'
+group: '29_07_back_detach'
 render: False
 record: False
 
