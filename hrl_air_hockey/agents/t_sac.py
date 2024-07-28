@@ -125,9 +125,9 @@ class SACPlusTermination(SAC):
                     self._batch_size())
 
                 if self._replay_memory.size > self._warmup_transitions():
-                    action_new, log_prob = self.policy.compute_action_and_log_prob_t(next_state)
+                    action_new, log_prob = self.policy.compute_action_and_log_prob_t(state)
                     # update actor
-                    actor_loss = self._loss(next_state, action_new, log_prob)
+                    actor_loss = self._loss(state, action_new, log_prob)
                     self._optimize_actor_parameters(actor_loss)
                     self._update_alpha(log_prob.detach())
                     # update beta(termination)
@@ -138,7 +138,7 @@ class SACPlusTermination(SAC):
                 option_prime, log_p_prime = self.policy.compute_action_and_log_prob(next_state)
 
                 gt = (reward + self.mdp_info.gamma * (1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing, log_p=None)
-                      + self.mdp_info.gamma * beta_prime.detach() * self.q_next(next_state, option_prime, absorbing, log_p=log_p_prime))
+                      + self.mdp_info.gamma * beta_prime.detach() * self.q_next(next_state, option_prime, absorbing, log_p=None))
 
                 self._critic_approximator.fit(state, option, gt, **self._critic_fit_params)
 
@@ -146,7 +146,8 @@ class SACPlusTermination(SAC):
 
     def q_next(self, next_state, option, absorbing, log_p):
         if log_p is None:
-            log_p = self.inv_log_p(next_state, option).detach().cpu().numpy()
+            # log_p = self.inv_log_p(next_state, option).detach().cpu().numpy()
+            log_p = 0
         q = self._target_critic_approximator.predict(next_state, option, prediction='min') - self._alpha_np * log_p
         q *= 1 - absorbing.cpu().numpy()
         return torch.tensor(q, device=self.device)
@@ -154,13 +155,12 @@ class SACPlusTermination(SAC):
     def _loss(self, state, action_new, log_prob):
         q_0 = self._critic_approximator(state, action_new, output_tensor=True, idx=0)
         q_1 = self._critic_approximator(state, action_new, output_tensor=True, idx=1)
-
         q = torch.min(q_0, q_1)
 
         return (self._alpha.detach() * log_prob - q.detach()).mean()
 
     def inv_log_p(self, state, a_true):
-        a = (a_true - self.policy._central_a.detach().clone()) / self.policy._delta_a.detach().clone()
+        a = (a_true - self.policy._central_a.clone()) / self.policy._delta_a.clone()
         epsilon = 1e-5
         a = torch.clamp(a, min=-1 + epsilon, max=1 - epsilon)
         a_raw = torch.atanh(a)
