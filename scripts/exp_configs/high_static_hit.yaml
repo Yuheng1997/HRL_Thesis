@@ -1,7 +1,7 @@
 env_name: 'BaseEnv'
 mode: 'online'
 load_nn_agent: 'Model_5600.pt'
-group: '28_07_next_state'
+group: '28_07_cancel_bonus'
 render: False
 record: False
 
