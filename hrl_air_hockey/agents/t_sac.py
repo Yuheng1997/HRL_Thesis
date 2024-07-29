@@ -147,7 +147,6 @@ class SACPlusTermination(SAC):
     def q_next(self, next_state, option, absorbing, log_p):
         if log_p is None:
             log_p = self.inv_log_p(next_state, option).detach().cpu().numpy()
-            # log_p = 0
         q = self._target_critic_approximator.predict(next_state, option, prediction='min') - self._alpha_np * log_p
         q *= 1 - absorbing.cpu().numpy()
         return torch.tensor(q, device=self.device)
@@ -157,7 +156,7 @@ class SACPlusTermination(SAC):
         q_1 = self._critic_approximator(state, action_new, output_tensor=True, idx=1)
         q = torch.min(q_0, q_1)
 
-        return (self._alpha.detach() * log_prob - q.detach()).mean()
+        return (self._alpha.detach() * log_prob - q).mean()
 
     def inv_log_p(self, state, a_true):
         a = (a_true - self.policy._central_a.clone()) / self.policy._delta_a.clone()
