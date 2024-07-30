@@ -229,6 +229,7 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
         initial_option = agent.policy.draw_action(initial_state)
         states_traj = sample_states_traj(dataset)
         beta = np.array([agent.termination_approximator.predict(states_traj[i], initial_option) for i in range(len(states_traj))])
+        print('beta', beta)
         return np.max(beta)
 
     def spilt_dataset(_dataset):
