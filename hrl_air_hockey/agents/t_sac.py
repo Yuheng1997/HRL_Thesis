@@ -156,7 +156,7 @@ class SACPlusTermination(SAC):
         q_1 = self._critic_approximator(state, action_new, output_tensor=True, idx=1)
         q = torch.min(q_0, q_1)
 
-        return (self._alpha.detach() * log_prob - q).mean()
+        return (self._alpha * log_prob - q).mean()
 
     def inv_log_p(self, state, a_true):
         a = (a_true - self.policy._central_a.clone()) / self.policy._delta_a.clone()
