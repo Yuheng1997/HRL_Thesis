@@ -1,7 +1,7 @@
 env_name: 'BaseEnv'
 mode: 'online'
 load_nn_agent: 'Model_5600.pt'
-group: '29_07_detach_q'
+group: '30_07_continue'
 render: False
 record: False
 
@@ -33,7 +33,7 @@ target_entropy: -2
 task_curriculum: False
 curriculum_steps: 10
 
-#check_point__: "./logs/high_level_2024-05-22_19-59-26/parallel_seed___0/0/BaseEnv_2024-05-22-19-59-51"
+check_point__: "./logs/static_hit_2024-07-29_16-04-22/parallel_seed___1/0/BaseEnv_2024-07-29-16-19-05"
 
 sweep_params:
   parallel_seed__: [0, 1, 2]
