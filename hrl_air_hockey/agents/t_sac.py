@@ -236,7 +236,7 @@ class SACPlusTermination(SAC):
         expand_next_state = next_state.clone().unsqueeze(1).repeat(1, self.num_adv_sample, 1)
         expand_sampled_option = self.policy.draw_action(expand_next_state)
 
-        adv = self.adv_func(expand_next_state, expand_sampled_option, next_state, sampled_option) + 0.01
+        adv = self.adv_func(expand_next_state, expand_sampled_option, next_state, sampled_option) + 1
         adv_tensor = torch.tensor(adv, requires_grad=False, device=self.device)
 
         beta = self.termination_approximator.predict(next_state, sampled_option, output_tensor=True)

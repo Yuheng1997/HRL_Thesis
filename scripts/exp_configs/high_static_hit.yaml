@@ -1,7 +1,7 @@
 env_name: 'BaseEnv'
 mode: 'online'
 load_nn_agent: 'Model_5600.pt'
-group: '31_07_limit_beta0.1_adv+0.01'
+group: '31_07_limit_beta0.1_adv+1'
 render: False
 record: False
 
@@ -27,7 +27,7 @@ full_save: False
 lr_alpha: 0.00001
 actor_lr: 0.0003
 critic_lr: 0.0003
-termination_lr: 0.000003
+termination_lr: 0.0001
 target_entropy: -2
 
 task_curriculum: False
