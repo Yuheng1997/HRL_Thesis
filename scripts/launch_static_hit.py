@@ -15,7 +15,7 @@ TEST = False
 
 cfg['use_cuda'] = exp_params['use_cuda']
 exp_params['memory_per_core'] = exp_params['n_exps_in_parallel'] * exp_params['memory_single_job'] // exp_params['n_cores']
-exp_params['partition'] = 'stud'
+exp_params['partition'] = 'stud3080'
 exp_params['gres'] = 'gpu:1' if exp_params['use_cuda'] else None  # gpu:rtx2080:1, gpu:rtx3080:1
 del exp_params['memory_single_job']
 del exp_params['use_cuda']
