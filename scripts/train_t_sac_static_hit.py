@@ -132,17 +132,18 @@ def experiment(env_name: str = 'StaticHit',
     best_R = -np.inf
 
     # initial evaluate
-    J, R, E, V, alpha, Beta, task_info = compute_metrics(core, eval_params, record)
+    J, R, E, V, alpha, max_Beta, mean_Beta, task_info = compute_metrics(core, eval_params, record)
 
-    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, **task_info)
+    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, **task_info)
     size_replay_memory = core.agent.agent_1._replay_memory.size
     num_violate_point = core.agent.agent_1.traj_planner.num_violate_point
 
-    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, size_replay_memory=size_replay_memory,
-                      num_violate_point=num_violate_point, **task_info)
+    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta,
+                      size_replay_memory=size_replay_memory, num_violate_point=num_violate_point, **task_info)
 
     log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                "Training/beta": Beta, "Training/num_violate_point": num_violate_point,
+                "Training/max_beta": max_Beta, "Training/mean_beta": mean_Beta,
+                "Training/num_violate_point": num_violate_point,
                 "Training/size_replay_memory": size_replay_memory}
 
     task_dict = {}
@@ -160,7 +161,7 @@ def experiment(env_name: str = 'StaticHit',
         # core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
 
-        J, R, E, V, alpha, Beta, task_info = compute_metrics(core, eval_params, record)
+        J, R, E, V, alpha, max_Beta, mean_Beta, task_info = compute_metrics(core, eval_params, record)
         size_replay_memory = core.agent.agent_1._replay_memory.size
         num_violate_point = core.agent.agent_1.traj_planner.num_violate_point
 
@@ -170,11 +171,11 @@ def experiment(env_name: str = 'StaticHit',
             task_info['task_id'] = env.task_curriculum_dict['idx']
 
         # Write logging
-        logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, **task_info)
-        logger.epoch_info(epoch + 1, J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, size_replay_memory=size_replay_memory,
-                          num_violate_point=num_violate_point, **task_info)
+        logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, **task_info)
+        logger.epoch_info(epoch + 1, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta,
+                          size_replay_memory=size_replay_memory, num_violate_point=num_violate_point, **task_info)
         log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                    "Training/beta": Beta, "Training/num_violate_point": num_violate_point,
+                    "Training/max_beta": max_Beta, "Training/mean_beta": mean_Beta, "Training/num_violate_point": num_violate_point,
                     "Training/size_replay_memory": size_replay_memory}
 
         task_dict = {}
@@ -224,12 +225,20 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
                 break
         return np.array(states)
 
+    def compute_mean_beta(agent, dataset):
+        initial_state = dataset[0][0]
+        initial_option = agent.policy.draw_action(initial_state)
+        states_traj = sample_states_traj(dataset)
+        beta = np.array(
+            [agent.termination_approximator.predict(states_traj[i], initial_option) for i in range(len(states_traj))])
+        return np.mean(beta)
+
     def compute_max_beta(agent, dataset):
         initial_state = dataset[0][0]
         initial_option = agent.policy.draw_action(initial_state)
         states_traj = sample_states_traj(dataset)
-        beta = np.array([agent.termination_approximator.predict(states_traj[i], initial_option) for i in range(len(states_traj))])
-        print('beta', beta)
+        beta = np.array(
+            [agent.termination_approximator.predict(states_traj[i], initial_option) for i in range(len(states_traj))])
         return np.max(beta)
 
     def spilt_dataset(_dataset):
@@ -276,7 +285,9 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
 
     V = compute_V(rl_agent, dataset)
 
-    Beta = compute_max_beta(rl_agent, dataset)
+    max_Beta = compute_max_beta(rl_agent, dataset)
+
+    mean_Beta = compute_mean_beta(rl_agent, dataset)
 
     alpha = rl_agent._alpha.cpu().detach().numpy()
 
@@ -287,20 +298,20 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
         core.mdp.clear_task_info()
 
     if return_dataset:
-        return J, R, E, V, alpha, Beta, task_info, parsed_dataset, dataset_info
+        return J, R, E, V, alpha, max_Beta, mean_Beta, task_info, parsed_dataset, dataset_info
 
-    return J, R, E, V, alpha, Beta, task_info
+    return J, R, E, V, alpha, max_Beta, mean_Beta, task_info
 
 
 def get_dataset_info(core, dataset, dataset_info):
     epoch_info = {}
     success_list = []
     num_list = []
-    num_short_traj = 0
     termination_counts = 0
     num_traj = 0
     beta_termination = 0
     rest_traj_len = 0
+    episodes = 0
     for i, d in enumerate(dataset):
         action = d[1]
         last_traj_length = action[19]
@@ -311,19 +322,16 @@ def get_dataset_info(core, dataset, dataset_info):
         if termination == 1:
             num_traj += 1
             termination_counts += 1
-            if last_traj_length < 10:
-                num_short_traj += 1
         last = d[-1]
         if last:
+            episodes += 1
             success_list.append(dataset_info['success'][i])
             if not termination == 1:
                 num_traj += 1
     epoch_info['success_rate'] = np.sum(success_list) / len(success_list)
-    epoch_info['termination_num'] = termination_counts
+    epoch_info['num_termination'] = termination_counts
     epoch_info['mean_traj_length'] = len(dataset) / num_traj
-    epoch_info['num_short_traj'] = num_short_traj
-    epoch_info['num_traj'] = num_traj
-    epoch_info['rest_traj_len'] = rest_traj_len
+    epoch_info['rest_traj_len'] = rest_traj_len / num_traj
 
     return epoch_info
 
