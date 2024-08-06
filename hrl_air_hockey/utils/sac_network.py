@@ -89,5 +89,8 @@ class TerminationNetwork(nn.Module):
         self.model.append(nn.Sigmoid())
 
     def forward(self, state, last_action, **kwargs):
-        feature = torch.concatenate((state, last_action), dim=1)
-        return self.model(torch.squeeze(feature, 1).float())
+        # feature = torch.concatenate((state, last_action), dim=1)
+        # return self.model(torch.squeeze(feature, 1).float())
+        batch_size = state.shape[0]
+        output = torch.full((batch_size, 1), 0.025, dtype=torch.float32, device='cuda:0')
+        return output
