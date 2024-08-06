@@ -131,8 +131,8 @@ class SACPlusTermination(SAC):
                     self._optimize_actor_parameters(actor_loss)
                     self._update_alpha(log_prob.detach())
                     # update beta(termination)
-                    # beta_loss = self.termination_loss(next_state, option)
-                    # self.optimize_termination_parameters(beta_loss)
+                    beta_loss = self.termination_loss(next_state, option)
+                    self.optimize_termination_parameters(beta_loss)
 
                 beta_prime = self.termination_approximator.predict(next_state, option, output_tensor=True).squeeze(-1)
                 option_prime, log_p_prime = self.policy.compute_action_and_log_prob(next_state)
