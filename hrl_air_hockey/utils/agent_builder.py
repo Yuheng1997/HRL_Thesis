@@ -9,7 +9,7 @@ from hrl_air_hockey.utils.sac_network import SACActorNetwork, SACCriticNetwork, 
 def build_agent_T_SAC(mdp_info, env_info, planner_path, planner_config, actor_lr, critic_lr, termination_lr,
                       n_features_actor, n_features_critic, n_features_termination,
                       batch_size, initial_replay_size, max_replay_size, tau, num_adv_sample,
-                      warmup_transitions, lr_alpha, target_entropy, dropout_ratio, layer_norm, use_cuda):
+                      warmup_transitions, lr_alpha, target_entropy, dropout_ratio, layer_norm, use_cuda, termination_warmup):
     if type(n_features_actor) is str:
         n_features_actor = list(map(int, n_features_actor.split(" ")))
 
@@ -49,6 +49,7 @@ def build_agent_T_SAC(mdp_info, env_info, planner_path, planner_config, actor_lr
                       max_replay_size=max_replay_size,
                       batch_size=batch_size,
                       warmup_transitions=warmup_transitions,
+                      termination_warmup=termination_warmup,
                       tau=tau,
                       lr_alpha=lr_alpha,
                       critic_fit_params=None,

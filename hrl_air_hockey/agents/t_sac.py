@@ -16,7 +16,7 @@ class SACPlusTermination(SAC):
     """
 
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params,
-                 nn_planner_params, termination_params, termination_optimizer, batch_size,
+                 nn_planner_params, termination_params, termination_optimizer, batch_size, termination_warmup,
                  initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, num_adv_sample, device,
                  use_log_alpha_loss=False, log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None):
 
@@ -39,6 +39,7 @@ class SACPlusTermination(SAC):
         termination_parameters = self.termination_approximator.model.network.parameters()
         self.termination_optimizer = termination_optimizer['class'](termination_parameters,
                                                                     **termination_optimizer['params'])
+        self.termination_warmup = termination_warmup
 
         self.num_adv_sample = num_adv_sample
         self.device = device
@@ -131,8 +132,9 @@ class SACPlusTermination(SAC):
                     self._optimize_actor_parameters(actor_loss)
                     self._update_alpha(log_prob.detach())
                     # update beta(termination)
-                    # beta_loss = self.termination_loss(next_state, option)
-                    # self.optimize_termination_parameters(beta_loss)
+                    if self._replay_memory.size > self.termination_warmup:
+                        beta_loss = self.termination_loss(next_state, option)
+                        self.optimize_termination_parameters(beta_loss)
 
                 beta_prime = self.termination_approximator.predict(next_state, option, output_tensor=True).squeeze(-1)
                 option_prime, log_p_prime = self.policy.compute_action_and_log_prob(next_state)

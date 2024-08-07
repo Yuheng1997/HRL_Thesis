@@ -49,6 +49,7 @@ def experiment(env_name: str = 'StaticHit',
                max_replay_size: int = 200000,
                tau: float = 1e-3,
                warmup_transitions: int = 8,
+               termination_warmup: int = 8,
                lr_alpha: float = 1e-5,
                target_entropy: float = -2,
                use_cuda: bool = True,
@@ -106,7 +107,7 @@ def experiment(env_name: str = 'StaticHit',
                                     initial_replay_size=initial_replay_size, max_replay_size=max_replay_size, tau=tau,
                                     num_adv_sample=num_adv_sample, warmup_transitions=warmup_transitions,
                                     lr_alpha=lr_alpha, target_entropy=target_entropy, dropout_ratio=dropout_ratio,
-                                    layer_norm=layer_norm, use_cuda=use_cuda)
+                                    layer_norm=layer_norm, use_cuda=use_cuda, termination_warmup=termination_warmup)
         agent_1._log_alpha = torch.tensor(np.log(0.4)).to(agent_1._log_alpha).requires_grad_(True)
         agent_1._alpha_optim = optim.Adam([agent_1._log_alpha], lr=lr_alpha)
     else:
