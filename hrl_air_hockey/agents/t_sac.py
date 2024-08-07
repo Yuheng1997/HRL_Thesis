@@ -80,7 +80,7 @@ class SACPlusTermination(SAC):
             # term_prob = 0.02
             termination = np.array([0])
             beta_termination = np.array([0])
-            if np.random.uniform() < term_prob / 10:
+            if np.random.uniform() < term_prob/10:
                 self.last_action, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
                 self.last_action = self.last_action.squeeze()
                 q, dq = self._get_joint_pos(state)

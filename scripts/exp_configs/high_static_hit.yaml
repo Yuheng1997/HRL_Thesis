@@ -45,7 +45,7 @@ experiments:
   exp_file: 'train_t_sac_static_hit'
   n_seeds: 1
   n_cores: 4
-  n_exps_in_parallel: 3
+  n_exps_in_parallel: 1
   memory_single_job: 3000
   days: 0
   hours: 23
