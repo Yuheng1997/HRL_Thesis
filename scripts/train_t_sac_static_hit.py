@@ -305,7 +305,7 @@ def get_dataset_info(core, dataset, dataset_info):
     success_list = []
     num_list = []
     termination_counts = 0
-    num_traj = 0
+    num_traj = 1
     termination_by_beta = 0
     rest_traj_len = 0
     episodes = 0
