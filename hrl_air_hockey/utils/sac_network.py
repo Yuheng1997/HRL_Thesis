@@ -82,12 +82,6 @@ class TerminationNetwork(nn.Module):
             self.model.append(layer)
             self.model.append(nn.ReLU())
 
-        # self.model.append(nn.Linear(n_features[-2], n_features[-1]))
-        # nn.init.xavier_uniform_(self.model[-1].weight,
-        #                         gain=nn.init.calculate_gain('sigmoid'))
-        # nn.init.constant_(self.model[-1].bias, -3)
-        # self.model.append(nn.Sigmoid())
-
         final_layer = nn.Linear(n_features[-2], n_features[-1])
         nn.init.normal_(final_layer.weight, mean=0.0, std=0.1)
         nn.init.constant_(final_layer.bias, -3)
@@ -97,4 +91,4 @@ class TerminationNetwork(nn.Module):
 
     def forward(self, state, last_action, **kwargs):
         feature = torch.concatenate((state, last_action), dim=1)
-        return self.model(torch.squeeze(feature, 1).float())
+        return self.model(torch.squeeze(feature, 1).float()) / 10

@@ -220,26 +220,22 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
 
     def sample_states_traj(dataset):
         states = list()
+        options = list()
         for i in range(len(dataset)):
             states.append(dataset[i][0])
-            if dataset[i][5]:
-                break
-        return np.array(states)
+            options.append(dataset[i][1][14:18])
+        return np.array(states), np.array(options)
 
     def compute_mean_beta(agent, dataset):
-        initial_state = dataset[0][0]
-        initial_option = agent.policy.draw_action(initial_state)
-        states_traj = sample_states_traj(dataset)
+        states_traj, options_traj = sample_states_traj(dataset)
         beta = np.array(
-            [agent.termination_approximator.predict(states_traj[i], initial_option) for i in range(len(states_traj))])
+            [agent.termination_approximator.predict(states_traj[i], options_traj[i]) for i in range(len(states_traj))])
         return np.mean(beta)
 
     def compute_max_beta(agent, dataset):
-        initial_state = dataset[0][0]
-        initial_option = agent.policy.draw_action(initial_state)
-        states_traj = sample_states_traj(dataset)
+        states_traj, options_traj = sample_states_traj(dataset)
         beta = np.array(
-            [agent.termination_approximator.predict(states_traj[i], initial_option) for i in range(len(states_traj))])
+            [agent.termination_approximator.predict(states_traj[i], options_traj[i]) for i in range(len(states_traj))])
         return np.max(beta)
 
     def spilt_dataset(_dataset):
@@ -310,16 +306,19 @@ def get_dataset_info(core, dataset, dataset_info):
     num_list = []
     termination_counts = 0
     num_traj = 0
-    beta_termination = 0
+    termination_by_beta = 0
     rest_traj_len = 0
     episodes = 0
+    adv_value = []
     for i, d in enumerate(dataset):
         action = d[1]
         last_traj_length = action[19]
         termination = action[18]
         beta_t = action[21]
+        adv_value.append(action[23])
         if beta_t == 1:
             rest_traj_len += action[22]
+            termination_by_beta += 1
         if termination == 1:
             num_traj += 1
             termination_counts += 1
@@ -329,11 +328,12 @@ def get_dataset_info(core, dataset, dataset_info):
             success_list.append(dataset_info['success'][i])
             if not termination == 1:
                 num_traj += 1
-    epoch_info['success_rate'] = np.sum(success_list) / len(success_list)
-    epoch_info['num_termination'] = termination_counts
-    epoch_info['mean_traj_length'] = len(dataset) / num_traj
-    epoch_info['rest_traj_len'] = rest_traj_len / num_traj
-
+    epoch_info['success_rate'] = sum(success_list) / (len(success_list)+1)
+    epoch_info['termination_num'] = termination_counts
+    epoch_info['traj_length(mean)'] = len(dataset) / num_traj
+    epoch_info['rest_traj_length(mean)'] = rest_traj_len / num_traj
+    epoch_info['adv_value_mean'] = sum(adv_value) / len(adv_value)
+    epoch_info['termination_num_by_beta'] = termination_by_beta
     return epoch_info
 
 

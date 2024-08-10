@@ -60,31 +60,31 @@ class SACPlusTermination(SAC):
         self.initial_smdp_state = None
         self.initial_smdp_action = None
         self.trajectory_buffer = None
-        self.last_action = None
+        self.last_option = None
         self.last_log_p = None
         self.policy.reset()
 
     def draw_action(self, state):
         rest_traj_len = 0
         if self.trajectory_buffer is None or len(self.trajectory_buffer) == 0:
-            self.last_action, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
-            self.last_action = self.last_action.squeeze()
+            self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
+            self.last_option = self.last_option.squeeze()
             q, dq = self._get_joint_pos(state)
-            hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_action)
+            hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_option)
             self.trajectory_buffer = \
                 self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale)[0]
             termination = np.array([1])
             beta_termination = np.array([0])
         else:
-            term_prob = self.termination_approximator.predict(state, self.last_action, output_tensor=False)
+            term_prob = self.termination_approximator.predict(state, self.last_option, output_tensor=False)
             # term_prob = 0.02
             termination = np.array([0])
             beta_termination = np.array([0])
-            if np.random.uniform() < term_prob/10:
-                self.last_action, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
-                self.last_action = self.last_action.squeeze()
+            if np.random.uniform() < term_prob:
+                self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
+                self.last_option = self.last_option.squeeze()
                 q, dq = self._get_joint_pos(state)
-                hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_action)
+                hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_option)
 
                 rest_traj_len = len(self.trajectory_buffer)
                 self.trajectory_buffer = \
@@ -101,9 +101,15 @@ class SACPlusTermination(SAC):
         else:
             last_smdp_length = self.cur_smdp_length
             self.cur_smdp_length += 1
+
+        expand_state = np.repeat(state[np.newaxis, :], 50, axis=0)
+        expand_new_option = self.policy.draw_action(expand_state)
+        q = self._target_critic_approximator.predict(state[np.newaxis, :], self.last_option[np.newaxis, :], prediction='min')
+        v = self._target_critic_approximator.predict(expand_state, expand_new_option, prediction='min').mean()
+        adv_value = q - v
         # 14 + 4 + 1 + 1+ 1+ 1 + 1 + 1 = 24
-        return np.concatenate([joint_command, self.last_action, termination, np.array([last_smdp_length]),
-                               np.array([self.cur_smdp_length]), beta_termination, np.array([rest_traj_len]), self.last_log_p])
+        return np.concatenate([joint_command, self.last_option, termination, np.array([last_smdp_length]),
+                               np.array([self.cur_smdp_length]), beta_termination, np.array([rest_traj_len]), np.array([adv_value])])
 
     def _get_joint_pos(self, state):
         q = state[..., 6:13]
@@ -122,7 +128,7 @@ class SACPlusTermination(SAC):
         self._replay_memory.add(t_dataset)
         for i in range(1):
             if self._replay_memory.initialized:
-                state, option, reward, next_state, absorbing, _, log_p = self._replay_memory.get(
+                state, option, reward, next_state, absorbing, _, _ = self._replay_memory.get(
                     self._batch_size())
 
                 if self._replay_memory.size > self._warmup_transitions():
@@ -139,7 +145,7 @@ class SACPlusTermination(SAC):
                 beta_prime = self.termination_approximator.predict(next_state, option, output_tensor=True).squeeze(-1)
                 option_prime, log_p_prime = self.policy.compute_action_and_log_prob(next_state)
 
-                gt = (reward + self.mdp_info.gamma * (1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing, log_p=log_p_prime)
+                gt = (reward + self.mdp_info.gamma * (1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing, log_p=None)
                       + self.mdp_info.gamma * beta_prime.detach() * self.q_next(next_state, option_prime, absorbing, log_p=log_p_prime))
 
                 self._critic_approximator.fit(state, option, gt, **self._critic_fit_params)
