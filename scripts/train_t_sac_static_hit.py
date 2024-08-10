@@ -252,7 +252,7 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
         assert len(_dataset) > 0
 
         state = np.ones((len(_dataset),) + _dataset[0][0].shape)
-        action = np.ones((len(_dataset),) + (4,))
+        option = np.ones((len(_dataset),) + (4,))
         reward = np.ones(len(_dataset))
         next_state = np.ones((len(_dataset),) + _dataset[0][0].shape)
         absorbing = np.ones(len(_dataset))
@@ -260,13 +260,13 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
 
         for i in range(len(_dataset)):
             state[i, ...] = _dataset[i][0]
-            action[i, ...] = _dataset[i][1][14:18]
+            option[i, ...] = _dataset[i][1][14:18]
             reward[i] = _dataset[i][2]
             next_state[i, ...] = _dataset[i][3]
             absorbing[i] = _dataset[i][4]
             last[i] = _dataset[i][5]
 
-        return np.array(state), np.array(action), np.array(reward), np.array(
+        return np.array(state), np.array(option), np.array(reward), np.array(
             next_state), np.array(absorbing), np.array(last)
 
     dataset, dataset_info = core.evaluate(**eval_params, record=record, get_env_info=True)
@@ -317,9 +317,9 @@ def get_dataset_info(core, dataset, dataset_info):
         beta_t = action[21]
         adv_value.append(action[23])
         if beta_t == 1:
-            rest_traj_len += action[22]
             termination_by_beta += 1
         if termination == 1:
+            rest_traj_len += action[22]
             num_traj += 1
             termination_counts += 1
         last = d[-1]
@@ -328,10 +328,9 @@ def get_dataset_info(core, dataset, dataset_info):
             success_list.append(dataset_info['success'][i])
 
     epoch_info['success_rate'] = sum(success_list) / len(success_list)
-    epoch_info['termination_num'] = termination_counts
     epoch_info['traj_length(mean)'] = len(dataset) / num_traj
     epoch_info['rest_traj_length(mean)'] = rest_traj_len / num_traj
-    epoch_info['adv_value_mean'] = sum(adv_value) / len(adv_value)
+    epoch_info['adv_value(mean)'] = sum(adv_value) / len(adv_value)
     epoch_info['termination_num_by_beta'] = termination_by_beta
     return epoch_info
 

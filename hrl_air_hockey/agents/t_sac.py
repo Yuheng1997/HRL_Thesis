@@ -17,7 +17,7 @@ class SACPlusTermination(SAC):
 
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params,
                  nn_planner_params, termination_params, termination_optimizer, batch_size, termination_warmup,
-                 initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, num_adv_sample, device,
+                 initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, num_adv_sample, device, adv_bonus=0.01,
                  use_log_alpha_loss=False, log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None):
 
         super().__init__(mdp_info=mdp_info, actor_mu_params=actor_mu_params, actor_sigma_params=actor_sigma_params,
@@ -43,6 +43,7 @@ class SACPlusTermination(SAC):
 
         self.num_adv_sample = num_adv_sample
         self.device = device
+        self.adv_bonus = adv_bonus
 
         self._add_save_attr(
             termination_optimizer='torch',
@@ -106,7 +107,7 @@ class SACPlusTermination(SAC):
         expand_new_option = self.policy.draw_action(expand_state)
         q = self._target_critic_approximator.predict(state[np.newaxis, :], self.last_option[np.newaxis, :], prediction='min')
         v = self._target_critic_approximator.predict(expand_state, expand_new_option, prediction='min').mean()
-        adv_value = q - v
+        adv_value = q - v + self.adv_bonus
         # 14 + 4 + 1 + 1+ 1+ 1 + 1 + 1 = 24
         return np.concatenate([joint_command, self.last_option, termination, np.array([last_smdp_length]),
                                np.array([self.cur_smdp_length]), beta_termination, np.array([rest_traj_len]), np.array([adv_value])])
@@ -179,13 +180,6 @@ class SACPlusTermination(SAC):
         log_p -= torch.log(1. - a.pow(2) + self.policy._eps_log_prob).sum(dim=1)
         return log_p
 
-    def _update_alpha(self, log_prob):
-        # alpha_loss = - (self._log_alpha * (log_prob + self._target_entropy)).mean()
-        alpha_loss = - (self._alpha * (log_prob + self._target_entropy)).mean()
-        self._alpha_optim.zero_grad()
-        alpha_loss.backward()
-        self._alpha_optim.step()
-
     def prepare_dataset(self, dataset):
         smdp_dataset = list()
         termination_dataset = list()
@@ -244,7 +238,7 @@ class SACPlusTermination(SAC):
         expand_next_state = next_state.clone().unsqueeze(1).repeat(1, self.num_adv_sample, 1)
         expand_sampled_option = self.policy.draw_action(expand_next_state)
 
-        adv = self.adv_func(expand_next_state, expand_sampled_option, next_state, sampled_option) + 0.01
+        adv = self.adv_func(expand_next_state, expand_sampled_option, next_state, sampled_option) + self.adv_bonus
         adv_tensor = torch.tensor(adv, requires_grad=False, device=self.device)
 
         beta = self.termination_approximator.predict(next_state, sampled_option, output_tensor=True)
