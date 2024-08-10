@@ -326,9 +326,8 @@ def get_dataset_info(core, dataset, dataset_info):
         if last:
             episodes += 1
             success_list.append(dataset_info['success'][i])
-            if not termination == 1:
-                num_traj += 1
-    epoch_info['success_rate'] = sum(success_list) / (len(success_list)+1)
+
+    epoch_info['success_rate'] = sum(success_list) / len(success_list)
     epoch_info['termination_num'] = termination_counts
     epoch_info['traj_length(mean)'] = len(dataset) / num_traj
     epoch_info['rest_traj_length(mean)'] = rest_traj_len / num_traj
