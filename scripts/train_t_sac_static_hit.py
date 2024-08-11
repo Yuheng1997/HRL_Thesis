@@ -123,7 +123,7 @@ def experiment(env_name: str = 'StaticHit',
         cur_path = os.path.abspath('.')
         parent_dir = os.path.dirname(cur_path)
         check_path = os.path.join(parent_dir, 'trained_high_agent', check_point)
-        agent_1 = SACPlusTermination.load(get_file_by_postfix(check_path, 'agent-1.msh')[0])
+        agent_1 = SACPlusTermination.load(get_file_by_postfix(check_path, 'agent-2.msh')[0])
         agent_1._alpha_optim = optim.Adam([agent_1._log_alpha], lr=lr_alpha)
 
     baseline_agent = BaselineAgent(env.env_info, agent_id=2)

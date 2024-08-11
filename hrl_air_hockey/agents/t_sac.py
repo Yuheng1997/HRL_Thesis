@@ -17,7 +17,7 @@ class SACPlusTermination(SAC):
 
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params,
                  nn_planner_params, termination_params, termination_optimizer, batch_size, termination_warmup,
-                 initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, num_adv_sample, device, adv_bonus=0.01,
+                 initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, num_adv_sample, device,
                  use_log_alpha_loss=False, log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None):
 
         super().__init__(mdp_info=mdp_info, actor_mu_params=actor_mu_params, actor_sigma_params=actor_sigma_params,
@@ -43,7 +43,7 @@ class SACPlusTermination(SAC):
 
         self.num_adv_sample = num_adv_sample
         self.device = device
-        self.adv_bonus = adv_bonus
+        self.adv_bonus = 0.01
 
         self._add_save_attr(
             termination_optimizer='torch',
@@ -146,7 +146,7 @@ class SACPlusTermination(SAC):
                 beta_prime = self.termination_approximator.predict(next_state, option, output_tensor=True).squeeze(-1)
                 option_prime, log_p_prime = self.policy.compute_action_and_log_prob(next_state)
 
-                gt = (reward + self.mdp_info.gamma * (1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing, log_p=None)
+                gt = (reward + self.mdp_info.gamma * (1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing, log_p=log_p_prime)
                       + self.mdp_info.gamma * beta_prime.detach() * self.q_next(next_state, option_prime, absorbing, log_p=log_p_prime))
 
                 self._critic_approximator.fit(state, option, gt, **self._critic_fit_params)
@@ -263,6 +263,8 @@ class SACPlusTermination(SAC):
 
     def _post_load(self):
         super()._post_load()
+        self.adv_bonus = 0.01
+        self.termination_warmup = 60000
         self.state_shape = self.mdp_info.observation_space.shape
         self.action_shape = self.mdp_info.action_space.shape
         self.nn_planner_params['planner_path'] = '../trained_low_agent/Model_5600.pt'
