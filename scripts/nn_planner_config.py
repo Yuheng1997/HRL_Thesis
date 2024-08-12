@@ -65,7 +65,8 @@ class Data:
     hit_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/train/data.tsv")
     # uniform_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/uniform_train/data.tsv")
     uniform_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/uniform_train/data.tsv")
-    violate_path = os.path.join(os.path.abspath(os.getcwd()), "datasets/uniform_train/violate_pairs.tsv")
+    violate_path = os.path.join("datasets", "uniform_train", "violate_pairs.tsv")
+
 
 class Config:
     train = TrainConfig()
