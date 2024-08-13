@@ -133,10 +133,6 @@ class SACPlusTermination(SAC):
                     self._batch_size())
 
                 if self._replay_memory.size > self._warmup_transitions():
-                    # beta = self.termination_approximator.predict(next_state, option)
-                    # mask = np.random.uniform(size=beta.shape) < beta
-                    # option_new = option
-                    # log_prob = self.inv_log_p(next_state, option_new)
                     option_new, log_prob = self.policy.compute_action_and_log_prob_t(state)
                     # update actor
                     actor_loss = self._loss(state, option_new, log_prob)
