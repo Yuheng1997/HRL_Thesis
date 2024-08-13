@@ -45,6 +45,7 @@ class SACPlusTermination(SAC):
         self.device = device
         self.adv_bonus = 0.01
 
+        self.num = 0
         self._add_save_attr(
             termination_optimizer='torch',
             nn_planner_params='pickle',
@@ -240,7 +241,9 @@ class SACPlusTermination(SAC):
         adv_tensor = torch.tensor(adv, requires_grad=False, device=self.device)
 
         beta = self.termination_approximator.predict(next_state, sampled_option, output_tensor=True)
-
+        if self.num%200 == 0:
+            print('adv_value', np.mean(adv))
+        self.num += 1
         return (beta * adv_tensor).mean()
 
     def adv_func(self, expand_next_state, expand_sampled_option, next_state, sampled_option):
