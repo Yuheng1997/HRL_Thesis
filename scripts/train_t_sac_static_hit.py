@@ -189,7 +189,7 @@ def experiment(env_name: str = 'StaticHit',
                 task_dict[key] = value
         log_dict.update(task_dict)
         wandb.log(log_dict, step=epoch + 1)
-
+        wandb.unwatch()
         logger.log_agent(agent_1, full_save=full_save)
 
 
