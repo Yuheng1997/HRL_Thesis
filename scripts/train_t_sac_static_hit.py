@@ -157,7 +157,7 @@ def experiment(env_name: str = 'StaticHit',
     log_dict.update(task_dict)
     wandb.log(log_dict, step=0)
 
-    wandb.watch(core.agent.agent_1.termination_approximator.model.network, log_freq=100)
+    wandb.watch(core.agent.agent_1.termination_approximator.model.network, log='all', log_freq=100)
     for epoch in tqdm(range(n_epochs), disable=False):
         # core.agent.learning_agent.num_fits_left = n_steps
         # core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
