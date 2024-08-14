@@ -91,4 +91,5 @@ class TerminationNetwork(nn.Module):
 
     def forward(self, state, last_action, **kwargs):
         feature = torch.concatenate((state, last_action), dim=1)
-        return self.model(torch.squeeze(feature, 1).float())/10
+        output = self.model(torch.squeeze(feature, 1).float())
+        return output / 10
