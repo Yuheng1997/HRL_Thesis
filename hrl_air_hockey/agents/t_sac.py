@@ -147,8 +147,10 @@ class SACPlusTermination(SAC):
                 beta_prime = self.termination_approximator.predict(next_state, option, output_tensor=True).squeeze(-1)
                 option_prime, log_p_prime = self.policy.compute_action_and_log_prob_t(next_state)
 
+                # gt = reward + self.mdp_info.gamma * ((1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing)
+                #      + beta_prime.detach() * self.q_next(next_state, option_prime, absorbing) - self._alpha.detach() * log_p_prime.detach())
                 gt = reward + self.mdp_info.gamma * ((1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing)
-                     + beta_prime.detach() * self.q_next(next_state, option_prime, absorbing) - self._alpha.detach() * log_p_prime.detach())
+                     + beta_prime.detach() * self.q_next(next_state, option_prime, absorbing))
 
                 self._critic_approximator.fit(state, option, gt, **self._critic_fit_params)
 
