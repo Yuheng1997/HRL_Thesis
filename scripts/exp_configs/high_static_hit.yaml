@@ -1,7 +1,7 @@
 env_name: 'BaseEnv'
 mode: 'online'
 load_nn_agent: 'Model_5600.pt'
-group: '15_08_network/10/0logp/beta_warmup'
+group: '16_08_full_range/0logp/adv_bonus0.2'
 render: False
 record: False
 

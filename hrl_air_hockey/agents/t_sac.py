@@ -43,7 +43,7 @@ class SACPlusTermination(SAC):
 
         self.num_adv_sample = num_adv_sample
         self.device = device
-        self.adv_bonus = 0.01
+        self.adv_bonus = 0.2
 
         self.num = 0
         self._add_save_attr(
@@ -167,19 +167,6 @@ class SACPlusTermination(SAC):
         q = torch.min(q_0, q_1)
 
         return (self._alpha * log_prob - q).mean()
-
-    def inv_log_p(self, state, a_true):
-        a = (a_true - self.policy._central_a.clone()) / self.policy._delta_a.clone()
-        epsilon = 1e-5
-        a = torch.clamp(a, min=-1 + epsilon, max=1 - epsilon)
-        a_raw = torch.atanh(a)
-        mu = self.policy._mu_approximator.predict(state, output_tensor=True).detach()
-        log_sigma = self.policy._sigma_approximator.predict(state, output_tensor=True).detach()
-        log_sigma = torch.clamp(log_sigma, self.policy._log_std_min(), self.policy._log_std_max())
-        dist = torch.distributions.Normal(mu, log_sigma.exp())
-        log_p = dist.log_prob(a_raw).sum(dim=1).detach()
-        log_p -= torch.log(1. - a.pow(2) + self.policy._eps_log_prob).sum(dim=1)
-        return log_p
 
     def prepare_dataset(self, dataset):
         smdp_dataset = list()
