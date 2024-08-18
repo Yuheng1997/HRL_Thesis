@@ -41,6 +41,7 @@ def experiment(env_name: str = 'StaticHit',
                critic_lr: float = 3e-4,
                termination_lr: float = 3e-6,
                num_adv_sample: int = 50,
+               adv_bonus: float = 0.01,
                n_features_actor: str = '256 256 256',
                n_features_critic: str = '256 256 256',
                n_features_termination: str = '256 256 256',
@@ -99,7 +100,7 @@ def experiment(env_name: str = 'StaticHit',
     if check_point is None:
         planner_path = os.path.join('..', 'trained_low_agent', load_nn_agent)
         planner_config = Config
-        agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info,
+        agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info, adv_bonus=adv_bonus,
                                     planner_path=planner_path, planner_config=planner_config,
                                     actor_lr=actor_lr, critic_lr=critic_lr, termination_lr=termination_lr,
                                     n_features_actor=n_features_actor, n_features_critic=n_features_critic,
@@ -138,14 +139,15 @@ def experiment(env_name: str = 'StaticHit',
     logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, **task_info)
     size_replay_memory = core.agent.agent_1._replay_memory.size
     num_violate_point = core.agent.agent_1.traj_planner.num_violate_point
+    adv_func_in_fit = np.mean(core.agent.agent_1.adv_list)
 
     logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta,
                       size_replay_memory=size_replay_memory, num_violate_point=num_violate_point, **task_info)
 
     log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                "Training/max_beta": max_Beta, "Training/mean_beta": mean_Beta,
-                "Training/num_violate_point": num_violate_point,
-                "Training/size_replay_memory": size_replay_memory}
+                "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta,
+                "num_violate_point": num_violate_point, "size_replay_memory": size_replay_memory,
+                "Termination/adv_value_in_fit(mean)": adv_func_in_fit}
 
     task_dict = {}
     for key, value in task_info.items():
@@ -157,7 +159,6 @@ def experiment(env_name: str = 'StaticHit',
     log_dict.update(task_dict)
     wandb.log(log_dict, step=0)
 
-    wandb.watch(core.agent.agent_1.termination_approximator.model.network, log='all', log_freq=100)
     for epoch in tqdm(range(n_epochs), disable=False):
         # core.agent.learning_agent.num_fits_left = n_steps
         # core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
@@ -166,6 +167,7 @@ def experiment(env_name: str = 'StaticHit',
         J, R, E, V, alpha, max_Beta, mean_Beta, task_info = compute_metrics(core, eval_params, record)
         size_replay_memory = core.agent.agent_1._replay_memory.size
         num_violate_point = core.agent.agent_1.traj_planner.num_violate_point
+        adv_func_in_fit = np.mean(core.agent.agent_1.adv_list)
 
         if task_curriculum:
             if task_info['success_rate'] >= 0.7:
@@ -177,8 +179,9 @@ def experiment(env_name: str = 'StaticHit',
         logger.epoch_info(epoch + 1, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta,
                           size_replay_memory=size_replay_memory, num_violate_point=num_violate_point, **task_info)
         log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                    "Training/max_beta": max_Beta, "Training/mean_beta": mean_Beta, "Training/num_violate_point": num_violate_point,
-                    "Training/size_replay_memory": size_replay_memory}
+                    "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta,
+                    "num_violate_point": num_violate_point, "size_replay_memory": size_replay_memory,
+                    "Termination/adv_value_in_fit(mean)": adv_func_in_fit}
 
         task_dict = {}
         for key, value in task_info.items():
@@ -189,8 +192,9 @@ def experiment(env_name: str = 'StaticHit',
                 task_dict[key] = value
         log_dict.update(task_dict)
         wandb.log(log_dict, step=epoch + 1)
-        wandb.unwatch()
+        core.agent.agent_1.adv_list = []
         logger.log_agent(agent_1, full_save=full_save)
+
 
 
 def compute_metrics(core, eval_params, record=False, return_dataset=False):
@@ -328,10 +332,10 @@ def get_dataset_info(core, dataset, dataset_info):
             episodes += 1
             success_list.append(dataset_info['success'][i])
 
-    epoch_info['success_rate'] = sum(success_list) / len(success_list)
+    epoch_info['success_rate'] = sum(success_list) / (len(success_list)+1)
     epoch_info['traj_length(mean)'] = len(dataset) / num_traj
     epoch_info['rest_traj_length(mean)'] = rest_traj_len / num_traj
-    epoch_info['adv_value(mean)'] = sum(adv_value) / len(adv_value)
+    epoch_info['adv_value_in_action(mean)'] = sum(adv_value) / len(adv_value)
     epoch_info['termination_num_by_beta'] = termination_by_beta
     return epoch_info
 

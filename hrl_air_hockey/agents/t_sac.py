@@ -17,7 +17,7 @@ class SACPlusTermination(SAC):
 
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params,
                  nn_planner_params, termination_params, termination_optimizer, batch_size, termination_warmup,
-                 initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, num_adv_sample, device,
+                 initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, num_adv_sample, device, adv_bonus,
                  use_log_alpha_loss=False, log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None):
 
         super().__init__(mdp_info=mdp_info, actor_mu_params=actor_mu_params, actor_sigma_params=actor_sigma_params,
@@ -43,15 +43,18 @@ class SACPlusTermination(SAC):
 
         self.num_adv_sample = num_adv_sample
         self.device = device
-        self.adv_bonus = 0.2
+        self.adv_bonus = adv_bonus
+        self.adv_list = []
 
         self.num = 0
         self._add_save_attr(
+            adv_bonus='primitive',
             termination_optimizer='torch',
             nn_planner_params='pickle',
             termination_approximator="mushroom",
             num_adv_sample='primitive',
-            device='primitive'
+            device='primitive',
+            termination_warmup='primitive',
         )
 
     def episode_start(self):
@@ -227,12 +230,12 @@ class SACPlusTermination(SAC):
         expand_sampled_option = self.policy.draw_action(expand_next_state)
 
         adv = self.adv_func(expand_next_state, expand_sampled_option, next_state, sampled_option) + self.adv_bonus
+        adv = np.clip(adv, -5 * self.adv_bonus, 5 * self.adv_bonus)
         adv_tensor = torch.tensor(adv, requires_grad=False, device=self.device)
 
+        self.adv_list.append(np.mean(adv))
+
         beta = self.termination_approximator.predict(next_state, sampled_option, output_tensor=True)
-        if self.num%200 == 0:
-            print('adv_value', np.mean(adv))
-        self.num += 1
         return (beta * adv_tensor).mean()
 
     def adv_func(self, expand_next_state, expand_sampled_option, next_state, sampled_option):
@@ -253,8 +256,7 @@ class SACPlusTermination(SAC):
 
     def _post_load(self):
         super()._post_load()
-        self.adv_bonus = 0.01
-        self.termination_warmup = 60000
+        self.adv_list = []
         self.state_shape = self.mdp_info.observation_space.shape
         self.action_shape = self.mdp_info.action_space.shape
         self.nn_planner_params['planner_path'] = '../trained_low_agent/Model_5600.pt'
