@@ -16,10 +16,10 @@ from nn_planner_config import Config
 def main(
         # check_point: str = 'hit_back_2024-07-14_23-36-56/parallel_seed___0/0/HitBackEnv_2024-07-14-23-37-22',
         # check_point: str = 'static_hit_2024-07-15_16-27-51/parallel_seed___2/0/BaseEnv_2024-07-15-17-34-35',
-        check_point: str = 'hit_back_2024-07-18_21-56-56/parallel_seed___1/0/HitBackEnv_2024-07-18-21-58-43',
+        check_point: str = 'static_hit_2024-08-10_13-49-45/parallel_seed___2/0/BaseEnv_2024-08-10-13-51-27',
 ):
-    env = HitBackEnv(visual_target=True, horizon=1000)
-    # env = BaseEnv(visual_target=True, horizon=200)
+    # env = HitBackEnv(visual_target=True, horizon=1000)
+    env = BaseEnv(visual_target=True, horizon=200)
 
     def get_file_by_postfix(parent_dir, postfix):
         file_list = list()
@@ -33,7 +33,7 @@ def main(
     cur_path = os.path.abspath('.')
     parent_dir = os.path.dirname(cur_path)
     check_path = os.path.join(parent_dir, 'trained_high_agent', check_point)
-    agent_1 = SACPlusTermination.load(get_file_by_postfix(check_path, 'agent-1.msh')[0])
+    agent_1 = SACPlusTermination.load(get_file_by_postfix(check_path, 'agent-2.msh')[0])
 
 
     baseline_agent = BaselineAgent(env.env_info, agent_id=2)
@@ -41,7 +41,7 @@ def main(
 
     core = Core(agent, env)
 
-    core.evaluate(n_episodes=5, render=True, record=True)
+    core.evaluate(n_episodes=5, render=False, record=False)
 
 
 if __name__ == "__main__":
