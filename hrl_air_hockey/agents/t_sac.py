@@ -220,8 +220,8 @@ class SACPlusTermination(SAC):
         # sample w_n
         option_term_mask = np.random.rand(batch_size) < _beta.squeeze(-1)
         sampled_option = option.clone()
-        # sampled_option[option_term_mask, :] = torch.tensor(self.policy.draw_action(next_state)[option_term_mask, :],
-        #                                                    device=self.device)
+        sampled_option[option_term_mask, :] = torch.tensor(self.policy.draw_action(next_state)[option_term_mask, :],
+                                                           device=self.device)
         # sample for v(s')
         expand_next_state = next_state.clone().unsqueeze(1).repeat(1, self.num_adv_sample, 1)
         expand_sampled_option = self.policy.draw_action(expand_next_state)
