@@ -45,6 +45,7 @@ class SACPlusTermination(SAC):
         self.device = device
         self.adv_bonus = adv_bonus
         self.adv_list = []
+        self.max_term_time = 5
 
         self.num = 0
         self._add_save_attr(
@@ -58,6 +59,7 @@ class SACPlusTermination(SAC):
         )
 
     def episode_start(self):
+        self.term_time = 0
         self.cur_smdp_length = 0
         self.sum_reward = 0
         self.initial_state = None
@@ -72,6 +74,7 @@ class SACPlusTermination(SAC):
     def draw_action(self, state):
         rest_traj_len = 0
         if self.trajectory_buffer is None or len(self.trajectory_buffer) == 0:
+            self.term_time = 0
             self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
             self.last_option = self.last_option.squeeze()
             q, dq = self._get_joint_pos(state)
@@ -86,16 +89,19 @@ class SACPlusTermination(SAC):
             termination = np.array([0])
             beta_termination = np.array([0])
             if np.random.uniform() < term_prob:
-                self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
-                self.last_option = self.last_option.squeeze()
-                q, dq = self._get_joint_pos(state)
-                hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_option)
+                if self.term_time < self.max_term_time:
+                    self.term_time += 1
+                    self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
+                    self.last_option = self.last_option.squeeze()
+                    q, dq = self._get_joint_pos(state)
+                    hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_option)
 
-                rest_traj_len = len(self.trajectory_buffer)
-                self.trajectory_buffer = \
-                    self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale)[0]
-                termination = np.array([1])
-                beta_termination = np.array([1])
+                    rest_traj_len = len(self.trajectory_buffer)
+                    print(rest_traj_len)
+                    self.trajectory_buffer = \
+                        self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale)[0]
+                    termination = np.array([1])
+                    beta_termination = np.array([1])
         assert len(self.trajectory_buffer) > 0
         joint_command = self.trajectory_buffer[0, :14]
         self.trajectory_buffer = self.trajectory_buffer[1:]
@@ -257,6 +263,8 @@ class SACPlusTermination(SAC):
     def _post_load(self):
         super()._post_load()
         self.adv_list = []
+        self.max_term_time = 5
+        self.term_time = 0
         self.state_shape = self.mdp_info.observation_space.shape
         self.action_shape = self.mdp_info.action_space.shape
         self.nn_planner_params['planner_path'] = '../trained_low_agent/Model_5600.pt'

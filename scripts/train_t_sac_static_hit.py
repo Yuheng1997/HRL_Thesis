@@ -332,7 +332,7 @@ def get_dataset_info(core, dataset, dataset_info):
             episodes += 1
             success_list.append(dataset_info['success'][i])
 
-    epoch_info['success_rate'] = sum(success_list) / (len(success_list)+1)
+    epoch_info['success_rate'] = sum(success_list) / len(success_list)
     epoch_info['traj_length(mean)'] = len(dataset) / num_traj
     epoch_info['rest_traj_length(mean)'] = rest_traj_len / num_traj
     epoch_info['adv_value_in_action(mean)'] = sum(adv_value) / len(adv_value)

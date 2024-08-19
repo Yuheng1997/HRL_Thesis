@@ -47,11 +47,16 @@ class BaseEnv(position.IiwaPositionTournament):
 
         # has_hit
         if not self.has_hit:
-            if puck_vel[0] > 1e-8:
+            if puck_pos[0] > 0.1:
                 self.has_hit = True
                 v_norm = np.clip(puck_vel[0], a_min=0, a_max=2)
                 r += v_norm * 30 + 30
                 self._task_success = True
+            # if puck_vel[0] > 1e-8:
+            #     self.has_hit = True
+            #     v_norm = np.clip(puck_vel[0], a_min=0, a_max=2)
+            #     r += v_norm * 30 + 30
+            #     self._task_success = True
         return r
 
     def _create_info_dictionary(self, cur_obs):
