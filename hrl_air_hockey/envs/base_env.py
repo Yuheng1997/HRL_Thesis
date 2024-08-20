@@ -36,7 +36,7 @@ class BaseEnv(position.IiwaPositionTournament):
     def is_absorbing(self, obs):
         puck_pos, puck_vel = self.get_puck(obs)
         self._absorbing = super().is_absorbing(obs)
-        if puck_pos[0] > 0.0:
+        if self._task_success:
             self._absorbing = True
         return self._absorbing
 
@@ -47,16 +47,14 @@ class BaseEnv(position.IiwaPositionTournament):
 
         # has_hit
         if not self.has_hit:
-            if puck_pos[0] > 0.1:
+            if puck_vel[0] > 1e-8:
                 self.has_hit = True
+                r += 5
+        if self.has_hit:
+            if puck_pos[0] > 0.1:
                 v_norm = np.clip(puck_vel[0], a_min=0, a_max=2)
-                r += v_norm * 30 + 30
+                r += v_norm * 20 + 10
                 self._task_success = True
-            # if puck_vel[0] > 1e-8:
-            #     self.has_hit = True
-            #     v_norm = np.clip(puck_vel[0], a_min=0, a_max=2)
-            #     r += v_norm * 30 + 30
-            #     self._task_success = True
         return r
 
     def _create_info_dictionary(self, cur_obs):
