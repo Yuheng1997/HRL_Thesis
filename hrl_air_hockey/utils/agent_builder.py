@@ -1,14 +1,14 @@
 import os
 import torch
+import numpy as np
 from torch import optim
 import torch.nn.functional as F
 from hrl_air_hockey.agents.t_sac import SACPlusTermination
 from hrl_air_hockey.utils.sac_network import SACActorNetwork, SACCriticNetwork, TerminationNetwork
 
 
-def build_agent_T_SAC(mdp_info, env_info, planner_path, planner_config, actor_lr, critic_lr, termination_lr,
-                      n_features_actor, n_features_critic, n_features_termination,
-                      batch_size, initial_replay_size, max_replay_size, tau, num_adv_sample, adv_bonus,
+def build_agent_T_SAC(mdp_info, env_info, actor_lr, critic_lr, termination_lr, n_features_actor, n_features_critic,
+                      n_features_termination, batch_size, initial_replay_size, max_replay_size, tau, num_adv_sample, adv_bonus,
                       warmup_transitions, lr_alpha, target_entropy, dropout_ratio, layer_norm, use_cuda, termination_warmup):
     if type(n_features_actor) is str:
         n_features_actor = list(map(int, n_features_actor.split(" ")))
@@ -69,10 +69,24 @@ def build_agent_T_SAC(mdp_info, env_info, planner_path, planner_config, actor_lr
                              'params': {'lr': termination_lr}}
 
     device = 'cuda:0' if use_cuda else 'cpu'
-    config = planner_config
-    nn_planner_params = dict(planner_path=planner_path, env_info=env_info, config=config, device=device, violate_path=config.data.violate_path)
+
+    init_state = np.array([0., -0.1961, 0., -1.8436, 0., 0.9704, 0.])
+    controller_info = dict(
+        dim_q=env_info['robot']['n_joints'],
+        pos_limit=env_info['robot']['joint_pos_limit'] * 0.95,
+        vel_limit=env_info['robot']['joint_vel_limit'] * 0.95,
+        slack_beta=[2] * 7 + [2., 2., 2., 2., 2., 2, 2, 2],
+        slack_dynamics_type="exp",
+        drift_compensation_type='vanilla',
+        drift_clipping=True,
+        slack_tol=1e-6,
+        slack_vel_limit=50,
+        lambda_c=0.5 / env_info['dt']
+    )
+
+    atacom_planner_params = dict(env_info=env_info, controller_info=controller_info, init_state=init_state)
     agent = SACPlusTermination(mdp_info, actor_mu_params=actor_mu_params, actor_sigma_params=actor_sigma_params,
-                               nn_planner_params=nn_planner_params, termination_params=termination_params,
+                               atacom_planner_params=atacom_planner_params, termination_params=termination_params,
                                termination_optimizer=termination_optimizer, num_adv_sample=num_adv_sample, adv_bonus=adv_bonus,
                                actor_optimizer=actor_optimizer, critic_params=critic_params, device=device, **alg_params)
 

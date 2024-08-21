@@ -27,8 +27,6 @@ class TReplayMemory(ReplayMemory):
             self._absorbing[self._idx] = dataset[i][4]
             self._last[self._idx] = dataset[i][5]
 
-            self._log_p[self._idx] = dataset[i][6]
-
             self._idx += 1
             if self._idx == self._max_size:
                 self._full = True
@@ -47,7 +45,7 @@ class TReplayMemory(ReplayMemory):
         index_list = np.random.randint(0, self.size, n_samples)
 
         return self._states[index_list], self._actions[index_list], self._rewards[index_list], self._next_states[
-            index_list], self._absorbing[index_list], self._last[index_list], self._log_p[index_list]
+            index_list], self._absorbing[index_list], self._last[index_list]
 
     def reset(self):
         self._idx = 0
@@ -60,4 +58,3 @@ class TReplayMemory(ReplayMemory):
         self._next_states = torch.full((self._max_size, *self.state_shape), initial_value, device=self.device)
         self._absorbing = torch.full((self._max_size,), initial_value, device=self.device)
         self._last = torch.full((self._max_size,), initial_value, device=self.device)
-        self._log_p = torch.full((self._max_size,), initial_value, device=self.device)

@@ -1,7 +1,6 @@
 env_name: 'BaseEnv'
 mode: 'online'
-load_nn_agent: 'Model_5600.pt'
-group: '18_08_clip_bonus*5/adv_bonus0.1/5_termination/hit_to_line/init2.5'
+group: '21_08_atacom/clip_bonus*5/adv_bonus0.1/init3'
 render: False
 record: False
 
