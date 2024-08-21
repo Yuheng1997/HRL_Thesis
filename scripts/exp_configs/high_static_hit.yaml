@@ -1,6 +1,6 @@
 env_name: 'BaseEnv'
 mode: 'online'
-group: '21_08_atacom/entropy/clip_bonus*5/adv_bonus0.1'
+group: '21_08_atacom/no_entropy/clip_bonus*5/adv_bonus0.1'
 render: False
 record: False
 
