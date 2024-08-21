@@ -51,6 +51,7 @@ class BaseEnv(position.IiwaPositionTournament):
                 self.has_hit = True
                 v_norm = np.clip(puck_vel[0], a_min=0, a_max=2)
                 r += v_norm * 30 + 30
+                self._task_success = True
         # if self.has_hit:
         #     if puck_pos[0] > 0.1:
         #         v_norm = np.clip(puck_vel[0], a_min=0, a_max=2)

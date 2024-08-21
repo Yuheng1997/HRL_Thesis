@@ -72,13 +72,12 @@ class SACPlusTermination(SAC):
     def draw_action(self, state):
         if self.last_option is None:
             self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
-            self.last_option = self.last_option.squeeze(-1)
+            self.last_option = self.last_option.squeeze()
         term_prob = self.termination_approximator.predict(state, self.last_option, output_tensor=False)
 
         if np.random.uniform() < term_prob:
             self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
-            self.last_option = self.last_option.squeeze(-1)
-
+            self.last_option = self.last_option.squeeze()
             v_2d = self._get_target_vel(self.last_option)
             low_action = self.traj_planner.compute_control(v_2d, state).flatten()
             termination = np.array([1])
@@ -87,21 +86,20 @@ class SACPlusTermination(SAC):
             low_action = self.traj_planner.compute_control(v_2d, state).flatten()
             termination = np.array([0])
 
-        if termination == 1:
-            last_smdp_length = self.cur_smdp_length
-            self.cur_smdp_length = 0
-        else:
-            last_smdp_length = self.cur_smdp_length
-            self.cur_smdp_length += 1
+        # if termination == 1:
+        #     last_smdp_length = self.cur_smdp_length
+        #     self.cur_smdp_length = 0
+        # else:
+        #     last_smdp_length = self.cur_smdp_length
+        #     self.cur_smdp_length += 1
 
         expand_state = np.repeat(state[np.newaxis, :], 50, axis=0)
         expand_new_option = self.policy.draw_action(expand_state)
         q = self._target_critic_approximator.predict(state[np.newaxis, :], self.last_option[np.newaxis, :], prediction='min')
         v = self._target_critic_approximator.predict(expand_state, expand_new_option, prediction='min').mean()
         adv_value = q - v + self.adv_bonus
-        # 14 + 1 + 1 + 1 + 1 + 1 = 19
-        return np.concatenate([low_action, self.last_option, termination, np.array([last_smdp_length]),
-                               np.array([self.cur_smdp_length]), np.array([adv_value])])
+        # 14 + 2 + 1 + 1 = 18
+        return np.concatenate([low_action, self.last_option, termination, np.array([adv_value])])
 
     def fit(self, dataset, **info):
         t_dataset = self.add_t_dataset(dataset)
@@ -125,10 +123,8 @@ class SACPlusTermination(SAC):
             beta_prime = self.termination_approximator.predict(next_state, option, output_tensor=True).squeeze(-1)
             option_prime, log_p_prime = self.policy.compute_action_and_log_prob_t(next_state)
 
-            # gt = reward + self.mdp_info.gamma * ((1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing)
-            #      + beta_prime.detach() * self.q_next(next_state, option_prime, absorbing) - self._alpha.detach() * log_p_prime.detach())
             gt = reward + self.mdp_info.gamma * ((1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing)
-                 + beta_prime.detach() * self.q_next(next_state, option_prime, absorbing))
+                 + beta_prime.detach() * self.q_next(next_state, option_prime, absorbing) - self._alpha.detach() * log_p_prime.detach())
 
             self._critic_approximator.fit(state, option, gt, **self._critic_fit_params)
 
@@ -147,8 +143,9 @@ class SACPlusTermination(SAC):
         return (self._alpha * log_prob - q).mean()
 
     def _get_target_vel(self, action):
-        angle = action
-        hit_vel = np.array([np.cos(angle), np.sin(angle)])
+        angle = action[0]
+        scale = action[1]
+        hit_vel = np.array([np.cos(angle), np.sin(angle)]) * scale
         return hit_vel.squeeze()
 
     def add_t_dataset(self, dataset):

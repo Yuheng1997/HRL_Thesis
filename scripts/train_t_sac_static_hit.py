@@ -23,16 +23,13 @@ from nn_planner_config import Config
 def experiment(env_name: str = 'StaticHit',
                n_epochs: int = 10,
                n_steps: int = 300,
-               n_episodes: int = 1,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
                render: bool = False,
                record: bool = False,
-               n_eval_episodes: int = 1,
                n_eval_steps: int = 10,
                mode: str = 'disabled',
                horizon: int = 300,
-               load_nn_agent: str = 'Model_5600.pt',
                full_save: bool = False,
 
                group: str = None,
@@ -95,7 +92,7 @@ def experiment(env_name: str = 'StaticHit',
 
     env = BaseEnv(horizon=horizon)
 
-    env.info.action_space = Box(np.array([-np.pi]), np.array([np.pi]))
+    env.info.action_space = Box(np.array([-np.pi, 0]), np.array([np.pi, 2]))
 
     if check_point is None:
         agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info, adv_bonus=adv_bonus,
@@ -219,19 +216,17 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
         options = list()
         for i in range(len(dataset)):
             states.append(dataset[i][0])
-            options.append(dataset[i][1][14])
+            options.append(dataset[i][1][14:16])
         return np.array(states), np.array(options)
 
     def compute_mean_beta(agent, dataset):
         states_traj, options_traj = sample_states_traj(dataset)
-        options_traj = np.expand_dims(options_traj, axis=1)
         beta = np.array(
             [agent.termination_approximator.predict(states_traj[i], options_traj[i]) for i in range(len(states_traj))])
         return np.mean(beta)
 
     def compute_max_beta(agent, dataset):
         states_traj, options_traj = sample_states_traj(dataset)
-        options_traj = np.expand_dims(options_traj, axis=1)
         beta = np.array(
             [agent.termination_approximator.predict(states_traj[i], options_traj[i]) for i in range(len(states_traj))])
         return np.max(beta)
@@ -250,7 +245,7 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
         assert len(_dataset) > 0
 
         state = np.ones((len(_dataset),) + _dataset[0][0].shape)
-        option = np.ones((len(_dataset),) + (1,))
+        option = np.ones((len(_dataset),) + (2,))
         reward = np.ones(len(_dataset))
         next_state = np.ones((len(_dataset),) + _dataset[0][0].shape)
         absorbing = np.ones(len(_dataset))
@@ -258,7 +253,7 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
 
         for i in range(len(_dataset)):
             state[i, ...] = _dataset[i][0]
-            option[i, ...] = _dataset[i][1][14]
+            option[i, ...] = _dataset[i][1][14:16]
             reward[i] = _dataset[i][2]
             next_state[i, ...] = _dataset[i][3]
             absorbing[i] = _dataset[i][4]
@@ -306,8 +301,8 @@ def get_dataset_info(core, dataset, dataset_info):
     adv_value = []
     for i, d in enumerate(dataset):
         action = d[1]
-        termination = action[15]
-        adv_value.append(action[18])
+        termination = action[16]
+        adv_value.append(action[17])
         if termination == 1:
             termination_counts += 1
         last = d[-1]
