@@ -92,7 +92,7 @@ def experiment(env_name: str = 'StaticHit',
 
     env = BaseEnv(horizon=horizon)
 
-    env.info.action_space = Box(np.array([-np.pi, 0]), np.array([np.pi, 2]))
+    env.info.action_space = Box(np.array([-np.pi, 0]), np.array([np.pi, 1.5]))
 
     if check_point is None:
         agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info, adv_bonus=adv_bonus,
