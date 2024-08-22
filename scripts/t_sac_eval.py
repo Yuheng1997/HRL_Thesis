@@ -36,12 +36,12 @@ def main(
 
         # check_point: str = 'hit_back_2024-07-14_23-36-56/parallel_seed___0/0/HitBackEnv_2024-07-14-23-37-22',
         # check_point: str = 'static_hit_2024-07-15_16-27-51/parallel_seed___2/0/BaseEnv_2024-07-15-17-34-35',
-        check_point: str = 'static_hit_2024-08-21_02-08-16/parallel_seed___0/0/BaseEnv_2024-08-21-02-08-38',
+        check_point: str = 'static_hit_2024-08-22_03-08-03/parallel_seed___2/0/BaseEnv_2024-08-22-03-08-28',
         # check_point=None
 ):
-    # env = HitBackEnv(visual_target=True, horizon=1000)
-    env = BaseEnv(visual_target=True, horizon=200)
-    env.info.action_space = Box(np.array([-np.pi, 0]), np.array([np.pi, 2]))
+    env = HitBackEnv(visual_target=True, horizon=1000)
+    # env = BaseEnv(visual_target=True, horizon=200)
+    env.info.action_space = Box(np.array([-np.pi, 0]), np.array([np.pi, 1.5]))
 
     if check_point is None:
         agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info, adv_bonus=adv_bonus,
@@ -65,7 +65,7 @@ def main(
         cur_path = os.path.abspath('.')
         parent_dir = os.path.dirname(cur_path)
         check_path = os.path.join(parent_dir, 'trained_high_agent', check_point)
-        agent_1 = SACPlusTermination.load(get_file_by_postfix(check_path, 'agent-0.msh')[0])
+        agent_1 = SACPlusTermination.load(get_file_by_postfix(check_path, 'agent-2.msh')[0])
 
 
     baseline_agent = BaselineAgent(env.env_info, agent_id=2)

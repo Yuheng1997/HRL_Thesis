@@ -99,28 +99,35 @@ class HitBackEnv(position.IiwaPositionTournament):
 
         # has_hit
         if not self.has_hit:
-            if puck_vel[0] > 0.:
+            if puck_vel[0] > 0.1:
                 self.has_hit = True
                 v_norm = np.clip(puck_vel[0], a_min=0, a_max=2)
-                r += v_norm * 10
+                r += v_norm * 30 + 30
 
         # penalty of backside
         if not self.back_penalty:
             if puck_pos[0] < -0.8:
-                r -= 10
+                r -= 30
                 self.back_penalty = True
 
+        # reward of goal
+        if (np.abs(puck_pos[1]) - self.env_info['table']['goal_width'] / 2) < 0:
+            if puck_pos[0] > self.env_info['table']['length'] / 2:
+                r += 90
+            if puck_pos[0] < -self.env_info['table']['length'] / 2:
+                r -= 90
+
         # Puck stuck on our side for more than 8s
-        if np.sign(puck_pos[0]) == -1:
-            self.timer += self.dt
-        else:
-            self.timer = 0
-        if self.timer > 8.0 and np.abs(puck_pos[0]) >= 0.15:
-            r -= 10
-            self.timer = 0
+        # if np.sign(puck_pos[0]) == -1:
+        #     self.timer += self.dt
+        # else:
+        #     self.timer = 0
+        # if self.timer > 8.0 and np.abs(puck_pos[0]) >= 0.15:
+        #     r -= 10
+        #     self.timer = 0
 
         # success
-        if 0.1 > puck_pos[0] > 0.0 and puck_vel[0] > 0:
+        if 0.1 > puck_pos[0] > 0.0 and puck_vel[0] > 0.1:
             self._task_success = True
 
         return r
@@ -128,7 +135,7 @@ class HitBackEnv(position.IiwaPositionTournament):
     def _create_info_dictionary(self, cur_obs):
         task_info = super()._create_info_dictionary(cur_obs)
         task_info['success'] = self._task_success
-        task_info['num_across_line'] = self.cross_line_count
+        # task_info['num_across_line'] = self.cross_line_count
         return task_info
 
     def step(self, action):
@@ -138,9 +145,9 @@ class HitBackEnv(position.IiwaPositionTournament):
         else:
             a1 = action[0].flatten()[:14].reshape(2, 7)
             a2 = action[1]
-            target_pos = action[0].flatten()[14:16]
+            angle, scale = action[0].flatten()[14:16]
             if self.visual_target:
-                self.update_visual_ball(target_pos)
+                self.update_visual_ball(angle, scale)
             return super().step((a1, a2))
 
     def setup(self, obs):
@@ -188,14 +195,33 @@ class HitBackEnv(position.IiwaPositionTournament):
         self._model.site('puck_vis').size = np.array([*(puck_range[1] - puck_range[0]) / 2, 0.001])
         self._model.site('puck_vis').pos = np.array([*(puck_range[1] + puck_range[0]) / 2, 0.0])
 
-    def update_visual_ball(self, target_pos):
-        self._model.site('ball_1').rgba = np.array([0.3, 0.9, 0.3, 0.2])
-        self._model.site('ball_1').size = np.array(0.05)
-        self._model.site('ball_1').pos = np.array([*target_pos, 0.0]) - np.array([1.51, 0, 0])
+    def update_visual_ball(self, angle, scale):
+        vel_dir = np.array([np.cos(angle), np.sin(angle)])
+        quat = self.quaternion_from_euler(0, np.pi/2, angle)
+        start = self.get_ee()[0][:2] + np.array([0.08, 0])
+        # start = np.array([-0.1, 0, 0.05])
+        self._model.site('velocity_capsule').pos = np.array([*start, 0.01])
+        self._model.site('velocity_capsule').quat = quat
 
-        self._model.site('ball_2').rgba = np.array([0.3, 0.9, 0.3, 0.2])
-        self._model.site('ball_2').size = np.array(0.05)
-        self._model.site('ball_2').pos = np.array([*target_pos, 0.0]) - np.array([1.51, 0, 0])
+        start_pos = np.array([0, 0, 0])
+        end_pos = np.array([1, 0, 0])
+
+    def quaternion_from_euler(self, roll, pitch, yaw):
+        cr = np.cos(roll / 2)
+        sr = np.sin(roll / 2)
+        cp = np.cos(pitch / 2)
+        sp = np.sin(pitch / 2)
+        cy = np.cos(yaw / 2)
+        sy = np.sin(yaw / 2)
+
+        w = cr * cp * cy + sr * sp * sy
+        x = sr * cp * cy - cr * sp * sy
+        y = cr * sp * cy + sr * cp * sy
+        z = cr * cp * sy - sr * sp * cy
+
+        return np.array([w, x, y, z])
+
+
 
 
 if __name__ == '__main__':

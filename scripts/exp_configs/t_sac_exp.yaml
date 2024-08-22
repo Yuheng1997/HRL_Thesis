@@ -1,46 +1,48 @@
-env_name: 'HitBackEnv'
+env_name: 'BaseEnv'
 mode: 'online'
-load_nn_agent: 'Model_5600.pt'
-group: '22_07_adjust_logp'
+group: '22_08_based_on_22/learn_hit_back_reward'
 render: False
 record: False
 
+adv_bonus: 0.1
 #n_episodes: 100
-n_steps: 50000
+n_steps: 20000
 n_epochs: 100
-horizon: 1000
+horizon: 300
 n_steps_per_fit: 1
 num_adv_sample: 50
-initial_replay_size: 10000
-max_replay_size: 200000
-warmup_transitions: 10000
+initial_replay_size: 20000
+max_replay_size: 1000000
+warmup_transitions: 20000
+termination_warmup: 60000
 batch_size: 256
 tau: 0.003
 dropout_ratio: 0.01
 layer_norm: False
 #n_eval_episodes: 10
-n_eval_steps: 5000
+n_eval_steps: 3000
 full_save: False
 
 #lr_alpha: 0.00001
 #actor_lr: 0.0003
 lr_alpha: 0.00001
-actor_lr: 0.00003
-critic_lr: 0.00003
+actor_lr: 0.0003
+critic_lr: 0.0003
+termination_lr: 0.00001
 target_entropy: -2
 
-task_curriculum: True
+task_curriculum: False
 curriculum_steps: 10
 
-#check_point__: "./logs/high_level_2024-05-22_19-59-26/parallel_seed___0/0/BaseEnv_2024-05-22-19-59-51"
+#check_point__: "./logs/static_hit_2024-07-29_16-04-22/parallel_seed___1/0/BaseEnv_2024-07-29-16-19-05"
 
 sweep_params:
   parallel_seed__: [0, 1, 2]
 
 
 experiments:
-  exp_name: 'hit_back'
-  exp_file: 'train_t_sac_exp'
+  exp_name: 'static_hit'
+  exp_file: 'train_t_sac_static_hit'
   n_seeds: 1
   n_cores: 4
   n_exps_in_parallel: 1
@@ -55,5 +57,6 @@ experiments:
   use_timestamp: True
   compact_dirs: False
   use_cuda: True
+
 
 

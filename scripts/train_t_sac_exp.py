@@ -12,6 +12,7 @@ from hrl_air_hockey.experiment_launcher import single_experiment, run_experiment
 from baseline.baseline_agent.baseline_agent import BaselineAgent
 
 from hrl_air_hockey.envs.hit_back_env import HitBackEnv
+from hrl_air_hockey.envs.base_env import BaseEnv
 from hrl_air_hockey.agents.t_sac import SACPlusTermination
 from hrl_air_hockey.agents.double_agent_wrapper import HRLTournamentAgentWrapper
 from hrl_air_hockey.utils.agent_builder import build_agent_T_SAC
@@ -19,47 +20,46 @@ from nn_planner_config import Config
 
 
 @single_experiment
-def experiment(env_name: str = 'BaseEnv',
-               n_epochs: int = 1,
-               n_steps: int = 1000,
-               n_episodes: int = 1,
+def experiment(env_name: str = 'StaticHit',
+               n_epochs: int = 10,
+               n_steps: int = 300,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
                render: bool = False,
                record: bool = False,
-               n_eval_episodes: int = 1,
-               n_eval_steps: int = 1000,
+               n_eval_steps: int = 200,
                mode: str = 'disabled',
-               horizon: int = 1000,
-               load_nn_agent: str = 'Model_2400.pt',
+               horizon: int = 300,
                full_save: bool = False,
 
                group: str = None,
 
                actor_lr: float = 3e-4,
                critic_lr: float = 3e-4,
-               termination_lr: float = 3e-4,
+               termination_lr: float = 3e-6,
                num_adv_sample: int = 50,
+               adv_bonus: float = 0.01,
                n_features_actor: str = '256 256 256',
                n_features_critic: str = '256 256 256',
                n_features_termination: str = '256 256 256',
-               batch_size: int = 8,
+               batch_size: int = 64,
                initial_replay_size: int = 8,
                max_replay_size: int = 200000,
                tau: float = 1e-3,
                warmup_transitions: int = 8,
+               termination_warmup: int = 8,
                lr_alpha: float = 1e-5,
-               target_entropy: float = -4,
+               target_entropy: float = -2,
                use_cuda: bool = True,
                dropout_ratio: float = 0.01,
                layer_norm: bool = False,
 
                # Continue training
-               # check_point: str = 'static_hit_2024-07-15_16-27-51/parallel_seed___2/0/BaseEnv_2024-07-15-17-34-35',
-               check_point: str = None,
+               check_point: str = 'static_hit_2024-08-22_03-08-03/parallel_seed___2/0/BaseEnv_2024-08-22-03-08-28',
+               # check_point: str = None,
 
                # curriculum config
-               task_curriculum: bool = True,
+               task_curriculum: bool = False,
                curriculum_steps: int = 10,
 
                parallel_seed: int = None,
@@ -90,22 +90,19 @@ def experiment(env_name: str = 'BaseEnv',
         "render": render
     }
 
-    env = HitBackEnv(horizon=horizon, gamma=0.99, task_curriculum=task_curriculum, curriculum_steps=curriculum_steps)
+    env = HitBackEnv()
 
-    env.info.action_space = Box(np.array([0.6, -0.39105, -np.pi, 0.]), np.array([1.3, 0.39105, np.pi, 1]))
+    env.info.action_space = Box(np.array([-np.pi, 0]), np.array([np.pi, 1.5]))
 
     if check_point is None:
-        planner_path = os.path.join('..', 'trained_low_agent', load_nn_agent)
-        planner_config = Config
-        agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info,
-                                    planner_path=planner_path, planner_config=planner_config,
+        agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info, adv_bonus=adv_bonus,
                                     actor_lr=actor_lr, critic_lr=critic_lr, termination_lr=termination_lr,
                                     n_features_actor=n_features_actor, n_features_critic=n_features_critic,
                                     n_features_termination=n_features_termination, batch_size=batch_size,
                                     initial_replay_size=initial_replay_size, max_replay_size=max_replay_size, tau=tau,
                                     num_adv_sample=num_adv_sample, warmup_transitions=warmup_transitions,
                                     lr_alpha=lr_alpha, target_entropy=target_entropy, dropout_ratio=dropout_ratio,
-                                    layer_norm=layer_norm, use_cuda=use_cuda)
+                                    layer_norm=layer_norm, use_cuda=use_cuda, termination_warmup=termination_warmup)
         agent_1._log_alpha = torch.tensor(np.log(0.4)).to(agent_1._log_alpha).requires_grad_(True)
         agent_1._alpha_optim = optim.Adam([agent_1._log_alpha], lr=lr_alpha)
     else:
@@ -121,7 +118,7 @@ def experiment(env_name: str = 'BaseEnv',
         cur_path = os.path.abspath('.')
         parent_dir = os.path.dirname(cur_path)
         check_path = os.path.join(parent_dir, 'trained_high_agent', check_point)
-        agent_1 = SACPlusTermination.load(get_file_by_postfix(check_path, 'agent-0.msh')[0])
+        agent_1 = SACPlusTermination.load(get_file_by_postfix(check_path, 'agent-2.msh')[0])
         agent_1._alpha_optim = optim.Adam([agent_1._log_alpha], lr=lr_alpha)
 
     baseline_agent = BaselineAgent(env.env_info, agent_id=2)
@@ -131,18 +128,18 @@ def experiment(env_name: str = 'BaseEnv',
     best_R = -np.inf
 
     # initial evaluate
-    J, R, E, V, alpha, Beta, task_info = compute_metrics(core, eval_params, record)
+    J, R, E, V, alpha, max_Beta, mean_Beta, task_info = compute_metrics(core, eval_params, record)
 
-    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, **task_info)
+    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, **task_info)
     size_replay_memory = core.agent.agent_1._replay_memory.size
-    num_violate_point = core.agent.agent_1.traj_planner.num_violate_point
+    adv_func_in_fit = np.mean(core.agent.agent_1.adv_list)
 
-    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, size_replay_memory=size_replay_memory,
-                      num_violate_point=num_violate_point, **task_info)
+    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta,
+                      size_replay_memory=size_replay_memory, **task_info)
 
     log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                "Training/beta": Beta, "Training/num_violate_point": num_violate_point,
-                "Training/size_replay_memory": size_replay_memory}
+                "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta,
+                "size_replay_memory": size_replay_memory, "Termination/adv_value_in_fit(mean)": adv_func_in_fit}
 
     task_dict = {}
     for key, value in task_info.items():
@@ -155,13 +152,11 @@ def experiment(env_name: str = 'BaseEnv',
     wandb.log(log_dict, step=0)
 
     for epoch in tqdm(range(n_epochs), disable=False):
-        # core.agent.learning_agent.num_fits_left = n_steps
-        # core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
 
-        J, R, E, V, alpha, Beta, task_info = compute_metrics(core, eval_params, record)
+        J, R, E, V, alpha, max_Beta, mean_Beta, task_info = compute_metrics(core, eval_params, record)
         size_replay_memory = core.agent.agent_1._replay_memory.size
-        num_violate_point = core.agent.agent_1.traj_planner.num_violate_point
+        adv_func_in_fit = np.mean(core.agent.agent_1.adv_list)
 
         if task_curriculum:
             if task_info['success_rate'] >= 0.7:
@@ -169,12 +164,12 @@ def experiment(env_name: str = 'BaseEnv',
             task_info['task_id'] = env.task_curriculum_dict['idx']
 
         # Write logging
-        logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, **task_info)
-        logger.epoch_info(epoch + 1, J=J, R=R, E=E, V=V, alpha=alpha, Beta=Beta, size_replay_memory=size_replay_memory,
-                          num_violate_point=num_violate_point, **task_info)
+        logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, **task_info)
+        logger.epoch_info(epoch + 1, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta,
+                          size_replay_memory=size_replay_memory, **task_info)
         log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                    "Training/beta": Beta, "Training/num_violate_point": num_violate_point,
-                    "Training/size_replay_memory": size_replay_memory}
+                    "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta,
+                    "size_replay_memory": size_replay_memory, "Termination/adv_value_in_fit(mean)": adv_func_in_fit}
 
         task_dict = {}
         for key, value in task_info.items():
@@ -185,7 +180,7 @@ def experiment(env_name: str = 'BaseEnv',
                 task_dict[key] = value
         log_dict.update(task_dict)
         wandb.log(log_dict, step=epoch + 1)
-
+        core.agent.agent_1.adv_list = []
         logger.log_agent(agent_1, full_save=full_save)
 
 
@@ -216,18 +211,23 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
         return np.array(Q).mean()
 
     def sample_states_traj(dataset):
-        i = 1
         states = list()
-        while not dataset[i][5]:
+        options = list()
+        for i in range(len(dataset)):
             states.append(dataset[i][0])
-            i += 1
-        return np.array(states)
+            options.append(dataset[i][1][14:16])
+        return np.array(states), np.array(options)
+
+    def compute_mean_beta(agent, dataset):
+        states_traj, options_traj = sample_states_traj(dataset)
+        beta = np.array(
+            [agent.termination_approximator.predict(states_traj[i], options_traj[i]) for i in range(len(states_traj))])
+        return np.mean(beta)
 
     def compute_max_beta(agent, dataset):
-        initial_state = dataset[0][0]
-        initial_option = agent.policy.draw_action(initial_state)
-        states_traj = sample_states_traj(dataset)
-        beta = np.array([agent.termination_approximator.predict(states_traj[i], initial_option) for i in range(len(states_traj))])
+        states_traj, options_traj = sample_states_traj(dataset)
+        beta = np.array(
+            [agent.termination_approximator.predict(states_traj[i], options_traj[i]) for i in range(len(states_traj))])
         return np.max(beta)
 
     def spilt_dataset(_dataset):
@@ -244,7 +244,7 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
         assert len(_dataset) > 0
 
         state = np.ones((len(_dataset),) + _dataset[0][0].shape)
-        action = np.ones((len(_dataset),) + (4,))
+        option = np.ones((len(_dataset),) + (2,))
         reward = np.ones(len(_dataset))
         next_state = np.ones((len(_dataset),) + _dataset[0][0].shape)
         absorbing = np.ones(len(_dataset))
@@ -252,13 +252,13 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
 
         for i in range(len(_dataset)):
             state[i, ...] = _dataset[i][0]
-            action[i, ...] = _dataset[i][1][14:18]
+            option[i, ...] = _dataset[i][1][14:16]
             reward[i] = _dataset[i][2]
             next_state[i, ...] = _dataset[i][3]
             absorbing[i] = _dataset[i][4]
             last[i] = _dataset[i][5]
 
-        return np.array(state), np.array(action), np.array(reward), np.array(
+        return np.array(state), np.array(option), np.array(reward), np.array(
             next_state), np.array(absorbing), np.array(last)
 
     dataset, dataset_info = core.evaluate(**eval_params, record=record, get_env_info=True)
@@ -274,7 +274,9 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
 
     V = compute_V(rl_agent, dataset)
 
-    Beta = compute_max_beta(rl_agent, dataset)
+    max_Beta = compute_max_beta(rl_agent, dataset)
+
+    mean_Beta = compute_mean_beta(rl_agent, dataset)
 
     alpha = rl_agent._alpha.cpu().detach().numpy()
 
@@ -285,46 +287,31 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
         core.mdp.clear_task_info()
 
     if return_dataset:
-        return J, R, E, V, alpha, Beta, task_info, parsed_dataset, dataset_info
+        return J, R, E, V, alpha, max_Beta, mean_Beta, task_info, parsed_dataset, dataset_info
 
-    return J, R, E, V, alpha, Beta, task_info
+    return J, R, E, V, alpha, max_Beta, mean_Beta, task_info
 
 
 def get_dataset_info(core, dataset, dataset_info):
     epoch_info = {}
     success_list = []
-    num_list = []
-    num_short_traj = 0
     termination_counts = 0
-    num_traj = 0
-    beta_termination = 0
-    rest_traj_len = 0
+    episodes = 0
+    adv_value = []
     for i, d in enumerate(dataset):
         action = d[1]
-        last_traj_length = action[19]
-        termination = action[18]
-        beta_t = action[21]
-        if beta_t == 1:
-            rest_traj_len += action[22]
-            beta_termination += 1
+        termination = action[16]
+        adv_value.append(action[17])
         if termination == 1:
-            num_traj += 1
             termination_counts += 1
-            if last_traj_length < 10:
-                num_short_traj += 1
         last = d[-1]
         if last:
+            episodes += 1
             success_list.append(dataset_info['success'][i])
-            if not termination == 1:
-                num_traj += 1
-    epoch_info['success_rate'] = np.sum(success_list) / len(success_list)
-    epoch_info['termination_num'] = termination_counts
-    epoch_info['mean_traj_length'] = len(dataset) / num_traj
-    epoch_info['num_short_traj'] = num_short_traj
-    epoch_info['num_traj'] = num_traj
-    epoch_info['beta_termination'] = beta_termination
-    epoch_info['rest_traj_len'] = rest_traj_len
 
+    epoch_info['success_rate'] = sum(success_list) / (len(success_list)+1)
+    epoch_info['adv_value_in_action(mean)'] = sum(adv_value) / len(adv_value)
+    epoch_info['termination_num'] = termination_counts
     return epoch_info
 
 
