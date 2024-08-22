@@ -73,7 +73,7 @@ def main(
 
     core = Core(agent, env)
 
-    core.evaluate(n_episodes=8, render=True, record=True)
+    core.evaluate(n_episodes=8, render=True, record=False)
 
 
 if __name__ == "__main__":

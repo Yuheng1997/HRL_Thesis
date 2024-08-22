@@ -7,10 +7,10 @@ import mujoco
 # from atacom.utils import smooth_basis
 
 
-from hrl_air_hockey.atacom.core.system import VelocityControlSystem
-from hrl_air_hockey.atacom.core.constraints import ConstraintList, Constraint
-from hrl_air_hockey.atacom.core.atacom_controller import ATACOMController
-from hrl_air_hockey.atacom.core.utils import smooth_basis
+from atacom.core.system import VelocityControlSystem
+from atacom.core.constraints import ConstraintList, Constraint
+from atacom.core.atacom_controller import ATACOMController
+from atacom.core.utils import smooth_basis
 from air_hockey_challenge.utils.kinematics import jacobian, forward_kinematics
 
 

@@ -14,7 +14,7 @@ class HitBackEnv(position.IiwaPositionTournament):
                 'static': dict(distance=3.0, elevation=-45.0, azimuth=90.0, lookat=(0., 0., 0.))
             }
         }
-        super().__init__(gamma=gamma, horizon=horizon, interpolation_order=(3, 3), viewer_params=viewer_params,
+        super().__init__(gamma=gamma, horizon=horizon, interpolation_order=(-1, -1), viewer_params=viewer_params,
                          agent_name='agent',
                          opponent_name='opponent')
         self.visual_target = visual_target
