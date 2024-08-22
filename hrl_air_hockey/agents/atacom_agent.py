@@ -1,11 +1,6 @@
 import numpy as np
 import copy
 import mujoco
-# from atacom.system import VelocityControlSystem
-# from atacom.constraints import ConstraintList, Constraint
-# from atacom.atacom_controller import ATACOMController
-# from atacom.utils import smooth_basis
-
 
 from atacom.core.system import VelocityControlSystem
 from atacom.core.constraints import ConstraintList, Constraint

@@ -25,7 +25,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         self.initial_puck_pos = None
         self.n_robot_joints = self.env_info['robot']["n_joints"]
         self.cross_line_count = 0
-        self.start_side = 1
+        self.start_side = -1
         self.middle_timer = 0
         # curriculum config
         self.start_range = None
@@ -127,7 +127,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         #     self.timer = 0
 
         # success
-        if 0.1 > puck_pos[0] > 0.0 and puck_vel[0] > 0.1:
+        if 0.1 > puck_pos[0] > 0.0 and puck_vel[0] > 0.2:
             self._task_success = True
 
         return r
@@ -145,9 +145,9 @@ class HitBackEnv(position.IiwaPositionTournament):
         else:
             a1 = action[0].flatten()[:14].reshape(2, 7)
             a2 = action[1]
-            angle, scale = action[0].flatten()[14:16]
+            target_pos_2d = action[0].flatten()[14:16]
             if self.visual_target:
-                self.update_visual_ball(angle, scale)
+                self.update_visual_ball(target_pos_2d)
             return super().step((a1, a2))
 
     def setup(self, obs):
@@ -171,7 +171,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         if self.puck_pos is not None:
             puck_pos = self.puck_pos
 
-        self.start_side *= -1
+        self.start_side = -1
         self.initial_puck_pos = puck_pos
 
         puck_vel = np.zeros(3)
@@ -195,31 +195,11 @@ class HitBackEnv(position.IiwaPositionTournament):
         self._model.site('puck_vis').size = np.array([*(puck_range[1] - puck_range[0]) / 2, 0.001])
         self._model.site('puck_vis').pos = np.array([*(puck_range[1] + puck_range[0]) / 2, 0.0])
 
-    def update_visual_ball(self, angle, scale):
-        vel_dir = np.array([np.cos(angle), np.sin(angle)])
-        quat = self.quaternion_from_euler(0, np.pi/2, angle)
-        start = self.get_ee()[0][:2] + np.array([0.08, 0])
-        # start = np.array([-0.1, 0, 0.05])
-        self._model.site('velocity_capsule').pos = np.array([*start, 0.01])
-        self._model.site('velocity_capsule').quat = quat
-
-        start_pos = np.array([0, 0, 0])
-        end_pos = np.array([1, 0, 0])
-
-    def quaternion_from_euler(self, roll, pitch, yaw):
-        cr = np.cos(roll / 2)
-        sr = np.sin(roll / 2)
-        cp = np.cos(pitch / 2)
-        sp = np.sin(pitch / 2)
-        cy = np.cos(yaw / 2)
-        sy = np.sin(yaw / 2)
-
-        w = cr * cp * cy + sr * sp * sy
-        x = sr * cp * cy - cr * sp * sy
-        y = cr * sp * cy + sr * cp * sy
-        z = cr * cp * sy - sr * sp * cy
-
-        return np.array([w, x, y, z])
+    def update_visual_ball(self, target_pos_2d):
+        target_pos_2d = target_pos_2d - np.array([1.51, 0])
+        self._model.site('ball_1').rgba = np.array([0.0, 0.6, 0.3, 0.2])
+        self._model.site('ball_1').size = 0.05
+        self._model.site('ball_1').pos = np.array([*target_pos_2d, 0.01])
 
 
 

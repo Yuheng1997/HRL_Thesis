@@ -1,6 +1,6 @@
 env_name: 'BaseEnv'
 mode: 'online'
-group: '22_08_based_on_22/learn_hit_back_reward'
+group: '22_08_atacom_xy/learn_hit_back_reward'
 render: False
 record: False
 
@@ -8,7 +8,7 @@ adv_bonus: 0.1
 #n_episodes: 100
 n_steps: 20000
 n_epochs: 100
-horizon: 300
+horizon: 1000
 n_steps_per_fit: 1
 num_adv_sample: 50
 initial_replay_size: 20000
@@ -31,8 +31,8 @@ critic_lr: 0.0003
 termination_lr: 0.00001
 target_entropy: -2
 
-task_curriculum: False
-curriculum_steps: 10
+task_curriculum: True
+curriculum_steps: 6
 
 #check_point__: "./logs/static_hit_2024-07-29_16-04-22/parallel_seed___1/0/BaseEnv_2024-07-29-16-19-05"
 

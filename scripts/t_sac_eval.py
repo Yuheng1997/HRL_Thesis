@@ -36,12 +36,12 @@ def main(
 
         # check_point: str = 'hit_back_2024-07-14_23-36-56/parallel_seed___0/0/HitBackEnv_2024-07-14-23-37-22',
         # check_point: str = 'static_hit_2024-07-15_16-27-51/parallel_seed___2/0/BaseEnv_2024-07-15-17-34-35',
-        check_point: str = 'static_hit_2024-08-22_03-08-03/parallel_seed___2/0/BaseEnv_2024-08-22-03-08-28',
-        # check_point=None
+        # check_point: str = 'static_hit_2024-08-22_16-55-43/parallel_seed___2/0/BaseEnv_2024-08-22-16-59-18',
+        check_point=None
 ):
     env = HitBackEnv(visual_target=True, horizon=1000)
     # env = BaseEnv(visual_target=True, horizon=200)
-    env.info.action_space = Box(np.array([-np.pi, 0]), np.array([np.pi, 1.5]))
+    env.info.action_space = Box(np.array([-0.9 + 1.51, -0.45]), np.array([-0.2 + 1.51, 0.45]))
 
     if check_point is None:
         agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info, adv_bonus=adv_bonus,

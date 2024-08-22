@@ -6,6 +6,7 @@ from mushroom_rl.approximators.parametric import TorchApproximator
 from hrl_air_hockey.utils.t_replay_memory import TReplayMemory
 from hrl_air_hockey.bspline_planner.planner import TrajectoryPlanner
 from hrl_air_hockey.agents.atacom_agent import AirHockeyController
+from hrl_air_hockey.bspline_planner.utils.kinematics import forward_kinematics
 
 class SACPlusTermination(SAC):
     """
@@ -78,20 +79,13 @@ class SACPlusTermination(SAC):
         if np.random.uniform() < term_prob:
             self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
             self.last_option = self.last_option.squeeze()
-            v_2d = self._get_target_vel(self.last_option)
-            low_action = self.traj_planner.compute_control(v_2d, state).flatten()
+            target_2d = self._get_target_2d(self.last_option, state)
+            low_action = self.traj_planner.compute_control(target_2d, state).flatten()
             termination = np.array([1])
         else:
-            v_2d = self._get_target_vel(self.last_option)
-            low_action = self.traj_planner.compute_control(v_2d, state).flatten()
+            target_2d = self._get_target_2d(self.last_option, state)
+            low_action = self.traj_planner.compute_control(target_2d, state).flatten()
             termination = np.array([0])
-
-        # if termination == 1:
-        #     last_smdp_length = self.cur_smdp_length
-        #     self.cur_smdp_length = 0
-        # else:
-        #     last_smdp_length = self.cur_smdp_length
-        #     self.cur_smdp_length += 1
 
         expand_state = np.repeat(state[np.newaxis, :], 50, axis=0)
         expand_new_option = self.policy.draw_action(expand_state)
@@ -125,8 +119,6 @@ class SACPlusTermination(SAC):
 
             gt = reward + self.mdp_info.gamma * ((1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing)
                  + beta_prime.detach() * self.q_next(next_state, option_prime, absorbing) - self._alpha.detach() * log_p_prime.detach())
-            # gt = reward + self.mdp_info.gamma * ((1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing)
-            #      + beta_prime.detach() * self.q_next(next_state, option_prime, absorbing))
 
             self._critic_approximator.fit(state, option, gt, **self._critic_fit_params)
 
@@ -144,11 +136,11 @@ class SACPlusTermination(SAC):
 
         return (self._alpha * log_prob - q).mean()
 
-    def _get_target_vel(self, action):
-        angle = action[0]
-        scale = action[1]
-        hit_vel = np.array([np.cos(angle), np.sin(angle)]) * scale
-        return hit_vel.squeeze()
+    def _get_target_2d(self, target_pos, state):
+        ee_pos = forward_kinematics(self.traj_planner.robot_model, self.traj_planner.robot_data, state[6:13], link="ee")[0][:2]
+        action = (target_pos[:2] - ee_pos[:2]) * 30
+        action = np.clip(action, -1.5, 1.5)
+        return action
 
     def add_t_dataset(self, dataset):
         t_dataset = list()

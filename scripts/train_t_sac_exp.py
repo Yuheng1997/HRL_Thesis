@@ -29,7 +29,7 @@ def experiment(env_name: str = 'StaticHit',
                record: bool = False,
                n_eval_steps: int = 200,
                mode: str = 'disabled',
-               horizon: int = 300,
+               horizon: int = 800,
                full_save: bool = False,
 
                group: str = None,
@@ -55,8 +55,8 @@ def experiment(env_name: str = 'StaticHit',
                layer_norm: bool = False,
 
                # Continue training
-               check_point: str = 'static_hit_2024-08-22_03-08-03/parallel_seed___2/0/BaseEnv_2024-08-22-03-08-28',
-               # check_point: str = None,
+               # check_point: str = 'static_hit_2024-08-22_03-08-03/parallel_seed___2/0/BaseEnv_2024-08-22-03-08-28',
+               check_point: str = None,
 
                # curriculum config
                task_curriculum: bool = False,
@@ -90,9 +90,9 @@ def experiment(env_name: str = 'StaticHit',
         "render": render
     }
 
-    env = HitBackEnv()
+    env = HitBackEnv(horizon=horizon, curriculum_steps=curriculum_steps)
 
-    env.info.action_space = Box(np.array([-np.pi, 0]), np.array([np.pi, 1.5]))
+    env.info.action_space = Box(np.array([-0.9 + 1.51, -0.45]), np.array([-0.2 + 1.51, 0.45]))
 
     if check_point is None:
         agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info, adv_bonus=adv_bonus,
