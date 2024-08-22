@@ -123,10 +123,10 @@ class SACPlusTermination(SAC):
             beta_prime = self.termination_approximator.predict(next_state, option, output_tensor=True).squeeze(-1)
             option_prime, log_p_prime = self.policy.compute_action_and_log_prob_t(next_state)
 
-            # gt = reward + self.mdp_info.gamma * ((1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing)
-            #      + beta_prime.detach() * self.q_next(next_state, option_prime, absorbing) - self._alpha.detach() * log_p_prime.detach())
             gt = reward + self.mdp_info.gamma * ((1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing)
-                 + beta_prime.detach() * self.q_next(next_state, option_prime, absorbing))
+                 + beta_prime.detach() * self.q_next(next_state, option_prime, absorbing) - self._alpha.detach() * log_p_prime.detach())
+            # gt = reward + self.mdp_info.gamma * ((1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing)
+            #      + beta_prime.detach() * self.q_next(next_state, option_prime, absorbing))
 
             self._critic_approximator.fit(state, option, gt, **self._critic_fit_params)
 
@@ -154,7 +154,7 @@ class SACPlusTermination(SAC):
         t_dataset = list()
         for i, d in enumerate(dataset):
             state = torch.tensor(d[0], device=self.device)
-            option = torch.tensor(d[1][14], device=self.device)
+            option = torch.tensor(d[1][14:16], device=self.device)
             reward = torch.tensor(d[2], device=self.device)
             next_state = torch.tensor(d[3], device=self.device)
             absorbing = torch.tensor(d[4], device=self.device)
