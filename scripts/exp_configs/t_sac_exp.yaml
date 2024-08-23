@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '23_08_atacom_xy/learn_hit_back_reward'
+group: '23_08_fix_range/table/reward/serve_all'
 render: False
 record: False
 
@@ -20,7 +20,7 @@ tau: 0.003
 dropout_ratio: 0.01
 layer_norm: False
 #n_eval_episodes: 10
-n_eval_steps: 3000
+n_eval_steps: 5000
 full_save: False
 
 #lr_alpha: 0.00001

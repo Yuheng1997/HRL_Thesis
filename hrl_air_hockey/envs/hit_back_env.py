@@ -25,7 +25,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         self.initial_puck_pos = None
         self.n_robot_joints = self.env_info['robot']["n_joints"]
         self.cross_line_count = 0
-        self.start_side = -1
+        self.start_side = 1
         self.middle_timer = 0
         # curriculum config
         self.start_range = None
@@ -43,7 +43,7 @@ class HitBackEnv(position.IiwaPositionTournament):
 
     def prepare_curriculum_dict(self, curriculum_steps):
         curriculum_dict = {'total_steps': curriculum_steps}
-        x_low = np.linspace(0.6, 0.1, curriculum_dict['total_steps'])
+        x_low = np.linspace(0.6, 0.2, curriculum_dict['total_steps'])
         y_low = np.linspace(-0.1, -0.45, curriculum_dict['total_steps'])
         x_high = np.linspace(0.7, 0.7, curriculum_dict['total_steps'])
         y_high = np.linspace(0.1, 0.45, curriculum_dict['total_steps'])
@@ -57,13 +57,13 @@ class HitBackEnv(position.IiwaPositionTournament):
         if np.any(np.abs(puck_pos[:2]) > boundary) or np.linalg.norm(puck_vel) > 100:
             return True
 
-        # Puck stuck for more than 8s
+        # Puck stuck for more than 5s
         if np.linalg.norm(puck_vel[0]) < 0.025:
             self.side_timer += self.dt
         else:
             self.side_timer = 0
 
-        if self.side_timer > 8.0:
+        if self.side_timer > 5.0:
             return True
 
         # Puck in Goal
@@ -91,7 +91,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         r = 0
 
         # check flag
-        if puck_pos[0] > 0.0:
+        if puck_pos[0] > 0.0 and puck_vel[0] < 0.0:
             if self.has_hit:
                 self.has_hit = False
             if self.back_penalty:
@@ -101,35 +101,24 @@ class HitBackEnv(position.IiwaPositionTournament):
         if not self.has_hit:
             if puck_vel[0] > 0.1:
                 self.has_hit = True
-                v_norm = np.clip(puck_vel[0], a_min=0, a_max=2)
-                r += v_norm * 30 + 30
+                r += puck_vel[0] * 30 + 10
 
         # penalty of backside
         if not self.back_penalty:
             if puck_pos[0] < -0.8:
-                r -= 30
+                r -= 20
                 self.back_penalty = True
 
         # reward of goal
         if (np.abs(puck_pos[1]) - self.env_info['table']['goal_width'] / 2) < 0:
             if puck_pos[0] > self.env_info['table']['length'] / 2:
-                r += 90
+                r += 200
             if puck_pos[0] < -self.env_info['table']['length'] / 2:
-                r -= 90
-
-        # Puck stuck on our side for more than 8s
-        # if np.sign(puck_pos[0]) == -1:
-        #     self.timer += self.dt
-        # else:
-        #     self.timer = 0
-        # if self.timer > 8.0 and np.abs(puck_pos[0]) >= 0.15:
-        #     r -= 10
-        #     self.timer = 0
+                r -= 200
 
         # success
         if 0.1 > puck_pos[0] > 0.0 and puck_vel[0] > 0.2:
             self._task_success = True
-
         return r
 
     def _create_info_dictionary(self, cur_obs):
@@ -171,7 +160,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         if self.puck_pos is not None:
             puck_pos = self.puck_pos
 
-        self.start_side = -1
+        self.start_side *= -1
         self.initial_puck_pos = puck_pos
 
         puck_vel = np.zeros(3)
