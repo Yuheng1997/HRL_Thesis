@@ -1,4 +1,4 @@
-env_name: 'BaseEnv'
+env_name: 'HitBackEnv'
 mode: 'online'
 group: '22_08_atacom_xy/learn_hit_back_reward'
 render: False
@@ -41,8 +41,8 @@ sweep_params:
 
 
 experiments:
-  exp_name: 'static_hit'
-  exp_file: 'train_t_sac_static_hit'
+  exp_name: 't_sac'
+  exp_file: 'train_t_sac_exp'
   n_seeds: 1
   n_cores: 4
   n_exps_in_parallel: 1
