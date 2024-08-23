@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '22_08_atacom_xy/learn_hit_back_reward'
+group: '23_08_atacom_xy/learn_hit_back_reward'
 render: False
 record: False
 
