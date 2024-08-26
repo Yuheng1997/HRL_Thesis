@@ -21,15 +21,15 @@ from nn_planner_config import Config
 
 @single_experiment
 def experiment(env_name: str = 'StaticHit',
-               n_epochs: int = 10,
-               n_steps: int = 300,
+               n_epochs: int = 1,
+               n_steps: int = 600,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
-               render: bool = False,
+               render: bool = True,
                record: bool = False,
-               n_eval_steps: int = 200,
+               n_eval_steps: int = 600,
                mode: str = 'disabled',
-               horizon: int = 800,
+               horizon: int = 200,
                full_save: bool = False,
 
                group: str = None,
@@ -51,7 +51,7 @@ def experiment(env_name: str = 'StaticHit',
                termination_warmup: int = 8,
                lr_alpha: float = 1e-5,
                target_entropy: float = -2,
-               use_cuda: bool = True,
+               use_cuda: bool = False,
                dropout_ratio: float = 0.01,
                layer_norm: bool = False,
 
@@ -64,7 +64,7 @@ def experiment(env_name: str = 'StaticHit',
 
                # curriculum config
                task_curriculum: bool = False,
-               curriculum_steps: int = 10,
+               curriculum_steps: int = 6,
 
                parallel_seed: int = None,
                seed: int = 0,
@@ -80,7 +80,8 @@ def experiment(env_name: str = 'StaticHit',
 
     if agent_path_list is None:
         agent_path_list = ['t_sac_2024-08-24_01-27-29/parallel_seed___0/0/HitBackEnv_2024-08-24-01-28-27',
-                           't_sac_2024-08-24_01-27-29/parallel_seed___2/0/HitBackEnv_2024-08-24-01-28-25'
+                           't_sac_2024-08-23_11-27-27/parallel_seed___0/0/HitBackEnv_2024-08-23-11-28-06',
+                           'StaticHit_2024-08-26-18-14-41/parallel_seed___0'
                            ]
         oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
         baseline_agent = BaselineAgent(env.env_info, agent_id=2)

@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '26_08_multi_opponent'
+group: '26_08_multi_opponent/self_serve'
 render: False
 record: False
 
@@ -32,7 +32,7 @@ critic_lr: 0.0003
 termination_lr: 0.00001
 target_entropy: -2
 
-task_curriculum: True
+task_curriculum: False
 curriculum_steps: 6
 
 #check_point__: "./logs/static_hit_2024-07-29_16-04-22/parallel_seed___1/0/BaseEnv_2024-07-29-16-19-05"
