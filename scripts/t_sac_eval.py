@@ -36,10 +36,11 @@ def main(
 
         # check_point: str = 'hit_back_2024-07-14_23-36-56/parallel_seed___0/0/HitBackEnv_2024-07-14-23-37-22',
         # check_point: str = 'static_hit_2024-07-15_16-27-51/parallel_seed___2/0/BaseEnv_2024-07-15-17-34-35',
-        check_point: str = 't_sac_2024-08-23_11-27-27/parallel_seed___0/0/HitBackEnv_2024-08-23-11-28-06',
+        # check_point: str = 't_sac_2024-08-23_11-27-27/parallel_seed___0/0/HitBackEnv_2024-08-23-11-28-06',
+        check_point: str = 't_sac_2024-08-24_01-27-29/parallel_seed___0/0/HitBackEnv_2024-08-24-01-28-27',
         # check_point=None
 ):
-    env = HitBackEnv(visual_target=True, horizon=200, curriculum_steps=6)
+    env = HitBackEnv(visual_target=True, horizon=200, curriculum_steps=6, gamma=0.997)
     # env = BaseEnv(visual_target=True, horizon=200)
     env.info.action_space = Box(np.array([-0.9 + 1.51, -0.45]), np.array([-0.2 + 1.51, 0.45]))
     env.task_curriculum_dict['idx'] = 5
@@ -54,59 +55,36 @@ def main(
                                     lr_alpha=lr_alpha, target_entropy=target_entropy, dropout_ratio=dropout_ratio,
                                     layer_norm=layer_norm, use_cuda=use_cuda, termination_warmup=termination_warmup)
     else:
-        def get_file_by_postfix(parent_dir, postfix):
-            file_list = list()
-            for root, dirs, files in os.walk(parent_dir):
-                for f in files:
-                    if f.endswith(postfix):
-                        a = os.path.join(root, f)
-                        file_list.append(a)
-            return file_list
-
-        cur_path = os.path.abspath('.')
-        parent_dir = os.path.dirname(cur_path)
-        check_path = os.path.join(parent_dir, 'trained_high_agent', check_point)
-        agent_1 = SACPlusTermination.load(get_file_by_postfix(check_path, 'agent-0.msh')[0])
-
+        agent_1 = SACPlusTermination.load(get_agent_path(check_point))
 
     baseline_agent = BaselineAgent(env.env_info, agent_id=2)
-    agent = HRLTournamentAgentWrapper(env.env_info, agent_1, baseline_agent)
+    agent_path_list = ['t_sac_2024-08-24_01-27-29/parallel_seed___0/0/HitBackEnv_2024-08-24-01-28-27',
+                       't_sac_2024-08-24_01-27-29/parallel_seed___2/0/HitBackEnv_2024-08-24-01-28-25'
+                       ]
+    oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
+    oppponent_agent_list.append(baseline_agent)
+
+    agent = HRLTournamentAgentWrapper(env.env_info, agent_1, agent_list=oppponent_agent_list)
 
     core = Core(agent, env)
 
-    dataset, dataset_info = core.evaluate(n_episodes=5, render=True, record=False, get_env_info=True)
-    # core.evaluate(n_episodes=8, render=True, record=False)
+    core.evaluate(n_episodes=5, render=True, record=False)
 
-    dataset = spilt_dataset(dataset)
-    R = np.mean(compute_J(dataset))
-    print(R)
+def get_file_by_postfix(parent_dir, postfix):
+    file_list = list()
+    for root, dirs, files in os.walk(parent_dir):
+        for f in files:
+            if f.endswith(postfix):
+                a = os.path.join(root, f)
+                file_list.append(a)
+    return file_list
 
-def compute_J(dataset, gamma=1.):
-    js = list()
-
-    j = 0.
-    episode_steps = 0
-    for i in range(len(dataset)):
-        j += gamma ** episode_steps * dataset[i][2]
-        episode_steps += 1
-        if dataset[i][-1] or i == len(dataset) - 1:
-            js.append(j)
-            j = 0.
-            episode_steps = 0
-
-    if len(js) == 0:
-        return [0.]
-    return js
-
-def spilt_dataset(_dataset):
-    assert len(_dataset) > 0
-    dataset = list()
-    for i, d in enumerate(_dataset):
-        state = d[0][:23]
-        action = d[1][0]
-        next_state = d[3][:23]
-        dataset.append((state, action, d[2], next_state, d[4], d[5]))
-    return dataset
+def get_agent_path(agent_path):
+    cur_path = os.path.abspath('.')
+    parent_dir = os.path.dirname(cur_path)
+    check_path = os.path.join(parent_dir, 'trained_high_agent', agent_path)
+    agent_name = f'agent-{agent_path.split("parallel_seed___")[1].split("/")[0]}.msh'
+    return get_file_by_postfix(check_path, agent_name)[0]
 
 if __name__ == "__main__":
     main()

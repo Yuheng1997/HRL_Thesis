@@ -133,7 +133,7 @@ class HitBackEnv(position.IiwaPositionTournament):
             return super().step(low_action)
         else:
             a1 = action[0].flatten()[:14].reshape(2, 7)
-            a2 = action[1]
+            a2 = action[1].flatten()[:14].reshape(2, 7)
             target_pos_2d = action[0].flatten()[14:16]
             if self.visual_target:
                 self.update_visual_ball(target_pos_2d)

@@ -34,6 +34,7 @@ def experiment(env_name: str = 'StaticHit',
 
                group: str = None,
 
+               gamma: float = 0.998,
                actor_lr: float = 3e-4,
                critic_lr: float = 3e-4,
                termination_lr: float = 3e-6,
@@ -58,6 +59,9 @@ def experiment(env_name: str = 'StaticHit',
                # check_point: str = 'static_hit_2024-08-22_03-08-03/parallel_seed___2/0/BaseEnv_2024-08-22-03-08-28',
                check_point: str = None,
 
+               # opponent agent
+               agent_path_list: list = None,
+
                # curriculum config
                task_curriculum: bool = False,
                curriculum_steps: int = 10,
@@ -70,6 +74,17 @@ def experiment(env_name: str = 'StaticHit',
         parallel_seed = seed
     np.random.seed(parallel_seed)
     torch.manual_seed(parallel_seed)
+
+    env = HitBackEnv(horizon=horizon, curriculum_steps=curriculum_steps, gamma=gamma)
+    env.info.action_space = Box(np.array([-0.9 + 1.51, -0.45]), np.array([-0.2 + 1.51, 0.45]))
+
+    if agent_path_list is None:
+        agent_path_list = ['t_sac_2024-08-24_01-27-29/parallel_seed___0/0/HitBackEnv_2024-08-24-01-28-27',
+                           't_sac_2024-08-24_01-27-29/parallel_seed___2/0/HitBackEnv_2024-08-24-01-28-25'
+                           ]
+        oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
+        baseline_agent = BaselineAgent(env.env_info, agent_id=2)
+        oppponent_agent_list.append(baseline_agent)
 
     config = dict()
     for p in inspect.signature(experiment).parameters:
@@ -90,10 +105,6 @@ def experiment(env_name: str = 'StaticHit',
         "render": render
     }
 
-    env = HitBackEnv(horizon=horizon, curriculum_steps=curriculum_steps)
-
-    env.info.action_space = Box(np.array([-0.9 + 1.51, -0.45]), np.array([-0.2 + 1.51, 0.45]))
-
     if check_point is None:
         agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info, adv_bonus=adv_bonus,
                                     actor_lr=actor_lr, critic_lr=critic_lr, termination_lr=termination_lr,
@@ -106,23 +117,10 @@ def experiment(env_name: str = 'StaticHit',
         agent_1._log_alpha = torch.tensor(np.log(0.4)).to(agent_1._log_alpha).requires_grad_(True)
         agent_1._alpha_optim = optim.Adam([agent_1._log_alpha], lr=lr_alpha)
     else:
-        def get_file_by_postfix(parent_dir, postfix):
-            file_list = list()
-            for root, dirs, files in os.walk(parent_dir):
-                for f in files:
-                    if f.endswith(postfix):
-                        a = os.path.join(root, f)
-                        file_list.append(a)
-            return file_list
-
-        cur_path = os.path.abspath('.')
-        parent_dir = os.path.dirname(cur_path)
-        check_path = os.path.join(parent_dir, 'trained_high_agent', check_point)
-        agent_1 = SACPlusTermination.load(get_file_by_postfix(check_path, 'agent-2.msh')[0])
+        agent_1 = SACPlusTermination.load(get_agent_path(check_point))
         agent_1._alpha_optim = optim.Adam([agent_1._log_alpha], lr=lr_alpha)
 
-    baseline_agent = BaselineAgent(env.env_info, agent_id=2)
-    wrapped_agent = HRLTournamentAgentWrapper(env.env_info, agent_1, baseline_agent)
+    wrapped_agent = HRLTournamentAgentWrapper(env.env_info, agent_1, agent_list=oppponent_agent_list)
     core = Core(wrapped_agent, env)
 
     best_R = -np.inf
@@ -309,10 +307,27 @@ def get_dataset_info(core, dataset, dataset_info):
             episodes += 1
             success_list.append(dataset_info['success'][i])
 
-    epoch_info['success_rate'] = sum(success_list) / (len(success_list)+1)
+    epoch_info['success_rate'] = sum(success_list) / (len(success_list) + 1)
     epoch_info['adv_value_in_action(mean)'] = sum(adv_value) / len(adv_value)
     epoch_info['termination_num'] = termination_counts
     return epoch_info
+
+
+def get_file_by_postfix(parent_dir, postfix):
+    file_list = list()
+    for root, dirs, files in os.walk(parent_dir):
+        for f in files:
+            if f.endswith(postfix):
+                a = os.path.join(root, f)
+                file_list.append(a)
+    return file_list
+
+def get_agent_path(agent_path):
+    cur_path = os.path.abspath('.')
+    parent_dir = os.path.dirname(cur_path)
+    check_path = os.path.join(parent_dir, 'trained_high_agent', agent_path)
+    agent_name = f'agent-{agent_path.split("parallel_seed___")[1].split("/")[0]}.msh'
+    return get_file_by_postfix(check_path, agent_name)[0]
 
 
 if __name__ == '__main__':

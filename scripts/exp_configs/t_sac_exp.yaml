@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '23_08_fix_range/table/reward/serve_all'
+group: '26_08_multi_opponent'
 render: False
 record: False
 
@@ -25,6 +25,7 @@ full_save: False
 
 #lr_alpha: 0.00001
 #actor_lr: 0.0003
+gamma: 0.998
 lr_alpha: 0.00001
 actor_lr: 0.0003
 critic_lr: 0.0003
