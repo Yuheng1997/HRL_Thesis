@@ -82,6 +82,8 @@ class HitBackEnv(position.IiwaPositionTournament):
             return True
         else:
             self.middle_timer += self.dt
+        if self._task_success:
+            self._absorbing = True
         return self._absorbing
 
     def reward(self, obs, action, next_obs, absorbing):

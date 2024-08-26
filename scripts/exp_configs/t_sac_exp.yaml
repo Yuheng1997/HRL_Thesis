@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '26_08_multi_opponent/self_serve'
+group: '27_08_short_horizon/multi_opponent/self_serve'
 render: False
 record: False
 
@@ -8,7 +8,7 @@ adv_bonus: 0.1
 #n_episodes: 100
 n_steps: 20000
 n_epochs: 100
-horizon: 1000
+horizon: 200
 n_steps_per_fit: 1
 num_adv_sample: 50
 initial_replay_size: 20000
@@ -25,7 +25,7 @@ full_save: False
 
 #lr_alpha: 0.00001
 #actor_lr: 0.0003
-gamma: 0.998
+gamma: 0.99
 lr_alpha: 0.00001
 actor_lr: 0.0003
 critic_lr: 0.0003
@@ -57,7 +57,7 @@ experiments:
   conda_env: 'neural_planner'
   use_timestamp: True
   compact_dirs: False
-  use_cuda: True
+  use_cuda: False
 
 
 
