@@ -52,7 +52,7 @@ experiments:
   hours: 23
   minutes: 59
   seconds: 0
-  partition: 'stud'
+  partition: 'stud3080'
   gres: 'gpu:1'   # if use_cuda 'gpu:1'
   conda_env: 'neural_planner'
   use_timestamp: True
