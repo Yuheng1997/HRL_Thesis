@@ -197,7 +197,6 @@ class SACPlusTermination(SAC):
 
     def _post_load(self):
         super()._post_load()
-        self.device = 'cpu'
         self.adv_list = []
         self.state_shape = self.mdp_info.observation_space.shape
         self.action_shape = self.mdp_info.action_space.shape
