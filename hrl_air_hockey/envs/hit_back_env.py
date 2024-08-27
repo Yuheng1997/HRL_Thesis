@@ -82,8 +82,8 @@ class HitBackEnv(position.IiwaPositionTournament):
             return True
         else:
             self.middle_timer += self.dt
-        if self._task_success:
-            self._absorbing = True
+        # if self._task_success:
+        #     self._absorbing = True
         return self._absorbing
 
     def reward(self, obs, action, next_obs, absorbing):
@@ -162,7 +162,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         if self.puck_pos is not None:
             puck_pos = self.puck_pos
 
-        self.start_side *= 1
+        self.start_side *= -1
         self.initial_puck_pos = puck_pos
 
         puck_vel = np.zeros(3)

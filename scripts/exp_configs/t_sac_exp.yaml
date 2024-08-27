@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '27_08_short_horizon/multi_opponent/self_serve'
+group: '27_08_long_horizon/continue/multi_opponent/all_serve'
 render: False
 record: False
 
@@ -8,7 +8,7 @@ adv_bonus: 0.1
 #n_episodes: 100
 n_steps: 20000
 n_epochs: 100
-horizon: 200
+horizon: 1000
 n_steps_per_fit: 1
 num_adv_sample: 50
 initial_replay_size: 20000
