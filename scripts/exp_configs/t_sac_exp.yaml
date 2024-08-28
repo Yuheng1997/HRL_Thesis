@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '27_08_long_horizon/continue/multi_opponent/all_serve'
+group: '28_08_serve_base_opponent/300_horizon/all_serve'
 render: False
 record: False
 
@@ -8,7 +8,7 @@ adv_bonus: 0.1
 #n_episodes: 100
 n_steps: 20000
 n_epochs: 100
-horizon: 1000
+horizon: 300
 n_steps_per_fit: 1
 num_adv_sample: 50
 initial_replay_size: 20000
@@ -35,7 +35,7 @@ target_entropy: -2
 task_curriculum: False
 curriculum_steps: 6
 
-check_point__: "t_sac_2024-08-27_10-24-18/parallel_seed___2/0/HitBackEnv_2024-08-27-10-59-22"
+#check_point__: "t_sac_2024-08-27_10-24-18/parallel_seed___2/0/HitBackEnv_2024-08-27-10-59-22"
 
 sweep_params:
   parallel_seed__: [0, 1, 2]

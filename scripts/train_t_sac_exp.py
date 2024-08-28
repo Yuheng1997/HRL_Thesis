@@ -79,9 +79,11 @@ def experiment(env_name: str = 'StaticHit',
     env.info.action_space = Box(np.array([-0.9 + 1.51, -0.45]), np.array([-0.2 + 1.51, 0.45]))
 
     if agent_path_list is None:
-        agent_path_list = ['t_sac_2024-08-24_01-27-29/parallel_seed___0/0/HitBackEnv_2024-08-24-01-28-27',
-                           't_sac_2024-08-23_11-27-27/parallel_seed___0/0/HitBackEnv_2024-08-23-11-28-06',
-                           't_sac_2024-08-27_10-24-18/parallel_seed___2/0/HitBackEnv_2024-08-27-10-59-22',
+        agent_path_list = [
+                           't_sac_2024-08-27_20-20-56/trained_opponent/parallel_seed___1/0/HitBackEnv_2024-08-27-20-21-41'
+                           # 't_sac_2024-08-24_01-27-29/parallel_seed___0/0/HitBackEnv_2024-08-24-01-28-27',
+                           # 't_sac_2024-08-23_11-27-27/parallel_seed___0/0/HitBackEnv_2024-08-23-11-28-06',
+                           # 't_sac_2024-08-27_10-24-18/parallel_seed___2/0/HitBackEnv_2024-08-27-10-59-22',
                            # 'StaticHit_2024-08-26-18-14-41/parallel_seed___0'
                            ]
         oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]

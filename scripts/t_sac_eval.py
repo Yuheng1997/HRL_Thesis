@@ -34,13 +34,11 @@ def main(
         dropout_ratio: float = 0.01,
         layer_norm: bool = False,
 
-        # check_point: str = 'hit_back_2024-07-14_23-36-56/parallel_seed___0/0/HitBackEnv_2024-07-14-23-37-22',
-        # check_point: str = 'static_hit_2024-07-15_16-27-51/parallel_seed___2/0/BaseEnv_2024-07-15-17-34-35',
-        # check_point: str = 't_sac_2024-08-23_11-27-27/parallel_seed___0/0/HitBackEnv_2024-08-23-11-28-06',
-        check_point: str = 't_sac_2024-08-24_01-27-29/parallel_seed___0/0/HitBackEnv_2024-08-24-01-28-27',
-        # check_point=None
+        # check_point: str = 'StaticHit_2024-08-26-18-14-41/parallel_seed___0',
+        # check_point: str = 't_sac_2024-08-27_20-20-56/trained_opponent/parallel_seed___1/0/HitBackEnv_2024-08-27-20-21-41',
+        check_point=None
 ):
-    env = HitBackEnv(visual_target=True, horizon=200, curriculum_steps=6, gamma=0.997)
+    env = HitBackEnv(visual_target=True, horizon=300, curriculum_steps=6, gamma=0.997)
     # env = BaseEnv(visual_target=True, horizon=200)
     env.info.action_space = Box(np.array([-0.9 + 1.51, -0.45]), np.array([-0.2 + 1.51, 0.45]))
     env.task_curriculum_dict['idx'] = 5
@@ -58,11 +56,14 @@ def main(
         agent_1 = SACPlusTermination.load(get_agent_path(check_point))
 
     baseline_agent = BaselineAgent(env.env_info, agent_id=2)
-    agent_path_list = ['t_sac_2024-08-24_01-27-29/parallel_seed___0/0/HitBackEnv_2024-08-24-01-28-27',
-                       't_sac_2024-08-24_01-27-29/parallel_seed___2/0/HitBackEnv_2024-08-24-01-28-25'
+    agent_path_list = [
+                       # 't_sac_2024-08-24_01-27-29/parallel_seed___0/0/HitBackEnv_2024-08-24-01-28-27',
+                       # 't_sac_2024-08-24_01-27-29/parallel_seed___2/0/HitBackEnv_2024-08-24-01-28-25',
+                       # 'StaticHit_2024-08-26-18-14-41/parallel_seed___0',
+                       't_sac_2024-08-27_20-20-56/trained_opponent/parallel_seed___1/0/HitBackEnv_2024-08-27-20-21-41'
                        ]
     oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
-    oppponent_agent_list.append(baseline_agent)
+    # oppponent_agent_list.append(baseline_agent)
 
     agent = HRLTournamentAgentWrapper(env.env_info, agent_1, agent_list=oppponent_agent_list)
 

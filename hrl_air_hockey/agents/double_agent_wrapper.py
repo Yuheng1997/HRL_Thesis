@@ -15,6 +15,14 @@ class HRLTournamentAgentWrapper(SimpleTournamentAgentWrapper):
         self.agent_2 = self.agent_list[0]
         super().__init__(env_info, agent_1, self.agent_2)
 
+    def draw_action(self, state):
+        obs_1, obs_2 = np.split(state, 2)
+        obs_2[2] = obs_1[2]
+        time_1, action_1 = self.get_action_1(obs_1)
+        time_2, action_2 = self.get_action_2(obs_2)
+
+        return action_1, action_2, time_1, time_2
+
     def episode_start(self):
         self.agent_1.episode_start()
         self.agent_2 = self.agent_list[np.random.randint(low=0, high=len(self.agent_list))]

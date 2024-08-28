@@ -25,7 +25,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         self.initial_puck_pos = None
         self.n_robot_joints = self.env_info['robot']["n_joints"]
         self.cross_line_count = 0
-        self.start_side = 1
+        self.start_side = -1
         self.middle_timer = 0
         # curriculum config
         self.start_range = None
@@ -43,9 +43,9 @@ class HitBackEnv(position.IiwaPositionTournament):
 
     def prepare_curriculum_dict(self, curriculum_steps):
         curriculum_dict = {'total_steps': curriculum_steps}
-        x_low = np.linspace(0.6, 0.2, curriculum_dict['total_steps'])
+        x_low = np.linspace(0.6, 0.21, curriculum_dict['total_steps'])
         y_low = np.linspace(-0.1, -0.45, curriculum_dict['total_steps'])
-        x_high = np.linspace(0.7, 0.7, curriculum_dict['total_steps'])
+        x_high = np.linspace(0.71, 0.71, curriculum_dict['total_steps'])
         y_high = np.linspace(0.1, 0.45, curriculum_dict['total_steps'])
         curriculum_dict['puck_range'] = np.vstack([x_low, y_low, x_high, y_high]).T.reshape(-1, 2, 2)
         return curriculum_dict
