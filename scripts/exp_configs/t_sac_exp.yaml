@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '28_08_serve_base_opponent/300_horizon/all_serve'
+group: '29_08_state20/serve_base_opponent/add_angle_random'
 render: False
 record: False
 

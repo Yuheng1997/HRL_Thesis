@@ -25,9 +25,9 @@ def experiment(env_name: str = 'StaticHit',
                n_steps: int = 600,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
-               render: bool = True,
+               render: bool = False,
                record: bool = False,
-               n_eval_steps: int = 600,
+               n_eval_steps: int = 100,
                mode: str = 'disabled',
                horizon: int = 200,
                full_save: bool = False,
@@ -77,12 +77,13 @@ def experiment(env_name: str = 'StaticHit',
 
     env = HitBackEnv(horizon=horizon, curriculum_steps=curriculum_steps, gamma=gamma)
     env.info.action_space = Box(np.array([-0.9 + 1.51, -0.45]), np.array([-0.2 + 1.51, 0.45]))
+    env.info.observation_space = Box(np.ones(20), np.ones(20))
 
     if agent_path_list is None:
         agent_path_list = [
-                           't_sac_2024-08-27_20-20-56/trained_opponent/parallel_seed___1/0/HitBackEnv_2024-08-27-20-21-41'
+                           # 't_sac_2024-08-27_20-20-56/trained_opponent/parallel_seed___1/0/HitBackEnv_2024-08-27-20-21-41'
                            # 't_sac_2024-08-24_01-27-29/parallel_seed___0/0/HitBackEnv_2024-08-24-01-28-27',
-                           # 't_sac_2024-08-23_11-27-27/parallel_seed___0/0/HitBackEnv_2024-08-23-11-28-06',
+                           't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47',
                            # 't_sac_2024-08-27_10-24-18/parallel_seed___2/0/HitBackEnv_2024-08-27-10-59-22',
                            # 'StaticHit_2024-08-26-18-14-41/parallel_seed___0'
                            ]
@@ -236,9 +237,9 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
         assert len(_dataset) > 0
         dataset = list()
         for i, d in enumerate(_dataset):
-            state = d[0][:23]
+            state = d[0][:20]
             action = d[1][0]
-            next_state = d[3][:23]
+            next_state = d[3][:20]
             dataset.append((state, action, d[2], next_state, d[4], d[5]))
         return dataset
 

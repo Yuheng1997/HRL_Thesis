@@ -16,8 +16,9 @@ class HRLTournamentAgentWrapper(SimpleTournamentAgentWrapper):
         super().__init__(env_info, agent_1, self.agent_2)
 
     def draw_action(self, state):
-        obs_1, obs_2 = np.split(state, 2)
-        obs_2[2] = obs_1[2]
+        _obs_1, obs_2 = np.split(state, 2)
+        obs_2[2] = _obs_1[2]
+        obs_1 = _obs_1[:20]
         time_1, action_1 = self.get_action_1(obs_1)
         time_2, action_2 = self.get_action_2(obs_2)
 
@@ -41,7 +42,7 @@ class HRLTournamentAgentWrapper(SimpleTournamentAgentWrapper):
     def _preprocess_dataset_agent_1(self, dataset, **info):
         dataset_agent1 = list()
         for i, d in enumerate(dataset):
-            state = d[0][:23]
+            state = d[0][:20]
             action = d[1][0]
             next_state = d[3][:23]
             dataset_agent1.append((state, action, d[2], next_state, d[4], d[5]))

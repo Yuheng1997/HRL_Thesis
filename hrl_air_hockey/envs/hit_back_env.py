@@ -6,7 +6,7 @@ import mujoco
 
 
 class HitBackEnv(position.IiwaPositionTournament):
-    def __init__(self, visual_target=False, horizon=9000, gamma=0.99, curriculum_steps=10, task_curriculum=True, initial_puck_pos=None):
+    def __init__(self, visual_target=False, horizon=9000, gamma=0.99, curriculum_steps=6, task_curriculum=True, initial_puck_pos=None):
         # 包括 定位goal，dynamics_info, info, mdp_info
 
         viewer_params = {
@@ -165,10 +165,13 @@ class HitBackEnv(position.IiwaPositionTournament):
         self.start_side *= -1
         self.initial_puck_pos = puck_pos
 
+        puck_yaw_pos = np.random.uniform(low=-np.pi, high=np.pi)
         puck_vel = np.zeros(3)
+        puck_vel[2] = np.random.uniform(low=-2, high=2)
 
         self._write_data("puck_x_pos", puck_pos[0])
         self._write_data("puck_y_pos", puck_pos[1])
+        self._write_data("puck_yaw_pos", puck_yaw_pos)
         self._write_data("puck_x_vel", puck_vel[0])
         self._write_data("puck_y_vel", puck_vel[1])
         self._write_data("puck_yaw_vel", puck_vel[2])

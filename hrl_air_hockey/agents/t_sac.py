@@ -145,10 +145,10 @@ class SACPlusTermination(SAC):
     def add_t_dataset(self, dataset):
         t_dataset = list()
         for i, d in enumerate(dataset):
-            state = torch.tensor(d[0], device=self.device)
+            state = torch.tensor(d[0][:20], device=self.device)
             option = torch.tensor(d[1][14:16], device=self.device)
             reward = torch.tensor(d[2], device=self.device)
-            next_state = torch.tensor(d[3], device=self.device)
+            next_state = torch.tensor(d[3][:20], device=self.device)
             absorbing = torch.tensor(d[4], device=self.device)
             last = torch.tensor(d[5], device=self.device)
             t_dataset.append((state, option, reward, next_state, absorbing, last))
