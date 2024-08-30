@@ -1,14 +1,14 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '30_08_state20/against_08_29_opponent_and_baseline/600_0.995'
+group: '30_08_adv0.5/against_08_29_opponent_and_baseline/0.999'
 render: False
 record: False
 
-adv_bonus: 0.1
+adv_bonus: 0.5
 #n_episodes: 100
 n_steps: 20000
 n_epochs: 100
-horizon: 600
+horizon: 3000
 n_steps_per_fit: 1
 num_adv_sample: 50
 initial_replay_size: 20000
@@ -25,7 +25,7 @@ full_save: False
 
 #lr_alpha: 0.00001
 #actor_lr: 0.0003
-gamma: 0.995
+gamma: 0.999
 lr_alpha: 0.00001
 actor_lr: 0.0003
 critic_lr: 0.0003
@@ -44,7 +44,7 @@ sweep_params:
 experiments:
   exp_name: 't_sac'
   exp_file: 'train_t_sac_exp'
-  n_seeds: 1
+  n_seeds: 3
   n_cores: 4
   n_exps_in_parallel: 1
   memory_single_job: 3000
