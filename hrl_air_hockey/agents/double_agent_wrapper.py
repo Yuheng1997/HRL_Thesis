@@ -16,9 +16,13 @@ class HRLTournamentAgentWrapper(SimpleTournamentAgentWrapper):
         super().__init__(env_info, agent_1, self.agent_2)
 
     def draw_action(self, state):
-        _obs_1, obs_2 = np.split(state, 2)
-        obs_2[2] = _obs_1[2]
+        _obs_1, _obs_2 = np.split(state, 2)
+        _obs_2[2] = _obs_1[2]
         obs_1 = _obs_1[:20]
+        if isinstance(self.agent_2, BaselineAgent):
+            obs_2 = _obs_2[:23]
+        else:
+            obs_2 = _obs_2[:20]
         time_1, action_1 = self.get_action_1(obs_1)
         time_2, action_2 = self.get_action_2(obs_2)
 
