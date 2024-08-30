@@ -84,7 +84,7 @@ def experiment(env_name: str = 'StaticHit',
                            # 't_sac_2024-08-27_20-20-56/trained_opponent/parallel_seed___1/0/HitBackEnv_2024-08-27-20-21-41'
                            # 't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47',
                            # 't_sac_2024-08-27_10-24-18/parallel_seed___2/0/HitBackEnv_2024-08-27-10-59-22',
-                           't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09'
+                           't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
                            't_sac_2024-08-29_12-36-32/parallel_seed___2/0/HitBackEnv_2024-08-29-12-38-34'
                            ]
         oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
@@ -131,17 +131,17 @@ def experiment(env_name: str = 'StaticHit',
     best_R = -np.inf
 
     # initial evaluate
-    J, R, E, V, alpha, max_Beta, mean_Beta, task_info = compute_metrics(core, eval_params, record)
+    J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info = compute_metrics(core, eval_params, record)
 
-    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, **task_info)
+    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta, **task_info)
     size_replay_memory = core.agent.agent_1._replay_memory.size
     adv_func_in_fit = np.mean(core.agent.agent_1.adv_list)
 
-    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta,
+    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta,
                       size_replay_memory=size_replay_memory, **task_info)
 
     log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta,
+                "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta, "Termination/min_beta":min_Beta,
                 "size_replay_memory": size_replay_memory, "Termination/adv_value_in_fit(mean)": adv_func_in_fit}
 
     task_dict = {}
@@ -157,7 +157,7 @@ def experiment(env_name: str = 'StaticHit',
     for epoch in tqdm(range(n_epochs), disable=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
 
-        J, R, E, V, alpha, max_Beta, mean_Beta, task_info = compute_metrics(core, eval_params, record)
+        J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info = compute_metrics(core, eval_params, record)
         size_replay_memory = core.agent.agent_1._replay_memory.size
         adv_func_in_fit = np.mean(core.agent.agent_1.adv_list)
 
@@ -167,11 +167,11 @@ def experiment(env_name: str = 'StaticHit',
             task_info['task_id'] = env.task_curriculum_dict['idx']
 
         # Write logging
-        logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, **task_info)
-        logger.epoch_info(epoch + 1, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta,
+        logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta, **task_info)
+        logger.epoch_info(epoch + 1, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta,
                           size_replay_memory=size_replay_memory, **task_info)
         log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                    "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta,
+                    "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta, "Termination/min_beta":min_Beta,
                     "size_replay_memory": size_replay_memory, "Termination/adv_value_in_fit(mean)": adv_func_in_fit}
 
         task_dict = {}
@@ -221,17 +221,11 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
             options.append(dataset[i][1][14:16])
         return np.array(states), np.array(options)
 
-    def compute_mean_beta(agent, dataset):
+    def compute_beta_metrics(agent, dataset):
         states_traj, options_traj = sample_states_traj(dataset)
         beta = np.array(
             [agent.termination_approximator.predict(states_traj[i], options_traj[i]) for i in range(len(states_traj))])
-        return np.mean(beta)
-
-    def compute_max_beta(agent, dataset):
-        states_traj, options_traj = sample_states_traj(dataset)
-        beta = np.array(
-            [agent.termination_approximator.predict(states_traj[i], options_traj[i]) for i in range(len(states_traj))])
-        return np.max(beta)
+        return np.mean(beta), np.max(beta), np.min(beta)
 
     def spilt_dataset(_dataset):
         assert len(_dataset) > 0
@@ -277,9 +271,7 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
 
     V = compute_V(rl_agent, dataset)
 
-    max_Beta = compute_max_beta(rl_agent, dataset)
-
-    mean_Beta = compute_mean_beta(rl_agent, dataset)
+    mean_Beta, max_Beta, min_Beta = compute_beta_metrics(rl_agent, dataset)
 
     alpha = rl_agent._alpha.cpu().detach().numpy()
 
@@ -290,9 +282,9 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
         core.mdp.clear_task_info()
 
     if return_dataset:
-        return J, R, E, V, alpha, max_Beta, mean_Beta, task_info, parsed_dataset, dataset_info
+        return J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info, parsed_dataset, dataset_info
 
-    return J, R, E, V, alpha, max_Beta, mean_Beta, task_info
+    return J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info
 
 
 def get_dataset_info(core, dataset, dataset_info):
