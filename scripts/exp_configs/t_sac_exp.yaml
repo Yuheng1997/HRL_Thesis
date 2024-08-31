@@ -1,10 +1,10 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '30_08_adv_1/against_08_29_opponent_and_baseline/0.999'
+group: '31_08_adv_0.5/against_08_29_opponent_and_baseline/0.999'
 render: False
 record: False
 
-adv_bonus: 1.0
+adv_bonus: 0.5
 #n_episodes: 100
 n_steps: 20000
 n_epochs: 100
@@ -38,7 +38,7 @@ curriculum_steps: 6
 #check_point__: "t_sac_2024-08-27_10-24-18/parallel_seed___2/0/HitBackEnv_2024-08-27-10-59-22"
 
 sweep_params:
-  parallel_seed__: [0, 1, 2]
+  parallel_seed__: [0, 1]
 
 
 experiments:
@@ -46,7 +46,7 @@ experiments:
   exp_file: 'train_t_sac_exp'
   n_seeds: 1
   n_cores: 4
-  n_exps_in_parallel: 3
+  n_exps_in_parallel: 2
   memory_single_job: 3000
   days: 0
   hours: 23
