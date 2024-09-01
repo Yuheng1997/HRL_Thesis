@@ -46,7 +46,7 @@ class HRLTournamentAgentWrapper(SimpleTournamentAgentWrapper):
     def _preprocess_dataset_agent_1(self, dataset, **info):
         dataset_agent1 = list()
         for i, d in enumerate(dataset):
-            state = d[0][:20]
+            state = d[0][:23]
             action = d[1][0]
             next_state = d[3][:23]
             dataset_agent1.append((state, action, d[2], next_state, d[4], d[5]))
