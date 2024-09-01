@@ -1,10 +1,10 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '31_08_adv_2/against_08_29_opponent_and_baseline/0.999'
+group: '31_08_adv_0.1/against_08_29_opponent_and_baseline/0.999'
 render: False
 record: False
 
-adv_bonus: 2
+adv_bonus: 0.1
 #n_episodes: 100
 n_steps: 20000
 n_epochs: 100
