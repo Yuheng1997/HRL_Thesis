@@ -1,14 +1,14 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '01_09_adv_1/against_08_29_opponent_and_baseline/0.995'
+group: '01_09_adv_2/against_08_29_opponent_and_baseline/0.995'
 render: False
 record: False
 
-adv_bonus: 1
+adv_bonus: 2
 #n_episodes: 100
 n_steps: 20000
 n_epochs: 100
-horizon: 1000
+horizon: 500
 n_steps_per_fit: 1
 num_adv_sample: 50
 initial_replay_size: 20000
