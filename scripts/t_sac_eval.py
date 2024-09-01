@@ -35,10 +35,11 @@ def main(
         layer_norm: bool = False,
 
         # check_point: str = 't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47',
-        check_point: str = 't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
+        # check_point: str = 't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
+        check_point: str = 't_sac_2024-09-01_05-46-30/parallel_seed___1/0/HitBackEnv_2024-09-01-05-47-27',
         # check_point=None
 ):
-    env = HitBackEnv(visual_target=True, horizon=600, curriculum_steps=6, gamma=0.99)
+    env = HitBackEnv(visual_target=True, horizon=3000, curriculum_steps=6, gamma=0.99)
     # env = BaseEnv(visual_target=True, horizon=200)
     env.info.action_space = Box(np.array([-0.9 + 1.51, -0.45]), np.array([-0.2 + 1.51, 0.45]))
     env.task_curriculum_dict['idx'] = 5
@@ -59,6 +60,7 @@ def main(
     agent_path_list = [
                        't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09'
                        # 't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47'
+                       # 't_sac_2024-09-01_05-46-30/parallel_seed___1/0/HitBackEnv_2024-09-01-05-47-27'
                        ]
     oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
     oppponent_agent_list.append(baseline_agent)
