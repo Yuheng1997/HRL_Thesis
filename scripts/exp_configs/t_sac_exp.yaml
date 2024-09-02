@@ -1,14 +1,14 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '02_09_reward/adv_0.5/two_opponent/3000/against_08_29_opponent_and_baseline/0.999'
+group: '02_09_reward/adv_1/two_opponent/300/against_08_29_opponent_and_baseline/0.99'
 render: False
 record: False
 
-adv_bonus: 0.5
+adv_bonus: 1
 #n_episodes: 100
 n_steps: 20000
 n_epochs: 100
-horizon: 3000
+horizon: 300
 n_steps_per_fit: 1
 num_adv_sample: 50
 initial_replay_size: 20000
@@ -25,7 +25,7 @@ full_save: False
 
 #lr_alpha: 0.00001
 #actor_lr: 0.0003
-gamma: 0.999
+gamma: 0.99
 lr_alpha: 0.00001
 actor_lr: 0.0003
 critic_lr: 0.0003
