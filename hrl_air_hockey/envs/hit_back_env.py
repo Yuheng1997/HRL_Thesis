@@ -94,15 +94,17 @@ class HitBackEnv(position.IiwaPositionTournament):
 
         # check flag
         if puck_pos[0] > 0.0 and puck_vel[0] < 0.0:
-            if self.has_hit:
-                self.has_hit = False
             if self.back_penalty:
                 self.back_penalty = False
 
         # has_hit
         if not self.has_hit:
-            if puck_vel[0] > 0.1:
+            if np.linalg.norm(puck_pos[:2] - ee_pos[:2]) - self.env_info['puck']['radius'] - self.env_info['mallet']['radius'] < 1e-2:
                 self.has_hit = True
+
+        if self.has_hit:
+            if puck_vel[0] > 0.2:
+                self.has_hit = False
                 r += puck_vel[0] * 30 + 10
 
         # penalty of backside
