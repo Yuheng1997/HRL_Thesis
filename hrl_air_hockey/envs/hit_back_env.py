@@ -40,6 +40,8 @@ class HitBackEnv(position.IiwaPositionTournament):
         self._absorbing = False
         self._task_success = False
         self.back_penalty = False
+        self.win = 0
+        self.lose = 0
 
     def prepare_curriculum_dict(self, curriculum_steps):
         curriculum_dict = {'total_steps': curriculum_steps}
@@ -70,10 +72,12 @@ class HitBackEnv(position.IiwaPositionTournament):
         if (np.abs(puck_pos[1]) - self.env_info['table']['goal_width'] / 2) <= 0:
             if puck_pos[0] > self.env_info['table']['length'] / 2:
                 self.score[0] += 1
+                self.win += 1
                 return True
 
             if puck_pos[0] < -self.env_info['table']['length'] / 2:
                 self.score[1] += 1
+                self.lose += 1
                 return True
 
         # Puck stuck in the middle for 5s
@@ -103,7 +107,7 @@ class HitBackEnv(position.IiwaPositionTournament):
                 self.has_hit = True
 
         if self.has_hit:
-            if puck_vel[0] > 0.2:
+            if puck_vel[0] > 0.2 and puck_pos[0] > 0.0:
                 self.has_hit = False
                 r += puck_vel[0] * 30 + 10
 
@@ -128,7 +132,8 @@ class HitBackEnv(position.IiwaPositionTournament):
     def _create_info_dictionary(self, cur_obs):
         task_info = super()._create_info_dictionary(cur_obs)
         task_info['success'] = self._task_success
-        # task_info['num_across_line'] = self.cross_line_count
+        task_info['win'] =  self.win
+        task_info['lose'] = self.lose
         return task_info
 
     def step(self, action):
@@ -146,10 +151,8 @@ class HitBackEnv(position.IiwaPositionTournament):
     def setup(self, obs):
         self.back_penalty = False
         self.has_hit = False
-        self.count_over_line = False
         self._absorbing = False
         self._task_success = False
-        self.cross_line_count = 0
         self.side_timer = 0
         super().setup(obs)
 
