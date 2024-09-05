@@ -36,7 +36,7 @@ class HitBackEnv(position.IiwaPositionTournament):
             self.task_curriculum_dict['idx'] = self.task_curriculum_dict['total_steps'] - 1
         # flag
         self.has_hit = False
-        self.vel_bonus = False
+        self.add_vel_bonus = False
         self.count_over_line = False
         self._absorbing = False
         self._task_success = False
@@ -104,7 +104,7 @@ class HitBackEnv(position.IiwaPositionTournament):
                 self.back_penalty = False
             if self.has_hit:
                 self.has_hit = False
-                self.vel_bonus = False
+                self.add_vel_bonus = False
 
         # has_hit
         if not self.has_hit:
@@ -115,9 +115,9 @@ class HitBackEnv(position.IiwaPositionTournament):
 
         if self.has_hit:
             if puck_vel[0] > 0.0:
-                if not self.vel_bonus:
+                if not self.add_vel_bonus:
                     r += puck_vel[0] * 30
-                    self.vel_bonus = True
+                    self.add_vel_bonus = True
 
         # penalty of backside
         if not self.back_penalty:
@@ -158,7 +158,7 @@ class HitBackEnv(position.IiwaPositionTournament):
             return super().step((a1, a2))
 
     def setup(self, obs):
-        self.vel_bonus = False
+        self.add_vel_bonus = False
         self.back_penalty = False
         self.has_hit = False
         self._absorbing = False
