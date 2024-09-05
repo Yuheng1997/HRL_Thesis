@@ -40,6 +40,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         self._absorbing = False
         self._task_success = False
         self.back_penalty = False
+        self.hit_count = 0
         self.win = 0
         self.lose = 0
 
@@ -104,12 +105,14 @@ class HitBackEnv(position.IiwaPositionTournament):
         # has_hit
         if not self.has_hit:
             if np.linalg.norm(puck_pos[:2] - ee_pos[:2]) - self.env_info['puck']['radius'] - self.env_info['mallet']['radius'] < 1e-2:
+                r += 10
                 self.has_hit = True
+                self.hit_count += 1
 
         if self.has_hit:
             if puck_vel[0] > 0.2 and puck_pos[0] > 0.0:
                 self.has_hit = False
-                r += puck_vel[0] * 30 + 10
+                r += puck_vel[0] * 30
 
         # penalty of backside
         if not self.back_penalty:
@@ -134,6 +137,8 @@ class HitBackEnv(position.IiwaPositionTournament):
         task_info['success'] = self._task_success
         task_info['win'] =  self.win
         task_info['lose'] = self.lose
+        task_info['hit_num'] = self.hit_count
+        task_info['cross_line_num'] = self.cross_line_count
         return task_info
 
     def step(self, action):

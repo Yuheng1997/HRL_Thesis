@@ -25,9 +25,9 @@ def experiment(env_name: str = 'StaticHit',
                n_steps: int = 600,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
-               render: bool = False,
+               render: bool = True,
                record: bool = False,
-               n_eval_steps: int = 100,
+               n_eval_steps: int = 300,
                mode: str = 'disabled',
                horizon: int = 200,
                full_save: bool = False,
@@ -303,11 +303,13 @@ def get_dataset_info(core, dataset, dataset_info):
             episodes += 1
             success_list.append(dataset_info['success'][i])
 
-    epoch_info['success_rate'] = sum(success_list) / (len(success_list) + 1)
+    epoch_info['success_rate'] = sum(success_list) / len(success_list)
     epoch_info['adv_value_in_action(mean)'] = sum(adv_value) / len(adv_value)
     epoch_info['termination_num'] = termination_counts
+    epoch_info['hit_num'] = dataset_info['hit_num'][-1] / episodes
     epoch_info['win'] = dataset_info['win'][-1]
     epoch_info['lose'] = dataset_info['lose'][-1]
+    epoch_info['cross_line_num'] = dataset_info['cross_line_num'][-1] / episodes
     return epoch_info
 
 

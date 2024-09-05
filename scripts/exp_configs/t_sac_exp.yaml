@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '03_09_r_change/adv_1/two_opponent/600/against_08_29_opponent_and_baseline/0.995'
+group: '05_09_r/adv_1/two_opponent/600/against_08_29_opponent_and_baseline/0.995'
 render: False
 record: False
 
