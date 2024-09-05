@@ -101,6 +101,8 @@ class HitBackEnv(position.IiwaPositionTournament):
         if puck_pos[0] > 0.0 and puck_vel[0] < 0.0:
             if self.back_penalty:
                 self.back_penalty = False
+            if self.has_hit:
+                self.has_hit = False
 
         # has_hit
         if not self.has_hit:
@@ -110,8 +112,7 @@ class HitBackEnv(position.IiwaPositionTournament):
                 self.hit_count += 1
 
         if self.has_hit:
-            if puck_vel[0] > 0.2 and puck_pos[0] > 0.0:
-                self.has_hit = False
+            if puck_vel[0] > 0.0:
                 r += puck_vel[0] * 30
 
         # penalty of backside
