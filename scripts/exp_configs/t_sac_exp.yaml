@@ -37,8 +37,8 @@ curriculum_steps: 6
 
 #check_point__: "t_sac_2024-08-27_10-24-18/parallel_seed___2/0/HitBackEnv_2024-08-27-10-59-22"
 
-sweep_params:
-  parallel_seed__: [0, 1]
+#sweep_params:
+#  parallel_seed__: [0, 1]
 
 
 experiments:

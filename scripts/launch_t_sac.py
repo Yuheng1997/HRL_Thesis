@@ -24,15 +24,15 @@ launcher = Launcher(**exp_params)
 
 exp_list = list()
 
-if 'sweep_params' in cfg.keys():
-    sweep_param = cfg['sweep_params']
-    del cfg['sweep_params']
-
-    for param_tuple in product(*sweep_param.values()):
-        exp_dict = dict()
-        for j, key in enumerate(sweep_param.keys()):
-            exp_dict[key] = param_tuple[j]
-        exp_list.append(exp_dict)
+# if 'sweep_params' in cfg.keys():
+#     sweep_param = cfg['sweep_params']
+#     del cfg['sweep_params']
+#
+#     for param_tuple in product(*sweep_param.values()):
+#         exp_dict = dict()
+#         for j, key in enumerate(sweep_param.keys()):
+#             exp_dict[key] = param_tuple[j]
+#         exp_list.append(exp_dict)
 
 if 'listed_exps' in cfg.keys():
     listed_exps = cfg['listed_exps']
