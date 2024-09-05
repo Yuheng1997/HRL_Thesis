@@ -138,7 +138,6 @@ class HitBackEnv(position.IiwaPositionTournament):
         task_info['win'] =  self.win
         task_info['lose'] = self.lose
         task_info['hit_num'] = self.hit_count
-        task_info['cross_line_num'] = self.cross_line_count
         return task_info
 
     def step(self, action):

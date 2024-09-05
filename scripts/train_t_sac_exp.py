@@ -309,7 +309,6 @@ def get_dataset_info(core, dataset, dataset_info):
     epoch_info['hit_num'] = dataset_info['hit_num'][-1] / episodes
     epoch_info['win'] = dataset_info['win'][-1]
     epoch_info['lose'] = dataset_info['lose'][-1]
-    epoch_info['cross_line_num'] = dataset_info['cross_line_num'][-1] / episodes
     return epoch_info
 
 
