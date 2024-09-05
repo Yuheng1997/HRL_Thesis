@@ -4,7 +4,7 @@ group: '05_09_new_r/adv_0.1/two_opponent/600/against_08_29_opponent_and_baseline
 render: False
 record: False
 
-adv_bonus: 1
+adv_bonus: 0.1
 #n_episodes: 100
 n_steps: 20000
 n_epochs: 100
