@@ -19,7 +19,6 @@ class HitBackEnv(position.IiwaPositionTournament):
                          opponent_name='opponent')
         self.visual_target = visual_target
         self.absorb_type = None
-        self.gamma = gamma
         self.info.gamma = gamma
         self.puck_pos = initial_puck_pos
         self.initial_puck_pos = None
@@ -52,6 +51,9 @@ class HitBackEnv(position.IiwaPositionTournament):
         x_high = np.linspace(0.71, 0.71, curriculum_dict['total_steps'])
         y_high = np.linspace(0.1, 0.45, curriculum_dict['total_steps'])
         curriculum_dict['puck_range'] = np.vstack([x_low, y_low, x_high, y_high]).T.reshape(-1, 2, 2)
+
+        curriculum_dict['horizon'] = np.linspace(300, 3000, curriculum_dict['total_steps'])
+        curriculum_dict['gamma'] = np.linspace(0.99, 0.999, curriculum_dict['total_steps'])
         return curriculum_dict
 
     def is_absorbing(self, obs):
@@ -166,7 +168,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         self.side_timer = 0
         super().setup(obs)
 
-        task_idx = self.task_curriculum_dict['idx']
+        task_idx = self.task_curriculum_dict['total_steps'] - 1
         self.start_range = self.task_curriculum_dict['puck_range'][task_idx]
 
         if self.start_side == 1:
@@ -196,6 +198,9 @@ class HitBackEnv(position.IiwaPositionTournament):
     def update_task(self):
         if self.task_curriculum_dict['idx'] < self.task_curriculum_dict['total_steps'] - 1:
             self.task_curriculum_dict['idx'] += 1
+            idx = self.task_curriculum_dict['idx']
+            self.info.gamma = self.task_curriculum_dict['gamma'][idx]
+            self.info.horizon = self.task_curriculum_dict['horizon'][idx]
 
     def update_task_vis(self, task_idx):
         self._model.site('puck_vis').type = mujoco.mjtGeom.mjGEOM_BOX
@@ -214,7 +219,7 @@ class HitBackEnv(position.IiwaPositionTournament):
 
 
 if __name__ == '__main__':
-    env = HitBackEnv(horizon=100)
+    env = HitBackEnv(horizon=100, gamma=0.99)
     env.reset()
 
     count = 0

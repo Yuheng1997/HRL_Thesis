@@ -161,7 +161,7 @@ def experiment(env_name: str = 'StaticHit',
         adv_func_in_fit = np.mean(core.agent.agent_1.adv_list)
 
         if task_curriculum:
-            if task_info['success_rate'] >= 0.8:
+            if task_info['success_rate'] >= 0.7:
                 core.mdp.update_task()
             task_info['task_id'] = env.task_curriculum_dict['idx']
 
