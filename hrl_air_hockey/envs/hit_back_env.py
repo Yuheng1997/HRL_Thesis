@@ -46,12 +46,6 @@ class HitBackEnv(position.IiwaPositionTournament):
 
     def prepare_curriculum_dict(self, curriculum_steps):
         curriculum_dict = {'total_steps': curriculum_steps}
-        x_low = np.linspace(0.6, 0.21, curriculum_dict['total_steps'])
-        y_low = np.linspace(-0.1, -0.45, curriculum_dict['total_steps'])
-        x_high = np.linspace(0.71, 0.71, curriculum_dict['total_steps'])
-        y_high = np.linspace(0.1, 0.45, curriculum_dict['total_steps'])
-        curriculum_dict['puck_range'] = np.vstack([x_low, y_low, x_high, y_high]).T.reshape(-1, 2, 2)
-
         curriculum_dict['horizon'] = np.linspace(300, 3000, curriculum_dict['total_steps'])
         curriculum_dict['gamma'] = np.linspace(0.99, 0.999, curriculum_dict['total_steps'])
         return curriculum_dict
@@ -59,18 +53,6 @@ class HitBackEnv(position.IiwaPositionTournament):
     def is_absorbing(self, obs):
         puck_pos, puck_vel = self.get_puck(obs)
         boundary = np.array([self.env_info['table']['length'], self.env_info['table']['width']]) / 2
-
-        if np.any(np.abs(puck_pos[:2]) > boundary) or np.linalg.norm(puck_vel) > 100:
-            return True
-
-        # Puck stuck for more than 5s
-        if np.linalg.norm(puck_vel[0]) < 0.025:
-            self.side_timer += self.dt
-        else:
-            self.side_timer = 0
-
-        if self.side_timer > 5.0:
-            return True
 
         # Puck in Goal
         if (np.abs(puck_pos[1]) - self.env_info['table']['goal_width'] / 2) <= 0:
@@ -83,6 +65,18 @@ class HitBackEnv(position.IiwaPositionTournament):
                 self.score[1] += 1
                 self.lose += 1
                 return True
+
+        if np.any(np.abs(puck_pos[:2]) > boundary) or np.linalg.norm(puck_vel) > 100:
+            return True
+
+        # Puck stuck for more than 5s
+        if np.linalg.norm(puck_vel[0]) < 0.025:
+            self.side_timer += self.dt
+        else:
+            self.side_timer = 0
+
+        if self.side_timer > 5.0:
+            return True
 
         # Puck stuck in the middle for 5s
         if np.abs(puck_pos[0]) < 0.15 and np.linalg.norm(puck_vel[0]) < 0.025 and self.middle_timer > 5.0:
@@ -168,14 +162,12 @@ class HitBackEnv(position.IiwaPositionTournament):
         self.side_timer = 0
         super().setup(obs)
 
-        task_idx = self.task_curriculum_dict['total_steps'] - 1
-        self.start_range = self.task_curriculum_dict['puck_range'][task_idx]
-
         if self.start_side == 1:
             hit_range = np.array([[0.8 - 1.51, 1.3 - 1.51], [-0.39105, 0.39105]])
             puck_pos = np.random.rand(2) * (hit_range[:, 1] - hit_range[:, 0]) + hit_range[:, 0]
         else:
-            puck_pos = np.random.rand(2) * (self.start_range[1] - self.start_range[0]) + self.start_range[0]
+            opponent_range = np.array([[0.21, 0.71], [-0.39105, 0.39105]])
+            puck_pos = np.random.rand(2) * (opponent_range[:, 1] - opponent_range[:, 0]) + opponent_range[:, 0]
         if self.puck_pos is not None:
             puck_pos = self.puck_pos
 
@@ -192,8 +184,6 @@ class HitBackEnv(position.IiwaPositionTournament):
         self._write_data("puck_x_vel", puck_vel[0])
         self._write_data("puck_y_vel", puck_vel[1])
         self._write_data("puck_yaw_vel", puck_vel[2])
-
-        self.update_task_vis(task_idx)
 
     def update_task(self):
         if self.task_curriculum_dict['idx'] < self.task_curriculum_dict['total_steps'] - 1:
