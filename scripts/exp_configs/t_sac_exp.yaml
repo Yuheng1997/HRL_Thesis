@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '05_09_new_r/adv_0.5/two_opponent/600/against_08_29_opponent_and_baseline/0.995'
+group: '05_09_new_r/horizon_curriculum/adv_0.5/two_opponent/300/against_08_29_opponent_and_baseline/0.99'
 render: False
 record: False
 
@@ -8,7 +8,7 @@ adv_bonus: 0.5
 #n_episodes: 100
 n_steps: 20000
 n_epochs: 100
-horizon: 600
+horizon: 300
 n_steps_per_fit: 1
 num_adv_sample: 50
 initial_replay_size: 20000
