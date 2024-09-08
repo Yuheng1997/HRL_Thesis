@@ -25,11 +25,11 @@ def experiment(env_name: str = 'StaticHit',
                n_steps: int = 600,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
-               render: bool = True,
+               render: bool = False,
                record: bool = False,
-               n_eval_steps: int = 2000,
+               n_eval_steps: int = 1000,
                mode: str = 'disabled',
-               horizon: int = 2000,
+               horizon: int = 1000,
                full_save: bool = False,
 
                group: str = None,
@@ -300,10 +300,10 @@ def get_dataset_info(core, dataset, dataset_info):
         adv_value.append(action[17])
         if termination == 1:
             termination_counts += 1
-        # last = d[-1]
-        # if last:
-        #     episodes += 1
-        #     success_list.append(dataset_info['success'][i])
+        last = d[-1]
+        if last:
+            episodes += 1
+            # success_list.append(dataset_info['success'][i])
         if dataset_info['sub_episodes'][i] == 1:
             sub_episodes_num += 1
             success_num += dataset_info['success'][i]
