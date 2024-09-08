@@ -41,8 +41,11 @@ class HitBackEnv(position.IiwaPositionTournament):
         self._task_success = False
         self.back_penalty = False
         self.hit_count = 0
+        self.episode_end = False
+        self.absorb_sign = False
         self.win = 0
         self.lose = 0
+        self.is_new_round = True
 
     def prepare_curriculum_dict(self, curriculum_steps):
         curriculum_dict = {'total_steps': curriculum_steps}
@@ -64,19 +67,25 @@ class HitBackEnv(position.IiwaPositionTournament):
             if puck_pos[0] < -self.env_info['table']['length'] / 2:
                 self.score[1] += 1
                 self.lose += 1
+                self.absorb_sign = True
                 return True
 
         if np.any(np.abs(puck_pos[:2]) > boundary) or np.linalg.norm(puck_vel) > 100:
             return True
 
-        # Puck stuck for more than 5s
-        if np.linalg.norm(puck_vel[0]) < 0.025:
+        # Puck stuck in one side for more than 5s
+        if np.sign(puck_pos[0]) == self.prev_side:
             self.side_timer += self.dt
         else:
+            self.prev_side *= -1
             self.side_timer = 0
 
-        if self.side_timer > 5.0:
-            return True
+        if self.side_timer > 5.0 and np.abs(puck_pos[0]) >= 0.15:
+            if self.prev_side == -1:
+                self.absorb_sign = True
+                return True
+            else:
+                return True
 
         # Puck stuck in the middle for 5s
         if np.abs(puck_pos[0]) < 0.15 and np.linalg.norm(puck_vel[0]) < 0.025 and self.middle_timer > 5.0:
@@ -84,8 +93,7 @@ class HitBackEnv(position.IiwaPositionTournament):
             return True
         else:
             self.middle_timer += self.dt
-        # if self._task_success:
-        #     self._absorbing = True
+
         return self._absorbing
 
     def reward(self, obs, action, next_obs, absorbing):
@@ -95,12 +103,17 @@ class HitBackEnv(position.IiwaPositionTournament):
         r = 0
 
         # check flag
+        self.episode_end = False
+        self._task_success = False
         if puck_pos[0] > 0.0 and puck_vel[0] < 0.0:
             if self.back_penalty:
                 self.back_penalty = False
             if self.has_hit:
                 self.has_hit = False
+            if self.add_vel_bonus:
                 self.add_vel_bonus = False
+            if not self.is_new_round:
+                self.is_new_round = True
 
         # has_hit
         if not self.has_hit:
@@ -112,7 +125,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         if self.has_hit:
             if puck_vel[0] > 0.0:
                 if not self.add_vel_bonus:
-                    r += puck_vel[0] * 30
+                    r += puck_vel[0] * 30 + np.abs(puck_vel[1]) * 5
                     self.add_vel_bonus = True
 
         # penalty of backside
@@ -129,8 +142,14 @@ class HitBackEnv(position.IiwaPositionTournament):
                 r -= 200
 
         # success
-        if 0.1 > puck_pos[0] > 0.0 and puck_vel[0] > 0.2:
-            self._task_success = True
+        if self.is_new_round:
+            if 0.1 > puck_pos[0] > 0.0 and puck_vel[0] > 0.1:
+                if self.has_hit:
+                    self._task_success = True
+                    self.is_new_round = False
+                    self.episode_end = True
+        if self.absorb_sign:
+            self.episode_end = True
         return r
 
     def _create_info_dictionary(self, cur_obs):
@@ -139,6 +158,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         task_info['win'] =  self.win
         task_info['lose'] = self.lose
         task_info['hit_num'] = self.hit_count
+        task_info['sub_episodes'] = self.episode_end
         return task_info
 
     def step(self, action):
@@ -154,6 +174,9 @@ class HitBackEnv(position.IiwaPositionTournament):
             return super().step((a1, a2))
 
     def setup(self, obs):
+        self.absorb_sign = False
+        self.is_new_round = True
+        self.episode_end = False
         self.add_vel_bonus = False
         self.back_penalty = False
         self.has_hit = False

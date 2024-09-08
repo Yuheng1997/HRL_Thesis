@@ -27,14 +27,14 @@ def experiment(env_name: str = 'StaticHit',
                n_steps_per_fit: int = 1,
                render: bool = True,
                record: bool = False,
-               n_eval_steps: int = 300,
+               n_eval_steps: int = 2000,
                mode: str = 'disabled',
-               horizon: int = 200,
+               horizon: int = 2000,
                full_save: bool = False,
 
                group: str = None,
 
-               gamma: float = 0.998,
+               gamma: float = 0.995,
                actor_lr: float = 3e-4,
                critic_lr: float = 3e-4,
                termination_lr: float = 3e-6,
@@ -292,18 +292,23 @@ def get_dataset_info(core, dataset, dataset_info):
     termination_counts = 0
     episodes = 0
     adv_value = []
+    sub_episodes_num = 0
+    success_num = 0
     for i, d in enumerate(dataset):
         action = d[1]
         termination = action[16]
         adv_value.append(action[17])
         if termination == 1:
             termination_counts += 1
-        last = d[-1]
-        if last:
-            episodes += 1
-            success_list.append(dataset_info['success'][i])
+        # last = d[-1]
+        # if last:
+        #     episodes += 1
+        #     success_list.append(dataset_info['success'][i])
+        if dataset_info['sub_episodes'][i] == 1:
+            sub_episodes_num += 1
+            success_num += dataset_info['success'][i]
 
-    epoch_info['success_rate'] = sum(success_list) / len(success_list)
+    epoch_info['success_rate'] = success_num / sub_episodes_num
     epoch_info['adv_value_in_action(mean)'] = sum(adv_value) / len(adv_value)
     epoch_info['termination_num'] = termination_counts
     epoch_info['hit_num'] = dataset_info['hit_num'][-1] / episodes
