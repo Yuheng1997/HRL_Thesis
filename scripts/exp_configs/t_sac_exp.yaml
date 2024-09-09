@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '08_09_success_rate/adv_0.1/two_opponent/600/against_08_29_opponent_and_baseline/0.995'
+group: '08_09_success_rate/adv_0.1/two_opponent/600/against_baseline/0.995'
 render: False
 record: False
 
