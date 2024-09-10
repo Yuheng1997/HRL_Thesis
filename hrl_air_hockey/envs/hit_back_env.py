@@ -23,6 +23,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         self.puck_pos = initial_puck_pos
         self.initial_puck_pos = None
         self.n_robot_joints = self.env_info['robot']["n_joints"]
+        self.middle_timer = 0
 
         # start_side == -1, left agent serve
         self.start_side = -1
