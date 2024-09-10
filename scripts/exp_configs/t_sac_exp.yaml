@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '09_09_adv_0.1/two_opponent/600/against_0829_baseline/0.995'
+group: '10_09_curriculum_line5/continue0909/two_opponent/600/against_0829_baseline/0.995'
 render: False
 record: False
 
@@ -32,10 +32,10 @@ critic_lr: 0.0003
 termination_lr: 0.00001
 target_entropy: -2
 
-task_curriculum: False
+task_curriculum: True
 curriculum_steps: 5
 
-#check_point__: "t_sac_2024-08-27_10-24-18/parallel_seed___2/0/HitBackEnv_2024-08-27-10-59-22"
+check_point__: "t_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16"
 
 sweep_params:
   parallel_seed__: [0]

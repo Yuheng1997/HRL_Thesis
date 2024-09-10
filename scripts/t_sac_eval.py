@@ -37,7 +37,7 @@ def main(
         # check_point: str = 't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47',
         # check_point: str = 't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
         # check_point: str = 't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
-        check_point: str = 't_sac_2024-09-06_01-12-50/parallel_seed___0/0/HitBackEnv_2024-09-06-01-13-19',
+        check_point: str = 't_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16',
         # check_point=None
 ):
     env = HitBackEnv(visual_target=True, horizon=3000, curriculum_steps=6, gamma=0.99)

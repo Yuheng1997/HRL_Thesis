@@ -25,7 +25,7 @@ def experiment(env_name: str = 'StaticHit',
                n_steps: int = 600,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
-               render: bool = False,
+               render: bool = True,
                record: bool = False,
                n_eval_steps: int = 1000,
                mode: str = 'disabled',
@@ -56,8 +56,8 @@ def experiment(env_name: str = 'StaticHit',
                layer_norm: bool = False,
 
                # Continue training
-               # check_point: str = 'static_hit_2024-08-22_03-08-03/parallel_seed___2/0/BaseEnv_2024-08-22-03-08-28',
-               check_point: str = None,
+               check_point: str = 't_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16',
+               # check_point: str = None,
 
                # opponent agent
                agent_path_list: list = None,
@@ -81,7 +81,7 @@ def experiment(env_name: str = 'StaticHit',
 
     if agent_path_list is None:
         agent_path_list = [
-                           # 't_sac_2024-08-27_20-20-56/trained_opponent/parallel_seed___1/0/HitBackEnv_2024-08-27-20-21-41'
+                           # 't_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16',
                            # 't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47',
                            't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
                            # 't_sac_2024-08-29_12-36-32/parallel_seed___2/0/HitBackEnv_2024-08-29-12-38-34'
