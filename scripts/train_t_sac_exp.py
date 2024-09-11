@@ -130,28 +130,28 @@ def experiment(env_name: str = 'StaticHit',
     best_R = -np.inf
 
     # initial evaluate
-    J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info = compute_metrics(core, eval_params, record)
-
-    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta, **task_info)
-    size_replay_memory = core.agent.agent_1._replay_memory.size
-    adv_func_in_fit = np.mean(core.agent.agent_1.adv_list)
-
-    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta,
-                      size_replay_memory=size_replay_memory, **task_info)
-
-    log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta, "Termination/min_beta":min_Beta,
-                "size_replay_memory": size_replay_memory, "Termination/adv_value_in_fit(mean)": adv_func_in_fit}
-
-    task_dict = {}
-    for key, value in task_info.items():
-        if hasattr(value, '__iter__'):
-            for i, v in enumerate(value):
-                task_dict[key + f"_{i}"] = v
-        else:
-            task_dict[key] = value
-    log_dict.update(task_dict)
-    wandb.log(log_dict, step=0)
+    # J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info = compute_metrics(core, eval_params, record)
+    #
+    # logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta, **task_info)
+    # size_replay_memory = core.agent.agent_1._replay_memory.size
+    # adv_func_in_fit = np.mean(core.agent.agent_1.adv_list)
+    #
+    # logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta,
+    #                   size_replay_memory=size_replay_memory, **task_info)
+    #
+    # log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
+    #             "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta, "Termination/min_beta":min_Beta,
+    #             "size_replay_memory": size_replay_memory, "Termination/adv_value_in_fit(mean)": adv_func_in_fit}
+    #
+    # task_dict = {}
+    # for key, value in task_info.items():
+    #     if hasattr(value, '__iter__'):
+    #         for i, v in enumerate(value):
+    #             task_dict[key + f"_{i}"] = v
+    #     else:
+    #         task_dict[key] = value
+    # log_dict.update(task_dict)
+    # wandb.log(log_dict, step=0)
 
     for epoch in tqdm(range(n_epochs), disable=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
