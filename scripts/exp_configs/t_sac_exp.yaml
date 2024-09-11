@@ -14,7 +14,7 @@ num_adv_sample: 50
 initial_replay_size: 20000
 max_replay_size: 1000000
 warmup_transitions: 20000
-termination_warmup: 60000
+termination_warmup: 20000
 batch_size: 256
 tau: 0.003
 dropout_ratio: 0.01

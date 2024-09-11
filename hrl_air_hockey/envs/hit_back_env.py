@@ -49,8 +49,6 @@ class HitBackEnv(position.IiwaPositionTournament):
 
     def prepare_curriculum_dict(self, curriculum_steps):
         curriculum_dict = {'total_steps': curriculum_steps}
-        curriculum_dict['horizon'] = np.linspace(300, 3000, curriculum_dict['total_steps'])
-        curriculum_dict['gamma'] = np.linspace(0.99, 0.999, curriculum_dict['total_steps'])
         return curriculum_dict
 
     def is_absorbing(self, obs):
