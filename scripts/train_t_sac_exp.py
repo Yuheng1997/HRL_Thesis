@@ -154,6 +154,8 @@ def experiment(env_name: str = 'StaticHit',
     # wandb.log(log_dict, step=0)
 
     for epoch in tqdm(range(n_epochs), disable=False):
+        if check_point is not None:
+            epoch += 100
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
 
         J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info = compute_metrics(core, eval_params, record)

@@ -48,7 +48,6 @@ class SACPlusTermination(SAC):
         self.adv_bonus = adv_bonus
         self.adv_list = []
 
-        self.num = 0
         self._add_save_attr(
             adv_bonus='primitive',
             termination_optimizer='torch',
@@ -198,6 +197,7 @@ class SACPlusTermination(SAC):
     def _post_load(self):
         super()._post_load()
         self.adv_list = []
+        self.adv_bonus = 0.01
         self.state_shape = self.mdp_info.observation_space.shape
         self.action_shape = self.mdp_info.action_space.shape
         self.traj_planner = AirHockeyController(**self.atacom_planner_params)
