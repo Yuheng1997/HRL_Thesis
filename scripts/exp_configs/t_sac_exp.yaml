@@ -47,7 +47,7 @@ experiments:
   n_seeds: 1
   n_cores: 4
   n_exps_in_parallel: 1
-  memory_single_job: 3000
+  memory_single_job: 5000
   days: 0
   hours: 23
   minutes: 59
