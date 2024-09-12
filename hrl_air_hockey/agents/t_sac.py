@@ -58,13 +58,10 @@ class SACPlusTermination(SAC):
             termination_warmup='primitive',
         )
 
+    def epoch_start(self):
+        self.adv_list = []
+
     def episode_start(self):
-        self.cur_smdp_length = 0
-        self.initial_state = None
-        self.initial_action = None
-        self.initial_smdp_state = None
-        self.initial_smdp_action = None
-        self.trajectory_buffer = None
         self.last_option = None
         self.last_log_p = None
         self.policy.reset()
