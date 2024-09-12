@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '10_09_continue0909'
+group: '12_09_continue0909/self_learning4'
 render: False
 record: False
 

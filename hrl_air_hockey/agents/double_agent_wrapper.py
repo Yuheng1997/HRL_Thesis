@@ -43,6 +43,13 @@ class HRLTournamentAgentWrapper(SimpleTournamentAgentWrapper):
         # dataset_2, info_2 = self._preprocess_dataset_agent_1(dataset, **info)
         # self.agent_2.fit(dataset_2, info_2)
 
+    def update_opponent_list(self, new_agent):
+        if len(self.agent_list) <= 4:
+            self.agent_list.append(new_agent)
+        else:
+            self.agent_list.pop(2)
+            self.agent_list.append(new_agent)
+
     def _preprocess_dataset_agent_1(self, dataset, **info):
         dataset_agent1 = list()
         for i, d in enumerate(dataset):
