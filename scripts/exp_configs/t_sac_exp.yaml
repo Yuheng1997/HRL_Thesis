@@ -57,7 +57,7 @@ experiments:
   conda_env: 'neural_planner'
   use_timestamp: True
   compact_dirs: False
-  use_cuda: False
+  use_cuda: True
 
 
 
