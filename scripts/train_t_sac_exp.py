@@ -149,7 +149,7 @@ def experiment(env_name: str = 'StaticHit',
         else:
             task_dict[key] = value
     log_dict.update(task_dict)
-    wandb.log(log_dict, step=0)
+    wandb.log(log_dict)
 
     # for epoch in tqdm(range(n_epochs), disable=False):
     #     core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)

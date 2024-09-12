@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '12_09_tournament_eval/0829_baseline'
+group: '12_09_tournament_eval/0829_baseline/'
 render: False
 record: False
 
