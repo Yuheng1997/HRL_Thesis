@@ -83,8 +83,8 @@ def experiment(env_name: str = 'StaticHit',
         agent_path_list = [
                            # 't_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16',
                            # 't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47',
-                           't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
-                           # 't_sac_2024-08-29_12-36-32/parallel_seed___2/0/HitBackEnv_2024-08-29-12-38-34'
+                           # 't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
+                           't_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16'
                            ]
         oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
         baseline_agent = BaselineAgent(env.env_info, agent_id=2)
@@ -184,6 +184,7 @@ def experiment(env_name: str = 'StaticHit',
         wandb.log(log_dict, step=epoch + 1)
         core.agent.agent_1.adv_list = []
         logger.log_agent(agent_1, full_save=full_save)
+        wrapped_agent.update_opponent_list(new_agent=agent_1)
 
 
 def compute_metrics(core, eval_params, record=False, return_dataset=False):
