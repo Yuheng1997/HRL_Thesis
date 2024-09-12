@@ -50,6 +50,11 @@ class HitBackEnv(position.IiwaPositionTournament):
         self.lose = 0
         self.not_cross_line = True
 
+    def epoch_start(self):
+        self.win = 0
+        self.lose = 0
+        self.hit_count = 0
+
     def prepare_curriculum_dict(self, curriculum_steps):
         curriculum_dict = {'total_steps': curriculum_steps}
         curriculum_dict['bonus_line'] = np.linspace(0.3, 0.9, curriculum_dict['total_steps'])

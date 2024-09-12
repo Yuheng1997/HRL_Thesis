@@ -182,9 +182,10 @@ def experiment(env_name: str = 'StaticHit',
                 task_dict[key] = value
         log_dict.update(task_dict)
         wandb.log(log_dict, step=epoch + 1)
-        core.agent.agent_1.adv_list = []
+        core.agent.agent_1.epoch_start()
         logger.log_agent(agent_1, full_save=full_save)
         wrapped_agent.update_opponent_list(new_agent=agent_1)
+        env.epoch_start()
 
 
 def compute_metrics(core, eval_params, record=False, return_dataset=False):
