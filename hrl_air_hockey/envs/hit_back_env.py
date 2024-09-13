@@ -47,11 +47,6 @@ class HitBackEnv(position.IiwaPositionTournament):
         self.lose = 0
         self.is_new_round = True
 
-    def epoch_start(self):
-        self.win = 0
-        self.lose = 0
-        self.hit_count = 0
-
     def prepare_curriculum_dict(self, curriculum_steps):
         curriculum_dict = {'total_steps': curriculum_steps}
         return curriculum_dict
