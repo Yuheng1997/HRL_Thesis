@@ -183,7 +183,6 @@ def experiment(env_name: str = 'StaticHit',
     #     core.agent.agent_1.epoch_start()
     #     logger.log_agent(agent_1, full_save=full_save)
     #     wrapped_agent.update_opponent_list(new_agent=agent_1)
-    #     env.epoch_start()
 
 
 
@@ -312,7 +311,7 @@ def get_dataset_info(core, dataset, dataset_info):
     epoch_info['success_rate'] = success_num / sub_episodes_num
     epoch_info['adv_value_in_action(mean)'] = sum(adv_value) / len(adv_value)
     epoch_info['termination_num'] = termination_counts
-    epoch_info['hit_num'] = dataset_info['hit_num'][-1] / episodes
+    epoch_info['hit_num'] = dataset_info['hit_num'][-1]
     epoch_info['win'] = dataset_info['win'][-1]
     epoch_info['lose'] = dataset_info['lose'][-1]
     epoch_info['episodes_num'] = episodes
