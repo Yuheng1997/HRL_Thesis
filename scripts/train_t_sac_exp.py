@@ -127,8 +127,6 @@ def experiment(env_name: str = 'StaticHit',
     wrapped_agent = HRLTournamentAgentWrapper(env.env_info, agent_1, agent_list=oppponent_agent_list)
     core = Core(wrapped_agent, env)
 
-    best_R = -np.inf
-
     # initial evaluate
     J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info = compute_metrics(core, eval_params, record)
 
