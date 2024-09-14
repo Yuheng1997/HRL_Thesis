@@ -46,6 +46,8 @@ class HitBackEnv(position.IiwaPositionTournament):
         self.win = 0
         self.lose = 0
         self.is_new_round = True
+        self.self_faults = 0
+        self.oppo_faults = 0
 
     def prepare_curriculum_dict(self, curriculum_steps):
         curriculum_dict = {'total_steps': curriculum_steps}
@@ -60,11 +62,13 @@ class HitBackEnv(position.IiwaPositionTournament):
             if puck_pos[0] > self.env_info['table']['length'] / 2:
                 self.score[0] += 1
                 self.win += 1
+                self.start_side = -1
                 return True
 
             if puck_pos[0] < -self.env_info['table']['length'] / 2:
                 self.score[1] += 1
                 self.lose += 1
+                self.start_side = 1
                 self.absorb_sign = True
                 return True
 
@@ -80,9 +84,13 @@ class HitBackEnv(position.IiwaPositionTournament):
 
         if self.side_timer > 5.0 and np.abs(puck_pos[0]) >= 0.15:
             if self.prev_side == -1:
+                self.self_faults += 1
+                self.start_side = -1
                 self.absorb_sign = True
                 return True
             else:
+                self.oppo_faults += 1
+                self.start_side = 1
                 return True
 
         # Puck stuck in the middle for 5s
@@ -157,6 +165,8 @@ class HitBackEnv(position.IiwaPositionTournament):
         task_info['lose'] = self.lose
         task_info['hit_num'] = self.hit_count
         task_info['sub_episodes'] = self.episode_end
+        task_info['self_faults'] = self.self_faults
+        task_info['oppo_faults'] = self.oppo_faults
         return task_info
 
     def step(self, action):

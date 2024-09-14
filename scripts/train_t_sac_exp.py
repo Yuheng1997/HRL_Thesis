@@ -56,7 +56,7 @@ def experiment(env_name: str = 'StaticHit',
                layer_norm: bool = False,
 
                # Continue training
-               check_point: str = 'reward_cl_2024-09-09_18-29-12/parallel_seed___0/0/HitBackEnv_2024-09-09-18-30-02',
+               check_point: str = 'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
                # check_point: str = None,
 
                # opponent agent
@@ -81,10 +81,10 @@ def experiment(env_name: str = 'StaticHit',
 
     if agent_path_list is None:
         agent_path_list = [
-                           'reward_cl_2024-09-09_18-29-12/parallel_seed___0/0/HitBackEnv_2024-09-09-18-30-02',
-                           'two_day_cl_line_2024-09-12_00-48-29/two_day_cl_line/parallel_seed___0/0/HitBackEnv_2024-09-12-00-49-21',
-                           'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
-                           'two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53',
+                           # 'reward_cl_2024-09-09_18-29-12/parallel_seed___0/0/HitBackEnv_2024-09-09-18-30-02',
+                           # 'two_day_cl_line_2024-09-12_00-48-29/two_day_cl_line/parallel_seed___0/0/HitBackEnv_2024-09-12-00-49-21',
+                           # 'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
+                           # 'two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53',
                            ]
         oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
         baseline_agent = BaselineAgent(env.env_info, agent_id=2)
@@ -314,6 +314,8 @@ def get_dataset_info(core, dataset, dataset_info):
     epoch_info['hit_num'] = dataset_info['hit_num'][-1]
     epoch_info['win'] = dataset_info['win'][-1]
     epoch_info['lose'] = dataset_info['lose'][-1]
+    epoch_info['self_fault'] = dataset_info['self_faults'][-1]
+    epoch_info['oppo_fault'] = dataset_info['oppo_faults'][-1]
     epoch_info['episodes_num'] = episodes
     return epoch_info
 
