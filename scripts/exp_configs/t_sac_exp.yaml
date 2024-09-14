@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '13_09_curriculum_line5/continue0909/self_learning2'
+group: '15_09_curriculum_line5/continue0909/self_learning4pop'
 render: False
 record: False
 
@@ -22,6 +22,7 @@ layer_norm: False
 #n_eval_episodes: 10
 n_eval_steps: 5000
 full_save: False
+agent_buffer_length: 4
 
 #lr_alpha: 0.00001
 #actor_lr: 0.0003

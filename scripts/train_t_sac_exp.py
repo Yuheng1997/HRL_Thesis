@@ -61,6 +61,7 @@ def experiment(env_name: str = 'StaticHit',
 
                # opponent agent
                agent_path_list: list = None,
+               agent_buffer_length: int = 4,
 
                # curriculum config
                task_curriculum: bool = False,
@@ -88,7 +89,7 @@ def experiment(env_name: str = 'StaticHit',
                            ]
         oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
         baseline_agent = BaselineAgent(env.env_info, agent_id=2)
-        oppponent_agent_list.append(baseline_agent)
+        oppponent_agent_list.insert(0, baseline_agent)
 
     config = dict()
     for p in inspect.signature(experiment).parameters:
@@ -182,9 +183,7 @@ def experiment(env_name: str = 'StaticHit',
         wandb.log(log_dict, step=epoch + 1)
         core.agent.agent_1.epoch_start()
         logger.log_agent(agent_1, full_save=full_save)
-        wrapped_agent.update_opponent_list(new_agent=agent_1)
-        env.epoch_start()
-
+        wrapped_agent.update_opponent_list(new_agent=agent_1, agent_num=agent_buffer_length)
 
 def compute_metrics(core, eval_params, record=False, return_dataset=False):
     from mushroom_rl.utils.dataset import compute_J, compute_episodes_length
@@ -311,7 +310,7 @@ def get_dataset_info(core, dataset, dataset_info):
     epoch_info['success_rate'] = success_num / sub_episodes_num
     epoch_info['adv_value_in_action(mean)'] = sum(adv_value) / len(adv_value)
     epoch_info['termination_num'] = termination_counts
-    epoch_info['hit_num'] = dataset_info['hit_num'][-1] / episodes
+    epoch_info['hit_num'] = dataset_info['hit_num'][-1]
     epoch_info['win'] = dataset_info['win'][-1]
     epoch_info['lose'] = dataset_info['lose'][-1]
     return epoch_info
