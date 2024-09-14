@@ -8,9 +8,9 @@ adv_bonus: 0.1
 #n_episodes: 100
 n_steps: 20000
 n_epochs: 100
-horizon: 60000
+horizon: 120000
 #n_eval_episodes: 10
-n_eval_steps: 60000
+n_eval_steps: 120000
 n_steps_per_fit: 1
 num_adv_sample: 50
 initial_replay_size: 20000
