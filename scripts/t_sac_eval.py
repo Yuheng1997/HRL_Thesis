@@ -36,8 +36,8 @@ def main(
 
         # check_point: str = 't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47',
         # check_point: str = 't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
-        # check_point: str = 't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
-        check_point: str = 't_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16',
+        check_point: str = 't_sac_2024-09-15_01-00-09/test2024-09-09-03-23-16/parallel_seed___0/0/HitBackEnv_2024-09-15-04-52-29',
+        # check_point: str = 't_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16',
         # check_point=None
 ):
     env = HitBackEnv(visual_target=True, horizon=3000, curriculum_steps=6, gamma=0.99)
@@ -60,7 +60,7 @@ def main(
 
     baseline_agent = BaselineAgent(env.env_info, agent_id=2)
     agent_path_list = [
-                       't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09'
+                       't_sac_2024-09-15_01-00-09/test2024-09-09-03-23-16/parallel_seed___0/0/HitBackEnv_2024-09-15-04-52-29'
                        # 't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47'
                        # 't_sac_2024-09-01_05-46-30/parallel_seed___1/0/HitBackEnv_2024-09-01-05-47-27'
                        ]

@@ -157,7 +157,7 @@ class HitBackEnv(position.IiwaPositionTournament):
                     self._task_success = True
                     self.not_cross_line = False
                     self.episode_end = True
-                    r += puck_vel[0] * 30 + 80
+                    r += puck_vel[0] * 30
         if self.absorb_sign:
             self.episode_end = True
         r += r_hit
