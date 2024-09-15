@@ -22,14 +22,14 @@ from nn_planner_config import Config
 @single_experiment
 def experiment(env_name: str = 'StaticHit',
                n_epochs: int = 1,
-               n_steps: int = 600,
+               n_steps: int = 300,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
                render: bool = True,
                record: bool = False,
-               n_eval_steps: int = 1000,
+               n_eval_steps: int = 300,
                mode: str = 'disabled',
-               horizon: int = 1000,
+               horizon: int = 300,
                full_save: bool = False,
 
                group: str = None,
