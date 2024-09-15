@@ -57,7 +57,7 @@ class HitBackEnv(position.IiwaPositionTournament):
 
     def prepare_curriculum_dict(self, curriculum_steps):
         curriculum_dict = {'total_steps': curriculum_steps}
-        curriculum_dict['bonus_line'] = np.linspace(0.3, 0.9, curriculum_dict['total_steps'])
+        curriculum_dict['bonus_line'] = 0.5
         return curriculum_dict
 
     def is_absorbing(self, obs):
@@ -152,7 +152,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         # success
         idx = self.task_curriculum_dict['idx']
         if self.not_cross_line:
-            if puck_pos[0] > self.task_curriculum_dict['bonus_line'][idx] and puck_vel[0] > 0.1:
+            if puck_pos[0] > self.task_curriculum_dict['bonus_line'] and puck_vel[0] > 0.1:
                 if self.has_hit:
                     self._task_success = True
                     self.not_cross_line = False
@@ -160,6 +160,7 @@ class HitBackEnv(position.IiwaPositionTournament):
                     r += puck_vel[0] * 30
         if self.absorb_sign:
             self.episode_end = True
+        rate = self.task_curriculum_dict['rate'][idx]
         r += r_hit
         return r
 
