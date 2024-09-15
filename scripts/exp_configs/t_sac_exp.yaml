@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '15_09_cl_reward/less_line_reward/continue0909/self_learning4pop'
+group: '16_09_cl_reward/less_line_reward/continue0909/self_learning4pop'
 render: False
 record: False
 
