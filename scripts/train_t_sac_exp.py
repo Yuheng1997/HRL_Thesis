@@ -85,6 +85,7 @@ def experiment(env_name: str = 'StaticHit',
                            # 'two_day_cl_line_2024-09-12_00-48-29/two_day_cl_line/parallel_seed___0/0/HitBackEnv_2024-09-12-00-49-21',
                            # 'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
                            # 'two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53',
+                           # 'two_days_cl_r_self_learn_2024-09-16_13-38-36/two_days_cl_r_self_learn/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
                            ]
         oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
         baseline_agent = BaselineAgent(env.env_info, agent_id=2)
