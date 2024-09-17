@@ -190,7 +190,7 @@ class HitBackEnv(position.IiwaPositionTournament):
                     self.can_attack = False
             # defend num:
             if self.can_defend:
-                if puck_pos[0]< 0.5 and puck_vel[0] < -0.1:
+                if puck_pos[0]< -0.5 and puck_vel[0] < -0.1:
                     self.undefended += 1
                     self.can_defend = False
 
