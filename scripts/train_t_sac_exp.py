@@ -21,34 +21,34 @@ from nn_planner_config import Config
 
 @single_experiment
 def experiment(env_name: str = 'StaticHit',
-               n_epochs: int = 1,
+               n_epochs: int = 100,
                n_steps: int = 600,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
                render: bool = False,
                record: bool = False,
-               n_eval_steps: int = 60000,
+               n_eval_steps: int = 120000,
                mode: str = 'online',
-               horizon: int = 60000,
+               horizon: int = 120000,
                full_save: bool = False,
 
-               group: str = None,
+               group: str = '17_09_two_days_cl_r_self_learn_vs_baseline',
 
                gamma: float = 0.995,
                actor_lr: float = 3e-4,
                critic_lr: float = 3e-4,
-               termination_lr: float = 3e-5,
+               termination_lr: float = 0.00001,
                num_adv_sample: int = 50,
-               adv_bonus: float = 0.01,
+               adv_bonus: float = 0.1,
                n_features_actor: str = '256 256 256',
                n_features_critic: str = '256 256 256',
                n_features_termination: str = '256 256 256',
                batch_size: int = 256,
-               initial_replay_size: int = 8,
-               max_replay_size: int = 200000,
+               initial_replay_size: int = 20000,
+               max_replay_size: int = 1000000,
                tau: float = 1e-3,
-               warmup_transitions: int = 8,
-               termination_warmup: int = 8,
+               warmup_transitions: int = 20000,
+               termination_warmup: int = 20000,
                lr_alpha: float = 1e-5,
                target_entropy: float = -2,
                use_cuda: bool = True,
@@ -56,8 +56,8 @@ def experiment(env_name: str = 'StaticHit',
                layer_norm: bool = False,
 
                # Continue training
-               # check_point: str = 'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
-               check_point: str = None,
+               check_point: str = 'two_days_cl_r_self_learn_2024-09-16_13-38-36/two_days_cl_r_self_learn/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
+               # check_point: str = None,
 
                # opponent agent
                agent_path_list: list = None,
@@ -318,6 +318,10 @@ def get_dataset_info(core, dataset, dataset_info):
     epoch_info['self_fault'] = dataset_info['self_faults'][-1]
     epoch_info['oppo_fault'] = dataset_info['oppo_faults'][-1]
     epoch_info['episodes_num'] = episodes
+    epoch_info['serve_round'] = dataset_info['serve_round'][-1]
+    epoch_info['serve_success'] = dataset_info['serve_success'][-1]
+    epoch_info['attack_num'] =dataset_info['attack_num'][-1]
+    epoch_info['undefended_num'] = dataset_info['undefended_num'][-1]
     return epoch_info
 
 

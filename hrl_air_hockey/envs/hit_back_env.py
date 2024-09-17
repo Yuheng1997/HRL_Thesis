@@ -48,6 +48,18 @@ class HitBackEnv(position.IiwaPositionTournament):
         self.is_new_round = True
         self.self_faults = 0
         self.oppo_faults = 0
+        self.cross_attack_line = 0
+        self.cross_defend_line = 0
+        self.serve_success = 0
+        self.serve_round = 0
+        if self.start_side == -1:
+            self.should_serve = True
+        else:
+            self.should_serve = False
+        self.can_attack = False
+        self.can_defend = False
+        self.attacked = 0
+        self.undefended = 0
 
     def prepare_curriculum_dict(self, curriculum_steps):
         curriculum_dict = {'total_steps': curriculum_steps}
@@ -156,7 +168,40 @@ class HitBackEnv(position.IiwaPositionTournament):
                     self.episode_end = True
         if self.absorb_sign:
             self.episode_end = True
+        # evaluate agent:
+        self.update_evaluate_metrics(is_in_reward=True, puck_pos=puck_pos, puck_vel=puck_vel, is_in_setup=False)
+
         return r
+
+    def update_evaluate_metrics(self, is_in_reward, puck_pos, puck_vel, is_in_setup):
+        if is_in_reward:
+            if puck_pos[0] < 0.0 and puck_vel[0] < 0.1:
+                self.can_attack = True
+                self.can_defend = True
+            # serve success:
+            if self.should_serve:
+                if puck_pos[0] > 0.0:
+                    self.serve_success += 1
+                    self.should_serve = False
+            # attack num:
+            if self.can_attack:
+                if puck_pos[0] > 0.5 and puck_vel[0] > 0.1:
+                    self.attacked += 1
+                    self.can_attack = False
+            # defend num:
+            if self.can_defend:
+                if puck_pos[0]< 0.5 and puck_vel[0] < -0.1:
+                    self.undefended += 1
+                    self.can_defend = False
+
+        if is_in_setup:
+            self.can_attack = False
+            self.can_defend = False
+            self.should_serve = False
+            # count serve round
+            if self.start_side == -1:
+                self.serve_round += 1
+                self.should_serve = True
 
     def _create_info_dictionary(self, cur_obs):
         task_info = super()._create_info_dictionary(cur_obs)
@@ -167,6 +212,10 @@ class HitBackEnv(position.IiwaPositionTournament):
         task_info['sub_episodes'] = self.episode_end
         task_info['self_faults'] = self.self_faults
         task_info['oppo_faults'] = self.oppo_faults
+        task_info['serve_round'] = self.serve_round
+        task_info['serve_success'] = self.serve_success
+        task_info['attack_num'] = self.attacked
+        task_info['undefended_num'] = self.undefended
         return task_info
 
     def step(self, action):
@@ -192,6 +241,8 @@ class HitBackEnv(position.IiwaPositionTournament):
         self._task_success = False
         self.side_timer = 0
         super().setup(obs)
+
+        self.update_evaluate_metrics(is_in_reward=False, puck_pos=None, puck_vel=None, is_in_setup=True)
 
         if self.start_side == 1:
             hit_range = np.array([[0.8 - 1.51, 1.3 - 1.51], [-0.39105, 0.39105]])
