@@ -56,8 +56,8 @@ def experiment(env_name: str = 'StaticHit',
                layer_norm: bool = False,
 
                # Continue training
-               check_point: str = 'two_days_cl_r_self_learn_2024-09-16_13-38-36/two_days_cl_r_self_learn/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
-               # check_point: str = None,
+               # check_point: str = 'two_days_cl_r_self_learn_2024-09-16_13-38-36/two_days_cl_r_self_learn/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
+               check_point: str = None,
 
                # opponent agent
                agent_path_list: list = None,
@@ -81,11 +81,12 @@ def experiment(env_name: str = 'StaticHit',
 
     if agent_path_list is None:
         agent_path_list = [
-                           # 'reward_cl_2024-09-09_18-29-12/parallel_seed___0/0/HitBackEnv_2024-09-09-18-30-02',
-                           # 'two_day_cl_line_2024-09-12_00-48-29/two_day_cl_line/parallel_seed___0/0/HitBackEnv_2024-09-12-00-49-21',
                            # 'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
                            # 'two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53',
-                           # 'two_days_cl_r_self_learn_2024-09-16_13-38-36/two_days_cl_r_self_learn/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
+                           # 'cl_line_2024-09-12_00-48-29/cl_line/parallel_seed___0/0/HitBackEnv_2024-09-12-00-49-21',
+                           # 'cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49',
+                           # 'cl_r_2024-09-16_13-38-36/cl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
+                           # 'cl_sl_r_2024-09-16_01-32-16/cl_sl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-01-34-04',
                            ]
         oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
         baseline_agent = BaselineAgent(env.env_info, agent_id=2)
