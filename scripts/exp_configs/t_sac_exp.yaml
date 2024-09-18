@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: 'n_18_09_cl_sl_r_vs_baseline'
+group: 'test0_6_18_09_cl_sl_r_vs_baseline'
 render: False
 record: False
 
