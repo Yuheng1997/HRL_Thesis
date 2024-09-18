@@ -84,8 +84,8 @@ def experiment(env_name: str = 'StaticHit',
         agent_path_list = [
                            # 't_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16',
                            # 't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47',
-                           't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
-                           # 't_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16'
+                           # 't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
+                           'cl_sl_r_2024-09-16_01-32-16/cl_sl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-01-34-04'
                            ]
         oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
         baseline_agent = BaselineAgent(env.env_info, agent_id=2)
@@ -102,7 +102,7 @@ def experiment(env_name: str = 'StaticHit',
 
     os.environ["WANDB_API_KEY"] = Config.wandb.api_key
     wandb.init(project="LearnHitBack", dir=results_dir, config=config, name=f"{current_time}_seed{parallel_seed}",
-               group=group, notes=f"logdir: {logger._results_dir}", mode=mode)
+               group=group, notes=f"logdir: {logger._results_dir}", mode=mode, id='qkzf63qv', resume='allow')
 
     eval_params = {
         "n_steps": n_eval_steps,
@@ -183,7 +183,7 @@ def experiment(env_name: str = 'StaticHit',
         wandb.log(log_dict, step=epoch + 1)
         core.agent.agent_1.epoch_start()
         logger.log_agent(agent_1, full_save=full_save)
-        # wrapped_agent.update_opponent_list(new_agent=agent_1, agent_num=agent_buffer_length)
+        wrapped_agent.update_opponent_list(new_agent=agent_1, agent_num=agent_buffer_length)
 
 def compute_metrics(core, eval_params, record=False, return_dataset=False):
     from mushroom_rl.utils.dataset import compute_J, compute_episodes_length
