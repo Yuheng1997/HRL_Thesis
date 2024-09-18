@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: 'test0_6_18_09_cl_r_vs_baseline'
+group: 'n_18_09_cl_r_vs_baseline'
 render: False
 record: False
 
@@ -38,7 +38,7 @@ curriculum_steps: 5
 check_point__: "cl_r_2024-09-16_13-38-36/cl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15"
 
 sweep_params:
-  parallel_seed__: [0]
+  parallel_seed__: [1]
 
 
 experiments:
