@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '15_09_curriculum_line5/less_line_reward/continue0909/self_learning4pop'
+group: '18_09_curriculum_line5/continue1509/self_learning4pop'
 render: False
 record: False
 
@@ -36,7 +36,7 @@ target_entropy: -2
 task_curriculum: True
 curriculum_steps: 5
 
-check_point__: "t_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16"
+check_point__: "cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49"
 
 sweep_params:
   parallel_seed__: [0]
