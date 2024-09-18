@@ -102,7 +102,7 @@ def experiment(env_name: str = 'StaticHit',
 
     os.environ["WANDB_API_KEY"] = Config.wandb.api_key
     wandb.init(project="LearnHitBack", dir=results_dir, config=config, name=f"{current_time}_seed{parallel_seed}",
-               group=group, notes=f"logdir: {logger._results_dir}", mode=mode)
+               group=group, notes=f"logdir: {logger._results_dir}", mode=mode, id='555sp229', resume='allow')
 
     eval_params = {
         "n_steps": n_eval_steps,
