@@ -25,7 +25,7 @@ def experiment(env_name: str = 'StaticHit',
                n_steps: int = 600,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
-               render: bool = True,
+               render: bool = False,
                record: bool = False,
                n_eval_steps: int = 1000,
                mode: str = 'disabled',
@@ -83,7 +83,7 @@ def experiment(env_name: str = 'StaticHit',
         agent_path_list = [
                            # 't_sac_2024-08-27_20-20-56/trained_opponent/parallel_seed___1/0/HitBackEnv_2024-08-27-20-21-41'
                            # 't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47',
-                           't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
+                           # 't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
                            # 'two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53'
                            ]
         oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
@@ -216,7 +216,7 @@ def compute_metrics(core, eval_params, record=False, return_dataset=False):
         options = list()
         for i in range(len(dataset)):
             states.append(dataset[i][0])
-            options.append(dataset[i][1][14:16])
+            options.append(dataset[i][1][14:21])
         return np.array(states), np.array(options)
 
     def compute_beta_metrics(agent, dataset):

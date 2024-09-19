@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '19_09_atacom'
+group: '19_09_atacom_fix'
 render: False
 record: False
 
