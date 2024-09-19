@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: 'n_19_09_three_days_cl_sl_line_vs_baseline'
+group: 'n_18_09_cl_sl_line_vs_baseline'
 render: False
 record: False
 
@@ -35,10 +35,10 @@ target_entropy: -2
 task_curriculum: False
 curriculum_steps: 5
 
-check_point__: "three_days_cl_sl_line_2024-09-18_13-50-05/cl_sl_line_2024-09-15_12-26-41/parallel_seed___0/0/HitBackEnv_2024-09-18-13-50-28"
+check_point__: "cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49"
 
 sweep_params:
-  parallel_seed__: [1]
+  parallel_seed__: [0, 1, 2]
 
 
 experiments:
