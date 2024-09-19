@@ -144,8 +144,10 @@ class AirHockeyController(ATACOMController):
                          lambda_c=controller_info['lambda_c'],
                          slack_vel_limit=controller_info['slack_vel_limit'])
 
-    def compute_control(self, action_2d, obs):
+    def compute_control(self, action, obs):
         q = obs[6:13]
+        action_2d = forward_kinematics(self.robot_model, self.robot_data, action)[0][:2]
+
         v_3d = np.concatenate([action_2d, [0]])
         jac_lin = jacobian(self.robot_model, self.robot_data, q)[:3]
 

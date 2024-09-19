@@ -75,12 +75,12 @@ class SACPlusTermination(SAC):
         if np.random.uniform() < term_prob:
             self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
             self.last_option = self.last_option.squeeze()
-            target_2d = self._get_target_2d(self.last_option, state)
-            low_action = self.traj_planner.compute_control(target_2d, state).flatten()
+            # target_2d = self._get_target_2d(self.last_option, state)
+            low_action = self.traj_planner.compute_control(self.last_option, state).flatten()
             termination = np.array([1])
         else:
-            target_2d = self._get_target_2d(self.last_option, state)
-            low_action = self.traj_planner.compute_control(target_2d, state).flatten()
+            # target_2d = self._get_target_2d(self.last_option, state)
+            low_action = self.traj_planner.compute_control(self.last_option, state).flatten()
             termination = np.array([0])
 
         expand_state = np.repeat(state[np.newaxis, :], 50, axis=0)

@@ -25,7 +25,7 @@ def experiment(env_name: str = 'StaticHit',
                n_steps: int = 600,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
-               render: bool = False,
+               render: bool = True,
                record: bool = False,
                n_eval_steps: int = 1000,
                mode: str = 'disabled',
@@ -56,8 +56,8 @@ def experiment(env_name: str = 'StaticHit',
                layer_norm: bool = False,
 
                # Continue training
-               check_point: str = 't_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16',
-               # check_point: str = None,
+               # check_point: str = 't_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16',
+               check_point: str = None,
 
                # opponent agent
                agent_path_list: list = None,
@@ -76,15 +76,15 @@ def experiment(env_name: str = 'StaticHit',
     torch.manual_seed(parallel_seed)
 
     env = HitBackEnv(horizon=horizon, curriculum_steps=curriculum_steps, gamma=gamma)
-    env.info.action_space = Box(np.array([-0.9 + 1.51, -0.45]), np.array([-0.2 + 1.51, 0.45]))
+    env.info.action_space = Box(-np.array([2.967, 2.094, 2.967, 2.094, 2.967, 2.094, 3.054]), np.array([2.967, 2.094, 2.967, 2.094, 2.967, 2.094, 3.054]))
     env.info.observation_space = Box(np.ones(20), np.ones(20))
 
     if agent_path_list is None:
         agent_path_list = [
                            # 't_sac_2024-08-27_20-20-56/trained_opponent/parallel_seed___1/0/HitBackEnv_2024-08-27-20-21-41'
                            # 't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47',
-                           # 't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
-                           'two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53'
+                           't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
+                           # 'two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53'
                            ]
         oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
         baseline_agent = BaselineAgent(env.env_info, agent_id=2)
@@ -128,31 +128,30 @@ def experiment(env_name: str = 'StaticHit',
     core = Core(wrapped_agent, env)
 
     # initial evaluate
-    # J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info = compute_metrics(core, eval_params, record)
-    #
-    # logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta, **task_info)
-    # size_replay_memory = core.agent.agent_1._replay_memory.size
-    # adv_func_in_fit = np.mean(core.agent.agent_1.adv_list)
-    #
-    # logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta,
-    #                   size_replay_memory=size_replay_memory, **task_info)
-    #
-    # log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-    #             "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta, "Termination/min_beta":min_Beta,
-    #             "size_replay_memory": size_replay_memory, "Termination/adv_value_in_fit(mean)": adv_func_in_fit}
-    #
-    # task_dict = {}
-    # for key, value in task_info.items():
-    #     if hasattr(value, '__iter__'):
-    #         for i, v in enumerate(value):
-    #             task_dict[key + f"_{i}"] = v
-    #     else:
-    #         task_dict[key] = value
-    # log_dict.update(task_dict)
-    # wandb.log(log_dict, step=0)
+    J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info = compute_metrics(core, eval_params, record)
+
+    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta, **task_info)
+    size_replay_memory = core.agent.agent_1._replay_memory.size
+    adv_func_in_fit = np.mean(core.agent.agent_1.adv_list)
+
+    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta,
+                      size_replay_memory=size_replay_memory, **task_info)
+
+    log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
+                "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta, "Termination/min_beta":min_Beta,
+                "size_replay_memory": size_replay_memory, "Termination/adv_value_in_fit(mean)": adv_func_in_fit}
+
+    task_dict = {}
+    for key, value in task_info.items():
+        if hasattr(value, '__iter__'):
+            for i, v in enumerate(value):
+                task_dict[key + f"_{i}"] = v
+        else:
+            task_dict[key] = value
+    log_dict.update(task_dict)
+    wandb.log(log_dict, step=0)
 
     for epoch in tqdm(range(n_epochs), disable=False):
-        epoch = epoch+200
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
 
         J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info = compute_metrics(core, eval_params, record)
