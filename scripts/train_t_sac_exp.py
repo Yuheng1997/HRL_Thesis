@@ -88,7 +88,7 @@ def experiment(env_name: str = 'StaticHit',
                            ]
         oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
         baseline_agent = BaselineAgent(env.env_info, agent_id=2)
-        oppponent_agent_list.append(baseline_agent)
+        oppponent_agent_list.insert(0, baseline_agent)
 
     config = dict()
     for p in inspect.signature(experiment).parameters:
@@ -101,7 +101,7 @@ def experiment(env_name: str = 'StaticHit',
 
     os.environ["WANDB_API_KEY"] = Config.wandb.api_key
     wandb.init(project="LearnHitBack", dir=results_dir, config=config, name=f"{current_time}_seed{parallel_seed}",
-               group=group, notes=f"logdir: {logger._results_dir}", mode=mode)
+               group=group, notes=f"logdir: {logger._results_dir}", mode=mode, id='3yqwd85o', resume='allow')
 
     eval_params = {
         "n_steps": n_eval_steps,
@@ -128,30 +128,31 @@ def experiment(env_name: str = 'StaticHit',
     core = Core(wrapped_agent, env)
 
     # initial evaluate
-    J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info = compute_metrics(core, eval_params, record)
-
-    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta, **task_info)
-    size_replay_memory = core.agent.agent_1._replay_memory.size
-    adv_func_in_fit = np.mean(core.agent.agent_1.adv_list)
-
-    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta,
-                      size_replay_memory=size_replay_memory, **task_info)
-
-    log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-                "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta, "Termination/min_beta":min_Beta,
-                "size_replay_memory": size_replay_memory, "Termination/adv_value_in_fit(mean)": adv_func_in_fit}
-
-    task_dict = {}
-    for key, value in task_info.items():
-        if hasattr(value, '__iter__'):
-            for i, v in enumerate(value):
-                task_dict[key + f"_{i}"] = v
-        else:
-            task_dict[key] = value
-    log_dict.update(task_dict)
-    wandb.log(log_dict, step=0)
+    # J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info = compute_metrics(core, eval_params, record)
+    #
+    # logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta, **task_info)
+    # size_replay_memory = core.agent.agent_1._replay_memory.size
+    # adv_func_in_fit = np.mean(core.agent.agent_1.adv_list)
+    #
+    # logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta,
+    #                   size_replay_memory=size_replay_memory, **task_info)
+    #
+    # log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
+    #             "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta, "Termination/min_beta":min_Beta,
+    #             "size_replay_memory": size_replay_memory, "Termination/adv_value_in_fit(mean)": adv_func_in_fit}
+    #
+    # task_dict = {}
+    # for key, value in task_info.items():
+    #     if hasattr(value, '__iter__'):
+    #         for i, v in enumerate(value):
+    #             task_dict[key + f"_{i}"] = v
+    #     else:
+    #         task_dict[key] = value
+    # log_dict.update(task_dict)
+    # wandb.log(log_dict, step=0)
 
     for epoch in tqdm(range(n_epochs), disable=False):
+        epoch = epoch+200
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
 
         J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info = compute_metrics(core, eval_params, record)
