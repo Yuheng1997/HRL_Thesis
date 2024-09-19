@@ -38,7 +38,7 @@ curriculum_steps: 5
 check_point__: "cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49"
 
 sweep_params:
-  parallel_seed__: [0, 1, 2]
+  parallel_seed__: [1, 2]
 
 
 experiments:
