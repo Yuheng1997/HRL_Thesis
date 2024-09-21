@@ -32,7 +32,7 @@ def experiment(env_name: str = 'StaticHit',
                horizon: int = 120000,
                full_save: bool = False,
 
-               group: str = '17_09_two_days_cl_r_self_learn_vs_baseline',
+               group: str = None,
 
                gamma: float = 0.995,
                actor_lr: float = 3e-4,
@@ -81,8 +81,8 @@ def experiment(env_name: str = 'StaticHit',
 
     if agent_path_list is None:
         agent_path_list = [
-                           # 'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
-                           'two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53',
+                           'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
+                           # 'two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53',
                            # 'cl_line_2024-09-12_00-48-29/cl_line/parallel_seed___0/0/HitBackEnv_2024-09-12-00-49-21',
                            # 'cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49',
                            # 'cl_r_2024-09-16_13-38-36/cl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
