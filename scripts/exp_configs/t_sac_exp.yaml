@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: 'cl_line_vs_origin'
+group: 'sl_origin_vs_origin'
 render: False
 record: False
 
@@ -35,7 +35,7 @@ target_entropy: -2
 task_curriculum: False
 curriculum_steps: 5
 
-check_point__: "cl_line_2024-09-12_00-48-29/cl_line/parallel_seed___0/0/HitBackEnv_2024-09-12-00-49-21"
+check_point__: "two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53"
 
 sweep_params:
   parallel_seed__: [0, 1, 2]
