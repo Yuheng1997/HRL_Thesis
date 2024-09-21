@@ -81,9 +81,9 @@ def experiment(env_name: str = 'StaticHit',
 
     if agent_path_list is None:
         agent_path_list = [
-                           'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
+                           # 'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
                            # 'two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53',
-                           # 'cl_line_2024-09-12_00-48-29/cl_line/parallel_seed___0/0/HitBackEnv_2024-09-12-00-49-21',
+                           'cl_line_2024-09-12_00-48-29/cl_line/parallel_seed___0/0/HitBackEnv_2024-09-12-00-49-21',
                            # 'cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49',
                            # 'cl_r_2024-09-16_13-38-36/cl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
                            # 'cl_sl_r_2024-09-16_01-32-16/cl_sl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-01-34-04',
