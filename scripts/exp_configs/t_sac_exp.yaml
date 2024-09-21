@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: 'cl_r_vs_cl_line'
+group: 'cl_r_vs_sl_origin'
 render: False
 record: False
 
