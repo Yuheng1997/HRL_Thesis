@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: 'n_18_09_two_days_origin_vs_baseline'
+group: 'sl_cl_line vs sl_cl_r'
 render: False
 record: False
 
@@ -35,10 +35,10 @@ target_entropy: -2
 task_curriculum: False
 curriculum_steps: 5
 
-check_point__: "two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58"
+check_point__: "cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49"
 
 sweep_params:
-  parallel_seed__: [1, 2]
+  parallel_seed__: [0, 1]
 
 
 experiments:
@@ -47,7 +47,7 @@ experiments:
   n_seeds: 1
   n_cores: 4
   n_exps_in_parallel: 1
-  memory_single_job: 2000
+  memory_single_job: 3000
   days: 0
   hours: 23
   minutes: 59
