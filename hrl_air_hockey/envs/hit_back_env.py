@@ -210,8 +210,6 @@ class HitBackEnv(position.IiwaPositionTournament):
         if self.task_curriculum_dict['idx'] < self.task_curriculum_dict['total_steps'] - 1:
             self.task_curriculum_dict['idx'] += 1
             idx = self.task_curriculum_dict['idx']
-            self.info.gamma = self.task_curriculum_dict['gamma'][idx]
-            self.info.horizon = self.task_curriculum_dict['horizon'][idx]
 
     def update_task_vis(self, task_idx):
         self._model.site('puck_vis').type = mujoco.mjtGeom.mjGEOM_BOX
