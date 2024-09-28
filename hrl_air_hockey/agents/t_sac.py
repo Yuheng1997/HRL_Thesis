@@ -5,7 +5,8 @@ from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from hrl_air_hockey.utils.t_replay_memory import TReplayMemory
 from hrl_air_hockey.bspline_planner.planner import TrajectoryPlanner
-
+from hrl_air_hockey.agents.atacom_agent import AirHockeyController
+from hrl_air_hockey.bspline_planner.utils.kinematics import forward_kinematics
 
 class SACPlusTermination(SAC):
     """
@@ -16,7 +17,7 @@ class SACPlusTermination(SAC):
     """
 
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params,
-                 nn_planner_params, termination_params, termination_optimizer, batch_size, termination_warmup,
+                 atacom_planner_params, termination_params, termination_optimizer, batch_size, termination_warmup,
                  initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, num_adv_sample, device, adv_bonus,
                  use_log_alpha_loss=False, log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None):
 
@@ -32,8 +33,9 @@ class SACPlusTermination(SAC):
         self.action_shape = mdp_info.action_space.shape
         self._replay_memory = TReplayMemory(initial_replay_size, max_replay_size, state_shape=self.state_shape,
                                             action_shape=self.action_shape, device=device)
-        self.nn_planner_params = nn_planner_params
-        self.traj_planner = TrajectoryPlanner(**nn_planner_params)
+
+        self.traj_planner = AirHockeyController(**atacom_planner_params)
+        self.atacom_planner_params = atacom_planner_params
 
         self.termination_approximator = Regressor(TorchApproximator, **termination_params)
         termination_parameters = self.termination_approximator.model.network.parameters()
@@ -45,125 +47,78 @@ class SACPlusTermination(SAC):
         self.device = device
         self.adv_bonus = adv_bonus
         self.adv_list = []
-        self.max_term_time = 5
 
-        self.num = 0
         self._add_save_attr(
             adv_bonus='primitive',
             termination_optimizer='torch',
-            nn_planner_params='pickle',
+            atacom_planner_params='pickle',
             termination_approximator="mushroom",
             num_adv_sample='primitive',
             device='primitive',
             termination_warmup='primitive',
         )
 
+    def epoch_start(self):
+        self.adv_list = []
+
     def episode_start(self):
-        self.term_time = 0
-        self.cur_smdp_length = 0
-        self.sum_reward = 0
-        self.initial_state = None
-        self.initial_action = None
-        self.initial_smdp_state = None
-        self.initial_smdp_action = None
-        self.trajectory_buffer = None
         self.last_option = None
         self.last_log_p = None
         self.policy.reset()
 
     def draw_action(self, state):
-        rest_traj_len = 0
-        if self.trajectory_buffer is None or len(self.trajectory_buffer) == 0:
-            self.term_time = 0
+        if self.last_option is None:
             self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
             self.last_option = self.last_option.squeeze()
-            q, dq = self._get_joint_pos(state)
-            hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_option)
-            self.trajectory_buffer = \
-                self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale)[0]
+        term_prob = self.termination_approximator.predict(state, self.last_option, output_tensor=False)
+
+        if np.random.uniform() < term_prob:
+            self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
+            self.last_option = self.last_option.squeeze()
+            target_2d = self._get_target_2d(self.last_option, state)
+            low_action = self.traj_planner.compute_control(target_2d, state).flatten()
             termination = np.array([1])
-            beta_termination = np.array([0])
         else:
-            term_prob = self.termination_approximator.predict(state, self.last_option, output_tensor=False)
-            # term_prob = 0.02
+            target_2d = self._get_target_2d(self.last_option, state)
+            low_action = self.traj_planner.compute_control(target_2d, state).flatten()
             termination = np.array([0])
-            beta_termination = np.array([0])
-            if np.random.uniform() < term_prob:
-                if self.term_time < self.max_term_time:
-                    self.term_time += 1
-                    self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
-                    self.last_option = self.last_option.squeeze()
-                    q, dq = self._get_joint_pos(state)
-                    hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_option)
-
-                    rest_traj_len = len(self.trajectory_buffer)
-                    print(rest_traj_len)
-                    self.trajectory_buffer = \
-                        self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale)[0]
-                    termination = np.array([1])
-                    beta_termination = np.array([1])
-        assert len(self.trajectory_buffer) > 0
-        joint_command = self.trajectory_buffer[0, :14]
-        self.trajectory_buffer = self.trajectory_buffer[1:]
-
-        if termination == 1:
-            last_smdp_length = self.cur_smdp_length
-            self.cur_smdp_length = 0
-        else:
-            last_smdp_length = self.cur_smdp_length
-            self.cur_smdp_length += 1
 
         expand_state = np.repeat(state[np.newaxis, :], 50, axis=0)
         expand_new_option = self.policy.draw_action(expand_state)
         q = self._target_critic_approximator.predict(state[np.newaxis, :], self.last_option[np.newaxis, :], prediction='min')
         v = self._target_critic_approximator.predict(expand_state, expand_new_option, prediction='min').mean()
         adv_value = q - v + self.adv_bonus
-        # 14 + 4 + 1 + 1+ 1+ 1 + 1 + 1 = 24
-        return np.concatenate([joint_command, self.last_option, termination, np.array([last_smdp_length]),
-                               np.array([self.cur_smdp_length]), beta_termination, np.array([rest_traj_len]), np.array([adv_value])])
-
-    def _get_joint_pos(self, state):
-        q = state[..., 6:13]
-        dq = state[..., 13:20]
-        return q, dq
-
-    def _get_target_point(self, action):
-        hit_pos = action[:2]
-        angle = action[2]
-        scale = action[3]
-        hit_vel = np.array([np.cos(angle), np.sin(angle)])
-        return hit_pos, hit_vel, scale, angle
+        # 14 + 2 + 1 + 1 = 18
+        return np.concatenate([low_action, self.last_option, termination, np.array([adv_value])])
 
     def fit(self, dataset, **info):
         t_dataset = self.add_t_dataset(dataset)
         self._replay_memory.add(t_dataset)
-        for i in range(1):
-            if self._replay_memory.initialized:
-                state, option, reward, next_state, absorbing, _, _ = self._replay_memory.get(
-                    self._batch_size())
 
-                if self._replay_memory.size > self._warmup_transitions():
-                    option_new, log_prob = self.policy.compute_action_and_log_prob_t(state)
-                    # update actor
-                    actor_loss = self._loss(state, option_new, log_prob)
-                    self._optimize_actor_parameters(actor_loss)
-                    self._update_alpha(log_prob.detach())
-                    # update beta(termination)
-                    if self._replay_memory.size > self.termination_warmup:
-                        beta_loss = self.termination_loss(next_state, option)
-                        self.optimize_termination_parameters(beta_loss)
+        if self._replay_memory.initialized:
+            state, option, reward, next_state, absorbing, _ = self._replay_memory.get(
+                self._batch_size())
 
-                beta_prime = self.termination_approximator.predict(next_state, option, output_tensor=True).squeeze(-1)
-                option_prime, log_p_prime = self.policy.compute_action_and_log_prob_t(next_state)
+            if self._replay_memory.size > self._warmup_transitions():
+                option_new, log_prob = self.policy.compute_action_and_log_prob_t(state)
+                # update actor
+                actor_loss = self._loss(state, option_new, log_prob)
+                self._optimize_actor_parameters(actor_loss)
+                self._update_alpha(log_prob.detach())
+                # update beta(termination)
+                if self._replay_memory.size > self.termination_warmup:
+                    beta_loss = self.termination_loss(next_state, option)
+                    self.optimize_termination_parameters(beta_loss)
 
-                # gt = reward + self.mdp_info.gamma * ((1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing)
-                #      + beta_prime.detach() * self.q_next(next_state, option_prime, absorbing) - self._alpha.detach() * log_p_prime.detach())
-                gt = reward + self.mdp_info.gamma * ((1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing)
-                     + beta_prime.detach() * self.q_next(next_state, option_prime, absorbing))
+            beta_prime = self.termination_approximator.predict(next_state, option, output_tensor=True).squeeze(-1)
+            option_prime, log_p_prime = self.policy.compute_action_and_log_prob_t(next_state)
 
-                self._critic_approximator.fit(state, option, gt, **self._critic_fit_params)
+            gt = reward + self.mdp_info.gamma * ((1 - beta_prime.detach()) * self.q_next(next_state, option, absorbing)
+                 + beta_prime.detach() * self.q_next(next_state, option_prime, absorbing) - self._alpha.detach() * log_p_prime.detach())
 
-                self._update_target(self._critic_approximator, self._target_critic_approximator)
+            self._critic_approximator.fit(state, option, gt, **self._critic_fit_params)
+
+            self._update_target(self._critic_approximator, self._target_critic_approximator)
 
     def q_next(self, next_state, option, absorbing):
         q = self._target_critic_approximator.predict(next_state, option, prediction='min')
@@ -177,46 +132,22 @@ class SACPlusTermination(SAC):
 
         return (self._alpha * log_prob - q).mean()
 
-    def prepare_dataset(self, dataset):
-        smdp_dataset = list()
-        termination_dataset = list()
-        for i, d in enumerate(dataset):
-            high_action = d[1][14:18]
-            termination = d[1][18]
-            last_smdp_length = d[1][19]
-            cur_smdp_length = d[1][20]
-            reward = d[2]
-            next_state = d[3]
-            absorbing = d[4]
-            last = d[5]
-            self.sum_reward += reward * (self.mdp_info.gamma ** cur_smdp_length)
-
-            if self.initial_smdp_state is None:
-                self.initial_smdp_state = d[0]
-                self.initial_smdp_action = high_action
-            termination_dataset.append(([None], self.initial_smdp_action, [None], next_state, [None], [None]))
-            if termination == 1 or absorbing or last:
-                smdp_dataset.append((self.initial_smdp_state, self.initial_smdp_action, self.sum_reward, d[0],
-                                     absorbing, last, last_smdp_length))
-                self.sum_reward = 0
-                self.initial_smdp_state = None
-                self.initial_smdp_action = None
-
-        return smdp_dataset, termination_dataset
+    def _get_target_2d(self, target_pos, state):
+        ee_pos = forward_kinematics(self.traj_planner.robot_model, self.traj_planner.robot_data, state[6:13], link="ee")[0][:2]
+        action = (target_pos[:2] - ee_pos[:2]) * 30
+        action = np.clip(action, -1.5, 1.5)
+        return action
 
     def add_t_dataset(self, dataset):
         t_dataset = list()
         for i, d in enumerate(dataset):
-            state = torch.tensor(d[0], device=self.device)
-            option = torch.tensor(d[1][14:18], device=self.device)
+            state = torch.tensor(d[0][:20], device=self.device)
+            option = torch.tensor(d[1][14:16], device=self.device)
             reward = torch.tensor(d[2], device=self.device)
-            next_state = torch.tensor(d[3], device=self.device)
+            next_state = torch.tensor(d[3][:20], device=self.device)
             absorbing = torch.tensor(d[4], device=self.device)
             last = torch.tensor(d[5], device=self.device)
-            cur_smdp_length = torch.tensor(d[1][20])
-            log_p = torch.tensor(d[1][23], device=self.device)
-            t_dataset.append((state, option, reward, next_state, absorbing, last, log_p))
-
+            t_dataset.append((state, option, reward, next_state, absorbing, last))
         return t_dataset
 
     def termination_loss(self, next_state, option):
@@ -263,9 +194,7 @@ class SACPlusTermination(SAC):
     def _post_load(self):
         super()._post_load()
         self.adv_list = []
-        self.max_term_time = 5
-        self.term_time = 0
+        self.adv_bonus = 0.01
         self.state_shape = self.mdp_info.observation_space.shape
         self.action_shape = self.mdp_info.action_space.shape
-        self.nn_planner_params['planner_path'] = '../trained_low_agent/Model_5600.pt'
-        self.traj_planner = TrajectoryPlanner(**self.nn_planner_params)
+        self.traj_planner = AirHockeyController(**self.atacom_planner_params)

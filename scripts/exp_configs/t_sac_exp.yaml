@@ -1,19 +1,20 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-load_nn_agent: 'Model_5600.pt'
-group: '22_07_adjust_logp'
+group: '19_09_three_day_origin/self_learning4'
 render: False
 record: False
 
+adv_bonus: 0.1
 #n_episodes: 100
-n_steps: 50000
+n_steps: 20000
 n_epochs: 100
-horizon: 1000
+horizon: 600
 n_steps_per_fit: 1
 num_adv_sample: 50
-initial_replay_size: 10000
-max_replay_size: 200000
-warmup_transitions: 10000
+initial_replay_size: 20000
+max_replay_size: 1000000
+warmup_transitions: 20000
+termination_warmup: 20000
 batch_size: 256
 tau: 0.003
 dropout_ratio: 0.01
@@ -24,22 +25,24 @@ full_save: False
 
 #lr_alpha: 0.00001
 #actor_lr: 0.0003
+gamma: 0.995
 lr_alpha: 0.00001
-actor_lr: 0.00003
-critic_lr: 0.00003
+actor_lr: 0.0003
+critic_lr: 0.0003
+termination_lr: 0.00001
 target_entropy: -2
 
-task_curriculum: True
-curriculum_steps: 10
+task_curriculum: False
+curriculum_steps: 5
 
-#check_point__: "./logs/high_level_2024-05-22_19-59-26/parallel_seed___0/0/BaseEnv_2024-05-22-19-59-51"
+check_point__: "two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53"
 
 sweep_params:
-  parallel_seed__: [0, 1, 2]
+  parallel_seed__: [0]
 
 
 experiments:
-  exp_name: 'hit_back'
+  exp_name: 't_sac'
   exp_file: 'train_t_sac_exp'
   n_seeds: 1
   n_cores: 4
@@ -49,11 +52,12 @@ experiments:
   hours: 23
   minutes: 59
   seconds: 0
-  partition: 'stud'
+  partition: 'stud3080'
   gres: 'gpu:1'   # if use_cuda 'gpu:1'
   conda_env: 'neural_planner'
   use_timestamp: True
   compact_dirs: False
   use_cuda: True
+
 
 

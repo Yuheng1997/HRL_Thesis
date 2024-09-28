@@ -83,7 +83,7 @@ class TerminationNetwork(nn.Module):
             self.model.append(nn.ReLU())
 
         final_layer = nn.Linear(n_features[-2], n_features[-1])
-        nn.init.constant_(final_layer.bias, -2.5)
+        nn.init.constant_(final_layer.bias, -3)
 
         self.model.append(final_layer)
         self.model.append(nn.Sigmoid())
