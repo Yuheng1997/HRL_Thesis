@@ -56,12 +56,13 @@ def experiment(env_name: str = 'StaticHit',
                layer_norm: bool = False,
 
                # Continue training
-               check_point: str = 't_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16',
+               check_point: str = None,
                # check_point: str = None,
 
                # opponent agent
                agent_path_list: list = None,
                agent_buffer_length: int = 4,
+               self_learn: bool = True,
 
                # curriculum config
                task_curriculum: bool = False,
@@ -183,7 +184,8 @@ def experiment(env_name: str = 'StaticHit',
         wandb.log(log_dict, step=epoch + 1)
         core.agent.agent_1.epoch_start()
         logger.log_agent(agent_1, full_save=full_save)
-        wrapped_agent.update_opponent_list(new_agent=agent_1, agent_num=agent_buffer_length)
+        if self_learn:
+            wrapped_agent.update_opponent_list(new_agent=agent_1, agent_num=agent_buffer_length)
 
 def compute_metrics(core, eval_params, record=False, return_dataset=False):
     from mushroom_rl.utils.dataset import compute_J, compute_episodes_length
