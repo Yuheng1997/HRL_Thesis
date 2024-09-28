@@ -23,6 +23,7 @@ layer_norm: False
 n_eval_steps: 5000
 full_save: False
 agent_buffer_length: 4
+self_learn: True
 
 #lr_alpha: 0.00001
 #actor_lr: 0.0003
