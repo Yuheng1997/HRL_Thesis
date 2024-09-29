@@ -54,10 +54,11 @@ def experiment(env_name: str = 'StaticHit',
                use_cuda: bool = False,
                dropout_ratio: float = 0.01,
                layer_norm: bool = False,
+               self_learn: bool = True,
 
                # Continue training
-               check_point: str = 't_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16',
-               # check_point: str = None,
+               # check_point: str = 't_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16',
+               check_point: str = None,
 
                # opponent agent
                agent_path_list: list = None,
@@ -130,28 +131,28 @@ def experiment(env_name: str = 'StaticHit',
     core = Core(wrapped_agent, env)
 
     # initial evaluate
-    # J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info = compute_metrics(core, eval_params, record)
-    #
-    # logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta, **task_info)
-    # size_replay_memory = core.agent.agent_1._replay_memory.size
-    # adv_func_in_fit = np.mean(core.agent.agent_1.adv_list)
-    #
-    # logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta,
-    #                   size_replay_memory=size_replay_memory, **task_info)
-    #
-    # log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
-    #             "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta, "Termination/min_beta":min_Beta,
-    #             "size_replay_memory": size_replay_memory, "Termination/adv_value_in_fit(mean)": adv_func_in_fit}
-    #
-    # task_dict = {}
-    # for key, value in task_info.items():
-    #     if hasattr(value, '__iter__'):
-    #         for i, v in enumerate(value):
-    #             task_dict[key + f"_{i}"] = v
-    #     else:
-    #         task_dict[key] = value
-    # log_dict.update(task_dict)
-    # wandb.log(log_dict, step=0)
+    J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info = compute_metrics(core, eval_params, record)
+
+    logger.log_numpy(J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta, **task_info)
+    size_replay_memory = core.agent.agent_1._replay_memory.size
+    adv_func_in_fit = np.mean(core.agent.agent_1.adv_list)
+
+    logger.epoch_info(0, J=J, R=R, E=E, V=V, alpha=alpha, max_Beta=max_Beta, mean_Beta=mean_Beta, min_Beta=min_Beta,
+                      size_replay_memory=size_replay_memory, **task_info)
+
+    log_dict = {"Reward/J": J, "Reward/R": R, "Training/E": E, "Training/V": V, "Training/alpha": alpha,
+                "Termination/max_beta": max_Beta, "Termination/mean_beta": mean_Beta, "Termination/min_beta":min_Beta,
+                "size_replay_memory": size_replay_memory, "Termination/adv_value_in_fit(mean)": adv_func_in_fit}
+
+    task_dict = {}
+    for key, value in task_info.items():
+        if hasattr(value, '__iter__'):
+            for i, v in enumerate(value):
+                task_dict[key + f"_{i}"] = v
+        else:
+            task_dict[key] = value
+    log_dict.update(task_dict)
+    wandb.log(log_dict, step=0)
 
     for epoch in tqdm(range(n_epochs), disable=False):
         epoch = epoch+200
@@ -185,7 +186,8 @@ def experiment(env_name: str = 'StaticHit',
         wandb.log(log_dict, step=epoch + 1)
         core.agent.agent_1.epoch_start()
         logger.log_agent(agent_1, full_save=full_save)
-        wrapped_agent.update_opponent_list(new_agent=agent_1)
+        if self_learn:
+            wrapped_agent.update_opponent_list(new_agent=agent_1)
 
 
 def compute_metrics(core, eval_params, record=False, return_dataset=False):

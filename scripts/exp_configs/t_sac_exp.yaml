@@ -34,6 +34,7 @@ target_entropy: -2
 
 task_curriculum: False
 curriculum_steps: 5
+self_learn: True
 
 check_point__: "two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53"
 
