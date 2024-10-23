@@ -8,7 +8,6 @@ from hrl_air_hockey.envs.hit_back_env import HitBackEnv
 from hrl_air_hockey.envs.base_env import BaseEnv
 from hrl_air_hockey.agents.double_agent_wrapper import HRLTournamentAgentWrapper
 from hrl_air_hockey.agents.t_sac import SACPlusTermination
-from hrl_air_hockey.agents.serve_agent import ServeAgent
 
 from hrl_air_hockey.utils.agent_builder import build_agent_T_SAC
 from nn_planner_config import Config
