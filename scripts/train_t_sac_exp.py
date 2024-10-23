@@ -28,7 +28,7 @@ def experiment(env_name: str = 'StaticHit',
                render: bool = False,
                record: bool = False,
                n_eval_steps: int = 120000,
-               mode: str = 'online',
+               mode: str = 'disabled',
                horizon: int = 120000,
                full_save: bool = False,
 

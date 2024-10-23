@@ -37,7 +37,7 @@ def main(
         # check_point: str = 't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47',
         # check_point: str = 't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
         # check_point: str = 't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
-        check_point: str = 't_sac_2024-09-06_01-12-50/parallel_seed___0/0/HitBackEnv_2024-09-06-01-13-19',
+        check_point: str = 'cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49',
         # check_point=None
 ):
     env = HitBackEnv(visual_target=True, horizon=3000, curriculum_steps=6, gamma=0.99)
@@ -60,7 +60,7 @@ def main(
 
     baseline_agent = BaselineAgent(env.env_info, agent_id=2)
     agent_path_list = [
-                       't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09'
+                       'cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49'
                        # 't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47'
                        # 't_sac_2024-09-01_05-46-30/parallel_seed___1/0/HitBackEnv_2024-09-01-05-47-27'
                        ]
@@ -71,7 +71,7 @@ def main(
 
     core = Core(agent, env)
 
-    core.evaluate(n_episodes=5, render=True, record=False)
+    core.evaluate(n_episodes=5, render=True, record=True)
 
 def get_file_by_postfix(parent_dir, postfix):
     file_list = list()
