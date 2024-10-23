@@ -7,9 +7,9 @@ from hrl_air_hockey.agents.t_sac import SACPlusTermination
 from hrl_air_hockey.utils.sac_network import SACActorNetwork, SACCriticNetwork, TerminationNetwork
 
 
-def build_agent_T_SAC(mdp_info, env_info, actor_lr, critic_lr, termination_lr, n_features_actor, n_features_critic,
+def build_agent_T_SAC(mdp_info, env_info, actor_lr, critic_lr, termination_lr, n_features_actor, n_features_critic, planner_config, planner_path,
                       n_features_termination, batch_size, initial_replay_size, max_replay_size, tau, num_adv_sample, adv_bonus,
-                      warmup_transitions, lr_alpha, target_entropy, dropout_ratio, layer_norm, use_cuda, termination_warmup):
+                      warmup_transitions, lr_alpha, target_entropy, dropout_ratio, layer_norm, use_cuda, termination_warmup, use_nn):
     if type(n_features_actor) is str:
         n_features_actor = list(map(int, n_features_actor.split(" ")))
 
@@ -85,9 +85,13 @@ def build_agent_T_SAC(mdp_info, env_info, actor_lr, critic_lr, termination_lr, n
     )
 
     atacom_planner_params = dict(env_info=env_info, controller_info=controller_info, init_state=init_state)
-    agent = SACPlusTermination(mdp_info, actor_mu_params=actor_mu_params, actor_sigma_params=actor_sigma_params,
+    config = planner_config
+    nn_planner_params = dict(planner_path=planner_path, env_info=env_info, config=config, device=device,
+                             violate_path=config.data.violate_path)
+
+    agent = SACPlusTermination(mdp_info, actor_mu_params=actor_mu_params, actor_sigma_params=actor_sigma_params, nn_planner_params=nn_planner_params,
                                atacom_planner_params=atacom_planner_params, termination_params=termination_params,
                                termination_optimizer=termination_optimizer, num_adv_sample=num_adv_sample, adv_bonus=adv_bonus,
-                               actor_optimizer=actor_optimizer, critic_params=critic_params, device=device, **alg_params)
+                               actor_optimizer=actor_optimizer, critic_params=critic_params, device=device, use_nn=use_nn, **alg_params)
 
     return agent

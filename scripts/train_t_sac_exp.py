@@ -25,11 +25,11 @@ def experiment(env_name: str = 'StaticHit',
                n_steps: int = 600,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
-               render: bool = False,
-               record: bool = False,
-               n_eval_steps: int = 120000,
-               mode: str = 'online',
-               horizon: int = 120000,
+               render: bool = True,
+               record: bool = True,
+               n_eval_steps: int = 2,
+               mode: str = 'disabled',
+               horizon: int = 600,
                full_save: bool = False,
 
                group: str = None,
@@ -56,8 +56,10 @@ def experiment(env_name: str = 'StaticHit',
                layer_norm: bool = False,
 
                # Continue training
-               # check_point: str = 'two_days_cl_r_self_learn_2024-09-16_13-38-36/two_days_cl_r_self_learn/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
-               check_point: str = None,
+               check_point: str = 'cl_sl_r_2024-09-16_01-32-16/cl_sl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-01-34-04',
+               # check_point: str = None,
+               load_nn_agent: str = 'Model_5600.pt',
+               use_nn: bool = True,
 
                # opponent agent
                agent_path_list: list = None,
@@ -76,12 +78,27 @@ def experiment(env_name: str = 'StaticHit',
     torch.manual_seed(parallel_seed)
 
     env = HitBackEnv(horizon=horizon, curriculum_steps=curriculum_steps, task_curriculum=task_curriculum, gamma=gamma)
-    env.info.action_space = Box(np.array([-0.9 + 1.51, -0.45]), np.array([-0.2 + 1.51, 0.45]))
-    env.info.observation_space = Box(np.ones(20), np.ones(20))
+    # env.info.action_space = Box(np.array([-0.9 + 1.51, -0.45]), np.array([-0.2 + 1.51, 0.45]))
+    # env.info.observation_space = Box(np.ones(20), np.ones(20))
+
+    env.info.action_space = Box(np.array([0.6, -0.39105, -np.pi, 0.]), np.array([1.3, 0.39105, np.pi, 1]))
+    planner_path = os.path.join('..', 'trained_low_agent', load_nn_agent)
+    planner_config = Config
+    agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info, adv_bonus=adv_bonus,
+                                planner_path=planner_path,
+                                planner_config=planner_config,
+                                actor_lr=actor_lr, critic_lr=critic_lr, termination_lr=termination_lr,
+                                n_features_actor=n_features_actor, n_features_critic=n_features_critic,
+                                n_features_termination=n_features_termination, batch_size=batch_size,
+                                initial_replay_size=initial_replay_size, max_replay_size=max_replay_size, tau=tau,
+                                num_adv_sample=num_adv_sample, warmup_transitions=warmup_transitions,
+                                lr_alpha=lr_alpha, target_entropy=target_entropy, dropout_ratio=dropout_ratio,
+                                layer_norm=layer_norm, use_cuda=use_cuda, termination_warmup=termination_warmup,
+                                use_nn=use_nn)
 
     if agent_path_list is None:
         agent_path_list = [
-                           'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
+                           # 'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
                            # 'two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53',
                            # 'cl_line_2024-09-12_00-48-29/cl_line/parallel_seed___0/0/HitBackEnv_2024-09-12-00-49-21',
                            # 'cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49',
@@ -89,8 +106,8 @@ def experiment(env_name: str = 'StaticHit',
                            # 'cl_sl_r_2024-09-16_01-32-16/cl_sl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-01-34-04',
                            ]
         oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
-        # baseline_agent = BaselineAgent(env.env_info, agent_id=2)
-        # oppponent_agent_list.append(baseline_agent)
+        baseline_agent = BaselineAgent(env.env_info, agent_id=2)
+        oppponent_agent_list.append(baseline_agent)
 
     config = dict()
     for p in inspect.signature(experiment).parameters:
@@ -111,22 +128,22 @@ def experiment(env_name: str = 'StaticHit',
         "render": render
     }
 
-    if check_point is None:
-        agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info, adv_bonus=adv_bonus,
-                                    actor_lr=actor_lr, critic_lr=critic_lr, termination_lr=termination_lr,
-                                    n_features_actor=n_features_actor, n_features_critic=n_features_critic,
-                                    n_features_termination=n_features_termination, batch_size=batch_size,
-                                    initial_replay_size=initial_replay_size, max_replay_size=max_replay_size, tau=tau,
-                                    num_adv_sample=num_adv_sample, warmup_transitions=warmup_transitions,
-                                    lr_alpha=lr_alpha, target_entropy=target_entropy, dropout_ratio=dropout_ratio,
-                                    layer_norm=layer_norm, use_cuda=use_cuda, termination_warmup=termination_warmup)
-        agent_1._log_alpha = torch.tensor(np.log(0.4)).to(agent_1._log_alpha).requires_grad_(True)
-        agent_1._alpha_optim = optim.Adam([agent_1._log_alpha], lr=lr_alpha)
-    else:
-        agent_1 = SACPlusTermination.load(get_agent_path(check_point))
-        agent_1._alpha_optim = optim.Adam([agent_1._log_alpha], lr=lr_alpha)
+    # if check_point is None:
+    #     agent_1 = build_agent_T_SAC(mdp_info=env.info, env_info=env.env_info, adv_bonus=adv_bonus,
+    #                                 actor_lr=actor_lr, critic_lr=critic_lr, termination_lr=termination_lr,
+    #                                 n_features_actor=n_features_actor, n_features_critic=n_features_critic,
+    #                                 n_features_termination=n_features_termination, batch_size=batch_size,
+    #                                 initial_replay_size=initial_replay_size, max_replay_size=max_replay_size, tau=tau,
+    #                                 num_adv_sample=num_adv_sample, warmup_transitions=warmup_transitions,
+    #                                 lr_alpha=lr_alpha, target_entropy=target_entropy, dropout_ratio=dropout_ratio,
+    #                                 layer_norm=layer_norm, use_cuda=use_cuda, termination_warmup=termination_warmup)
+    #     agent_1._log_alpha = torch.tensor(np.log(0.4)).to(agent_1._log_alpha).requires_grad_(True)
+    #     agent_1._alpha_optim = optim.Adam([agent_1._log_alpha], lr=lr_alpha)
+    # else:
+    #     agent_1 = SACPlusTermination.load(get_agent_path(check_point))
+    #     agent_1._alpha_optim = optim.Adam([agent_1._log_alpha], lr=lr_alpha)
 
-    wrapped_agent = HRLTournamentAgentWrapper(env.env_info, agent_1, agent_list=oppponent_agent_list)
+    wrapped_agent = HRLTournamentAgentWrapper(env.env_info, agent_1, agent_list=oppponent_agent_list, use_nn=use_nn)
     core = Core(wrapped_agent, env)
 
     # initial evaluate

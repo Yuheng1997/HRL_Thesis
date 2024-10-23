@@ -10,7 +10,8 @@ from air_hockey_challenge.utils.tournament_agent_wrapper import SimpleTournament
 
 
 class HRLTournamentAgentWrapper(SimpleTournamentAgentWrapper):
-    def __init__(self, env_info, agent_1, agent_list):
+    def __init__(self, env_info, agent_1, agent_list, use_nn):
+        self.use_nn = use_nn
         self.agent_list = agent_list
         self.agent_2 = self.agent_list[0]
         super().__init__(env_info, agent_1, self.agent_2)
@@ -18,7 +19,10 @@ class HRLTournamentAgentWrapper(SimpleTournamentAgentWrapper):
     def draw_action(self, state):
         _obs_1, _obs_2 = np.split(state, 2)
         _obs_2[2] = _obs_1[2]
-        obs_1 = _obs_1[:20]
+        if self.use_nn:
+            obs_1 = _obs_1[:23]
+        else:
+            obs_1 = _obs_1[:20]
         if isinstance(self.agent_2, BaselineAgent):
             obs_2 = _obs_2[:23]
         else:

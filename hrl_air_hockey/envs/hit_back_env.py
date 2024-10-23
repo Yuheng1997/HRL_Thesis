@@ -24,7 +24,7 @@ class HitBackEnv(position.IiwaPositionTournament):
         self.initial_puck_pos = None
         self.n_robot_joints = self.env_info['robot']["n_joints"]
         self.cross_line_count = 0
-        self.start_side = -1
+        self.start_side = 1
         self.middle_timer = 0
         # curriculum config
         self.start_range = None

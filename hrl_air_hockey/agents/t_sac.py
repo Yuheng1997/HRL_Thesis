@@ -8,6 +8,7 @@ from hrl_air_hockey.bspline_planner.planner import TrajectoryPlanner
 from hrl_air_hockey.agents.atacom_agent import AirHockeyController
 from hrl_air_hockey.bspline_planner.utils.kinematics import forward_kinematics
 
+
 class SACPlusTermination(SAC):
     """
     Soft Actor-Critic algorithm.
@@ -17,9 +18,9 @@ class SACPlusTermination(SAC):
     """
 
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params,
-                 atacom_planner_params, termination_params, termination_optimizer, batch_size, termination_warmup,
+                 atacom_planner_params, termination_params, termination_optimizer, batch_size, termination_warmup, nn_planner_params,
                  initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, num_adv_sample, device, adv_bonus,
-                 use_log_alpha_loss=False, log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None):
+                 use_log_alpha_loss=False, log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None, use_nn=False):
 
         super().__init__(mdp_info=mdp_info, actor_mu_params=actor_mu_params, actor_sigma_params=actor_sigma_params,
                          actor_optimizer=actor_optimizer, critic_params=critic_params, batch_size=batch_size,
@@ -34,7 +35,12 @@ class SACPlusTermination(SAC):
         self._replay_memory = TReplayMemory(initial_replay_size, max_replay_size, state_shape=self.state_shape,
                                             action_shape=self.action_shape, device=device)
 
-        self.traj_planner = AirHockeyController(**atacom_planner_params)
+        if use_nn:
+            self.nn_planner_params = nn_planner_params
+            self.traj_planner = TrajectoryPlanner(**nn_planner_params)
+        else:
+            self.traj_planner = AirHockeyController(**atacom_planner_params)
+        self.use_nn = use_nn
         self.atacom_planner_params = atacom_planner_params
 
         self.termination_approximator = Regressor(TorchApproximator, **termination_params)
@@ -65,31 +71,83 @@ class SACPlusTermination(SAC):
         self.last_option = None
         self.last_log_p = None
         self.policy.reset()
+        self.trajectory_buffer = None
 
     def draw_action(self, state):
-        if self.last_option is None:
-            self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
-            self.last_option = self.last_option.squeeze()
-        term_prob = self.termination_approximator.predict(state, self.last_option, output_tensor=False)
+        if not self.use_nn:
+            if self.last_option is None:
+                self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
+                self.last_option = self.last_option.squeeze()
+            term_prob = self.termination_approximator.predict(state, self.last_option, output_tensor=False)
 
-        if np.random.uniform() < term_prob:
-            self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
-            self.last_option = self.last_option.squeeze()
-            target_2d = self._get_target_2d(self.last_option, state)
-            low_action = self.traj_planner.compute_control(target_2d, state).flatten()
-            termination = np.array([1])
+            if np.random.uniform() < term_prob:
+                self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
+                self.last_option = self.last_option.squeeze()
+                target_2d = self._get_target_2d(self.last_option, state)
+                low_action = self.traj_planner.compute_control(target_2d, state).flatten()
+                termination = np.array([1])
+            else:
+                target_2d = self._get_target_2d(self.last_option, state)
+                low_action = self.traj_planner.compute_control(target_2d, state).flatten()
+                termination = np.array([0])
+
+            expand_state = np.repeat(state[np.newaxis, :], 50, axis=0)
+            expand_new_option = self.policy.draw_action(expand_state)
+            q = self._target_critic_approximator.predict(state[np.newaxis, :], self.last_option[np.newaxis, :], prediction='min')
+            v = self._target_critic_approximator.predict(expand_state, expand_new_option, prediction='min').mean()
+            adv_value = q - v + self.adv_bonus
+            # 14 + 2 + 1 + 1 = 18
+            return np.concatenate([low_action, self.last_option, termination, np.array([adv_value])])
         else:
-            target_2d = self._get_target_2d(self.last_option, state)
-            low_action = self.traj_planner.compute_control(target_2d, state).flatten()
-            termination = np.array([0])
+            if self.trajectory_buffer is None or len(self.trajectory_buffer) == 0:
+                self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
+                self.last_option = self.last_option.squeeze()
+                q, dq = self._get_joint_pos(state)
+                hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_option)
+                self.trajectory_buffer = \
+                    self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale)[0]
+                termination = np.array([1])
+                beta_termination = np.array([0])
+            else:
+                # term_prob = self.termination_approximator.predict(state, self.last_option, output_tensor=False)
+                term_prob = 0.01
+                # term_prob = 0.02
+                termination = np.array([0])
+                beta_termination = np.array([0])
+                if np.random.uniform() < term_prob:
+                    self.last_option, self.last_log_p = self.policy.compute_action_and_log_prob(state.reshape(1, -1))
+                    self.last_option = self.last_option.squeeze()
+                    q, dq = self._get_joint_pos(state)
+                    hit_pos, hit_dir, hit_scale, vel_angle = self._get_target_point(self.last_option)
 
-        expand_state = np.repeat(state[np.newaxis, :], 50, axis=0)
-        expand_new_option = self.policy.draw_action(expand_state)
-        q = self._target_critic_approximator.predict(state[np.newaxis, :], self.last_option[np.newaxis, :], prediction='min')
-        v = self._target_critic_approximator.predict(expand_state, expand_new_option, prediction='min').mean()
-        adv_value = q - v + self.adv_bonus
-        # 14 + 2 + 1 + 1 = 18
-        return np.concatenate([low_action, self.last_option, termination, np.array([adv_value])])
+                    rest_traj_len = len(self.trajectory_buffer)
+                    self.trajectory_buffer = \
+                        self.traj_planner.plan_trajectory(q, dq, hit_pos, hit_dir, hit_scale)[0]
+                    termination = np.array([1])
+                    beta_termination = np.array([1])
+            assert len(self.trajectory_buffer) > 0
+            joint_command = self.trajectory_buffer[0, :14]
+            self.trajectory_buffer = self.trajectory_buffer[1:]
+
+            expand_state = np.repeat(state[np.newaxis, :], 50, axis=0)
+            expand_new_option = self.policy.draw_action(expand_state)
+            q = self._target_critic_approximator.predict(state[np.newaxis, :], self.last_option[np.newaxis, :],
+                                                         prediction='min')
+            v = self._target_critic_approximator.predict(expand_state, expand_new_option, prediction='min').mean()
+            adv_value = q - v + self.adv_bonus
+            return np.concatenate([joint_command, self.last_option, termination, np.array([adv_value])])
+
+    def _get_joint_pos(self, state):
+        q = state[..., 6:13]
+        dq = state[..., 13:20]
+        return q, dq
+
+    def _get_target_point(self, action):
+        hit_pos = action[:2]
+        angle = action[2]
+        scale = action[3]
+        hit_vel = np.array([np.cos(angle), np.sin(angle)])
+        return hit_pos, hit_vel, scale, angle
 
     def fit(self, dataset, **info):
         t_dataset = self.add_t_dataset(dataset)
@@ -197,4 +255,5 @@ class SACPlusTermination(SAC):
         self.adv_bonus = 0.01
         self.state_shape = self.mdp_info.observation_space.shape
         self.action_shape = self.mdp_info.action_space.shape
-        self.traj_planner = AirHockeyController(**self.atacom_planner_params)
+        # self.traj_planner = AirHockeyController(**self.atacom_planner_params)
+        self.use_nn = True
