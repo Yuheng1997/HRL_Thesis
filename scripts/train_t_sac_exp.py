@@ -56,8 +56,8 @@ def experiment(env_name: str = 'StaticHit',
                layer_norm: bool = False,
 
                # Continue training
-               # check_point: str = 'two_days_cl_r_self_learn_2024-09-16_13-38-36/two_days_cl_r_self_learn/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
-               check_point: str = None,
+               check_point: str = 'two_days_cl_r_self_learn_2024-09-16_13-38-36/two_days_cl_r_self_learn/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
+               # check_point: str = None,
 
                # opponent agent
                agent_path_list: list = None,

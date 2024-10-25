@@ -34,13 +34,16 @@ def main(
         dropout_ratio: float = 0.01,
         layer_norm: bool = False,
 
-        # check_point: str = 't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47',
-        # check_point: str = 't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
-        # check_point: str = 't_sac_2024-08-29_12-36-32/parallel_seed___0/0/HitBackEnv_2024-08-29-12-37-09',
+        # 'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
+        # 'two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53',
+        # 'cl_line_2024-09-12_00-48-29/cl_line/parallel_seed___0/0/HitBackEnv_2024-09-12-00-49-21',
+        # 'cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49',
+        # 'cl_r_2024-09-16_13-38-36/cl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
+        # 'cl_sl_r_2024-09-16_01-32-16/cl_sl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-01-34-04',
         check_point: str = 'cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49',
         # check_point=None
 ):
-    env = HitBackEnv(visual_target=True, horizon=3000, curriculum_steps=6, gamma=0.99)
+    env = HitBackEnv(visual_target=True, horizon=5000, curriculum_steps=6, gamma=0.99)
     # env = BaseEnv(visual_target=True, horizon=200)
     env.info.action_space = Box(np.array([-0.9 + 1.51, -0.45]), np.array([-0.2 + 1.51, 0.45]))
     env.info.observation_space = Box(np.ones(20), np.ones(20))
@@ -60,9 +63,12 @@ def main(
 
     baseline_agent = BaselineAgent(env.env_info, agent_id=2)
     agent_path_list = [
-                       'cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49'
-                       # 't_sac_2024-08-28_16-02-59/parallel_seed___0/0/HitBackEnv_2024-08-28-16-03-47'
-                       # 't_sac_2024-09-01_05-46-30/parallel_seed___1/0/HitBackEnv_2024-09-01-05-47-27'
+                       # 'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
+                       # 'two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53',
+                       # 'cl_line_2024-09-12_00-48-29/cl_line/parallel_seed___0/0/HitBackEnv_2024-09-12-00-49-21',
+                       # 'cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49',
+                       # 'cl_r_2024-09-16_13-38-36/cl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
+                       # 'cl_sl_r_2024-09-16_01-32-16/cl_sl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-01-34-04',
                        ]
     oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
     oppponent_agent_list.append(baseline_agent)
@@ -71,7 +77,7 @@ def main(
 
     core = Core(agent, env)
 
-    core.evaluate(n_episodes=5, render=True, record=True)
+    core.evaluate(n_episodes=3, render=True, record=True)
 
 def get_file_by_postfix(parent_dir, postfix):
     file_list = list()
