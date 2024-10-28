@@ -21,15 +21,15 @@ from nn_planner_config import Config
 
 @single_experiment
 def experiment(env_name: str = 'StaticHit',
-               n_epochs: int = 1,
+               n_epochs: int = 100,
                n_steps: int = 600,
                quiet: bool = True,
                n_steps_per_fit: int = 1,
                render: bool = False,
                record: bool = False,
-               n_eval_steps: int = 1000,
+               n_eval_steps: int = 120000,
                mode: str = 'disabled',
-               horizon: int = 1000,
+               horizon: int = 120000,
                full_save: bool = False,
 
                group: str = None,
@@ -37,28 +37,28 @@ def experiment(env_name: str = 'StaticHit',
                gamma: float = 0.995,
                actor_lr: float = 3e-4,
                critic_lr: float = 3e-4,
-               termination_lr: float = 3e-6,
+               termination_lr: float = 0.00001,
                num_adv_sample: int = 50,
-               adv_bonus: float = 0.01,
+               adv_bonus: float = 0.1,
                n_features_actor: str = '256 256 256',
                n_features_critic: str = '256 256 256',
                n_features_termination: str = '256 256 256',
-               batch_size: int = 64,
-               initial_replay_size: int = 8,
-               max_replay_size: int = 200000,
+               batch_size: int = 256,
+               initial_replay_size: int = 20000,
+               max_replay_size: int = 1000000,
                tau: float = 1e-3,
-               warmup_transitions: int = 8,
-               termination_warmup: int = 8,
+               warmup_transitions: int = 20000,
+               termination_warmup: int = 20000,
                lr_alpha: float = 1e-5,
                target_entropy: float = -2,
-               use_cuda: bool = False,
+               use_cuda: bool = True,
                dropout_ratio: float = 0.01,
                layer_norm: bool = False,
                self_learn: bool = True,
 
                # Continue training
-               # check_point: str = 't_sac_2024-09-09_00-23-22/parallel_seed___0/0/HitBackEnv_2024-09-09-03-23-16',
-               check_point: str = None,
+               check_point: str = 'two_days_cl_r_self_learn_2024-09-16_13-38-36/two_days_cl_r_self_learn/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
+               # check_point: str = None,
 
                # opponent agent
                agent_path_list: list = None,
@@ -76,18 +76,18 @@ def experiment(env_name: str = 'StaticHit',
     np.random.seed(parallel_seed)
     torch.manual_seed(parallel_seed)
 
-    env = HitBackEnv(horizon=horizon, curriculum_steps=curriculum_steps, gamma=gamma)
+    env = HitBackEnv(horizon=horizon, curriculum_steps=curriculum_steps, task_curriculum=task_curriculum, gamma=gamma)
     env.info.action_space = Box(np.array([-0.9 + 1.51, -0.45]), np.array([-0.2 + 1.51, 0.45]))
     env.info.observation_space = Box(np.ones(20), np.ones(20))
 
     if agent_path_list is None:
         agent_path_list = [
-                            'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
-                            # 'two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53',
-                            # 'cl_line_2024-09-12_00-48-29/cl_line/parallel_seed___0/0/HitBackEnv_2024-09-12-00-49-21',
-                            # 'cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49',
-                            # 'cl_r_2024-09-16_13-38-36/cl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
-                            # 'cl_sl_r_2024-09-16_01-32-16/cl_sl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-01-34-04',
+                           'two_days_origin_2024-09-11_12-59-00/two_days_origin/parallel_seed___0/0/HitBackEnv_2024-09-11-13-00-58',
+                           # 'two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53',
+                           # 'cl_line_2024-09-12_00-48-29/cl_line/parallel_seed___0/0/HitBackEnv_2024-09-12-00-49-21',
+                           # 'cl_sl_line_2024-09-15_12-26-41/cl_sl_line/parallel_seed___0/0/HitBackEnv_2024-09-15-14-54-49',
+                           # 'cl_r_2024-09-16_13-38-36/cl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-14-25-15',
+                           # 'cl_sl_r_2024-09-16_01-32-16/cl_sl_r/parallel_seed___0/0/HitBackEnv_2024-09-16-01-34-04',
                            ]
         oppponent_agent_list = [SACPlusTermination.load(get_agent_path(agent_path)) for agent_path in agent_path_list]
         baseline_agent = BaselineAgent(env.env_info, agent_id=2)
@@ -105,6 +105,8 @@ def experiment(env_name: str = 'StaticHit',
     os.environ["WANDB_API_KEY"] = Config.wandb.api_key
     wandb.init(project="LearnHitBack", dir=results_dir, config=config, name=f"{current_time}_seed{parallel_seed}",
                group=group, notes=f"logdir: {logger._results_dir}", mode=mode, id='3yqwd85o', resume='allow')
+    # wandb.init(project="TournamentEval", dir=results_dir, config=config, name=f"{current_time}_seed{parallel_seed}",
+    #            group=group, notes=f"logdir: {logger._results_dir}", mode=mode)
 
     eval_params = {
         "n_steps": n_eval_steps,
@@ -155,7 +157,8 @@ def experiment(env_name: str = 'StaticHit',
     wandb.log(log_dict, step=0)
 
     for epoch in tqdm(range(n_epochs), disable=False):
-        epoch = epoch+200
+        if check_point is not None:
+            epoch += 100
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit, quiet=quiet)
 
         J, R, E, V, alpha, max_Beta, mean_Beta, min_Beta, task_info = compute_metrics(core, eval_params, record)
@@ -318,6 +321,13 @@ def get_dataset_info(core, dataset, dataset_info):
     epoch_info['hit_num'] = dataset_info['hit_num'][-1]
     epoch_info['win'] = dataset_info['win'][-1]
     epoch_info['lose'] = dataset_info['lose'][-1]
+    epoch_info['self_fault'] = dataset_info['self_faults'][-1]
+    epoch_info['oppo_fault'] = dataset_info['oppo_faults'][-1]
+    epoch_info['episodes_num'] = episodes
+    epoch_info['serve_round'] = dataset_info['serve_round'][-1]
+    epoch_info['serve_success'] = dataset_info['serve_success'][-1]
+    epoch_info['attack_num'] =dataset_info['attack_num'][-1]
+    epoch_info['undefended_num'] = dataset_info['undefended_num'][-1]
     return epoch_info
 
 

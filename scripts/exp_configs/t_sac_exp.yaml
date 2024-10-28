@@ -1,6 +1,6 @@
 env_name: 'HitBackEnv'
 mode: 'online'
-group: '19_09_three_day_origin/self_learning4'
+group: 'sl_origin_vs_origin'
 render: False
 record: False
 
@@ -39,7 +39,7 @@ self_learn: True
 check_point__: "two_days_selflearn_2024-09-12_01-25-49/two_days_selflearn/parallel_seed___0/0/HitBackEnv_2024-09-12-01-26-53"
 
 sweep_params:
-  parallel_seed__: [0]
+  parallel_seed__: [0, 1, 2]
 
 
 experiments:
