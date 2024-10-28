@@ -28,7 +28,7 @@ reinforcement learning.\
 ![](./demo/hrl.png)
 2. Compared Atacom and CNP-B as low level agent:\
 Atacom in low termination probability 0.01:\
-![](./demo/fixed_0_01.gif)
+![](./demo/fixed_0_01.gif)\
 CNP-B in low termination probability 0.01:\
 ![](./demo/nn_fixed_0_01.gif)\
 Atacom in high termination probability 0.9:\
