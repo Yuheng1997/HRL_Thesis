@@ -5,13 +5,15 @@ This is a master thesis. We propose a Hierarchical Reinforcement Learning(HRL) m
 gradient under OCAD(Option-Critic Architecutre with deterministic intra-option policy, named TSAC under OCDA. \
 We implement and validate the method in air-hockey games, with the LBR iiwa, the 7 DoF robotic arm.\
 The low level agents include ATACOM and CNP-B. The ATACOM is a besser choice.\
-We improve the agent's performance using Self Learning(SL) and Curriculum Learning(CL).\
-The structure of out method:\
+We improve the agent's performance using Self Learning(SL) and Curriculum Learning(CL).
+
+## Method
+The structure of the Agent:\
 ![](./demo/Flow_chart.png)\
-Compared with the option critic architecture(OCA).\
-OCA:\
+Structure of OCAD in infinite option:\
+The option critic architecture(OCA):\
 ![](./demo/OCA.png)\
-Option critic architecture with deterministic intra-option policy in infinite option:\
+Option critic architecture with deterministic intra-option policy(OCAD) in infinite option:\
 ![](./demo/OCADinInfiniteOption.png)
 
 ## The trained agent demo
