@@ -1,5 +1,5 @@
 # HRL_thesis
-Hierarchical Reinforcement Learning with Robotic Air Hockey\
+Hierarchical Reinforcement Learning with Robotic Air Hockey
 ## What is this Project
 This is a master thesis. We propose a Hierarchical Reinforcement Learning(HRL) method, using SAC with termination 
 gradient under OCAD(Option-Critic Architecutre with deterministic intra-option policy, named TSAC under OCDA. \
@@ -12,7 +12,7 @@ Compared with the option critic architecture(OCA).\
 OCA:\
 ![](./demo/OCA.png)\
 Option critic architecture with deterministic intra-option policy in infinite option:\
-![](./demo/OCADinInfiniteOption.png)\
+![](./demo/OCADinInfiniteOption.png)
 
 ## The trained agent demo
 Left Agent trained by self learning, curriculum learning.  Right agent is baseline.\
@@ -20,7 +20,7 @@ Left Agent trained by self learning, curriculum learning.  Right agent is baseli
 Left Agent trained by self learning, curriculum learning.  Right agent is trained by “vanilla”.\
 ![](./demo/sl_cl_line_vs_ori.gif)\
 The green ball on the table is the option(subgoal) the high level agent choosed. Falls the green ball change its 
-position before the mallet reach it, it means the high level terminate this option and sample a new one.\
+position before the mallet reach it, it means the high level terminate this option and sample a new one.
 
 ## Result
 1. Proved the agent with our hierarchical reinforcement learning(HRL) method reduce the training difficult compared with 'shallow'
@@ -46,13 +46,12 @@ Against baseline:\
 The blue bars are goals of y-axis agent, the red ball are goals of x-axis agent. And the winner is the agent trained with extra
 curriculum dynamic line and self learning.\
 Against each other:\
-![](./demo/against_each.png)\
+![](./demo/against_each.png)
 
 
 ## Different Branches
 The base experiment is in branch main. The other experiments are in branch cl_line and cl_reward. To set self_learn=True to 
-turn on self learning.\
-
+turn on self learning.
 
 
 
