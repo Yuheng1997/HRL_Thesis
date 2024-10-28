@@ -25,23 +25,23 @@ position before the mallet reach it, it means the high level terminate this opti
 ## Result
 1. Proved the agent with our hierarchical reinforcement learning(HRL) method reduce the training difficult compared with 'shallow'
 reinforcement learning.\
-![](./demo/hrl.png)\
+![](./demo/hrl.png)
 2. Compared Atacom and CNP-B as low level agent:\
 Atacom in low termination probability 0.01:\
-![](./demo/fixed_0_01.gif)\
+![](./demo/fixed_0_01.gif)
 CNP-B in low termination probability 0.01:\
 ![](./demo/nn_fixed_0_01.gif)\
 Atacom in high termination probability 0.9:\
 ![](./demo/fixed_0_9.gif)\
 CNP-B in high termination probability 0.5:\
-![](./demo/nn_fixed_0_5.gif)\
+![](./demo/nn_fixed_0_5.gif)
 3. The useful termination critic.\
 ![](./demo/4metrics.png)\
-![](./demo/beta.png)\
+![](./demo/beta.png)
 4. We trained six agents and held a competition, proved the curriculum learning and 
 self-learning method can enhance the agents’ performance.\
 Against baseline:\
-![](./demo/against_baseline.png)\
+![](./demo/against_baseline.png)
 5. Additionally, the self-learning can improve agent’s generalization.\
 The blue bars are goals of y-axis agent, the red ball are goals of x-axis agent. And the winner is the agent trained with extra
 curriculum dynamic line and self learning.\
